@@ -120,6 +120,8 @@ dependencies = [
  "amp-ports",
  "eframe",
  "rtrb",
+ "serde",
+ "serde_json",
  "tokio",
  "uuid",
 ]

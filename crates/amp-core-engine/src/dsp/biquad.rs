@@ -59,6 +59,28 @@ impl BiquadFilter {
         output
     }
 
+    /// Updates the peaking EQ coefficients in-place while strictly preserving internal
+    /// state delay registers (x1, x2, y1, y2) to prevent pops, clicks, or buzz.
+    pub fn update_peaking_eq(&mut self, sample_rate: f32, center_freq: f32, q: f32, db_gain: f32) {
+        let safe_freq = center_freq.clamp(10.0, (sample_rate * 0.49).max(10.0));
+        let a = 10.0f32.powf(db_gain / 40.0);
+        let omega = 2.0 * PI * safe_freq / sample_rate;
+        let alpha = omega.sin() / (2.0 * q);
+
+        let b0 = 1.0 + alpha * a;
+        let b1 = -2.0 * omega.cos();
+        let b2 = 1.0 - alpha * a;
+        let a0 = 1.0 + alpha / a;
+        let a1 = -2.0 * omega.cos();
+        let a2 = 1.0 - alpha / a;
+
+        self.b0 = b0 / a0;
+        self.b1 = b1 / a0;
+        self.b2 = b2 / a0;
+        self.a1 = a1 / a0;
+        self.a2 = a2 / a0;
+    }
+
     /// Resets internal delay line buffers (e.g. on seek or track change).
     pub fn reset_state(&mut self) {
         self.x1 = 0.0;
@@ -81,6 +103,23 @@ mod tests {
             output = filter.process_sample(0.5);
         }
         assert!((output - 0.5).abs() < 1e-4);
+    }
+
+    #[test]
+    fn test_biquad_state_preservation() {
+        let mut filter = BiquadFilter::new_peaking_eq(44100.0, 1000.0, 1.414, 0.0);
+        for _ in 0..50 {
+            let _ = filter.process_sample(0.8);
+        }
+        assert!(filter.x1 != 0.0 && filter.y1 != 0.0);
+
+        let prev_x1 = filter.x1;
+        let prev_y1 = filter.y1;
+
+        // Updating coefficients should not zero the delay line registers
+        filter.update_peaking_eq(44100.0, 1000.0, 1.414, 6.0);
+        assert_eq!(filter.x1, prev_x1);
+        assert_eq!(filter.y1, prev_y1);
     }
 
     use proptest::prelude::*;

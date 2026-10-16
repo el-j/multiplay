@@ -11,6 +11,7 @@ use amp_ports::driven::LibraryStoragePort;
 use async_trait::async_trait;
 
 pub use keyring::{KeyringStorageAdapter, SecretString};
+pub use scanner::{collect_audio_files, extract_track_from_file, LibraryScanner};
 use redb::{Database, ReadableTable, TableDefinition};
 use std::path::Path;
 use std::sync::Arc;

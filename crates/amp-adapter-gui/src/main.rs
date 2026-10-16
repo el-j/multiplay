@@ -4,14 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-mod app;
-mod audio_driver;
-mod dj_panel;
-mod equalizer_widget;
-mod settings_panel;
-mod visualizer_widget;
-
-use app::MultiplayGuiApp;
+use amp_adapter_gui::MultiplayGuiApp;
 use eframe::egui::Vec2;
 
 fn main() -> eframe::Result<()> {

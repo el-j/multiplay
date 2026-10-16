@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 15 Plans | 50 Tasks | 50 Completed | Status: COMPLETED*
+*Tracking: 19 Plans | 60 Tasks | 60 Completed | Status: COMPLETED*
 
 ---
 
@@ -173,6 +173,32 @@
 | [TASK-048](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-048-github-actions-ci-pipeline.md) | GitHub Actions Comprehensive CI Quality Pipeline | Completed | devops_and_ci | `test -f .github/workflows/ci.yml` |
 | [TASK-049](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-049-github-actions-release-and-publishing-pipeline.md) | GitHub Actions Automated Cross-Platform Release & Publishing Pipeline | Completed | devops_and_release | `test -f .github/workflows/release.yml` |
 | [TASK-050](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-050-end-to-end-verification-and-zero-gaps-audit.md) | End-to-End Verification, Zero-Gaps Audit, Coverage & Mutation Test Validation | Completed | qa_and_hardening | `make all && make verify-pure-rust` |
+
+### PLAN-016: Modular Detachable & Magnetically Dockable Window System (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-051](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-051-magnetic-snapping-and-window-docking-geometry-engine.md) | Magnetic Snapping & Window Docking Geometry Engine | Completed | frontend_gui | `cargo test -p amp-adapter-gui test_docking` |
+| [TASK-052](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-052-modular-windows-player-eq-playlist-settings-dj.md) | Modular Windows Implementation (Player, Equalizer, Playlist, Settings, DJ Console) | Completed | frontend_gui | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
+| [TASK-053](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-053-window-layout-persistence-and-session-restore.md) | Window Layout Persistence & Session Restore | Completed | frontend_gui | `cargo test -p amp-adapter-gui test_layout_persistence` |
+
+### PLAN-017: Playlist Drag-and-Drop Ingestion & Multi-Format Local Media Scanner (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-054](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-054-native-drag-and-drop-ingestion-files-folders-urls.md) | Native OS Drag-and-Drop Ingestion for Audio Files, Folders & URLs | Completed | frontend_gui | `cargo test -p amp-adapter-gui test_drag_and_drop` |
+| [TASK-055](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-055-metadata-extraction-and-playlist-tag-probing.md) | Pure-Rust Metadata Extraction & Playlist Item Probing | Completed | storage_and_state | `cargo test -p amp-adapter-storage test_probe_metadata` |
+| [TASK-056](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-056-empty-playlist-onboarding-and-file-picker.md) | Empty Playlist Onboarding State & File Picker Integration | Completed | frontend_gui | `cargo test -p amp-adapter-gui test_playlist_empty_state` |
+
+### PLAN-018: Real Symphonia Audio Playback Engine & Gapless Decoder Integration (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-057](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-057-real-time-audio-decoder-worker-and-stream-feeder.md) | Real-Time Audio Decoder Worker & Multi-Source Stream Feeder | Completed | audio_engine | `cargo test -p amp-adapter-gui test_real_audio_streaming` |
+| [TASK-058](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-058-playback-progress-scrubbing-and-gapless-advancement.md) | Playback Progress Tracking, Scrubbing & Gapless Track Advancement | Completed | audio_engine | `cargo test -p amp-adapter-gui test_playback_tracking_and_seek` |
+
+### PLAN-019: Audiophile Equalizer DSP Overhaul & Clipping Safeguard Engine (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-059](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-059-continuous-biquad-coefficient-morphing-and-state-preservation.md) | Continuous Biquad Filter Coefficient Morphing & State Preservation | Completed | dsp_engineering | `cargo test -p amp-core-engine test_biquad_state_preservation` |
+| [TASK-060](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-060-preamp-gain-staging-headroom-and-soft-knee-limiter.md) | Preamp Gain Staging, Headroom Management & Soft-Knee Limiter DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine test_eq_headroom_and_limiter` |
 
 ---
 

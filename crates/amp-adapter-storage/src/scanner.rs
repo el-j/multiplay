@@ -38,7 +38,7 @@ impl LibraryScanner {
     }
 }
 
-fn collect_audio_files(dir: &Path) -> Vec<PathBuf> {
+pub fn collect_audio_files(dir: &Path) -> Vec<PathBuf> {
     let mut results = Vec::new();
     let supported_extensions = ["mp3", "flac", "wav", "ogg", "m4a", "aac", "opus"];
 
@@ -127,4 +127,37 @@ mod tests {
         let collected = collect_audio_files(dir.path());
         assert_eq!(collected.len(), 2);
     }
+
+    #[test]
+    fn test_probe_metadata() {
+        let dir = tempdir().unwrap();
+        let wav_path = dir.path().join("Artist - Title.wav");
+
+        // Write a minimal valid WAV container
+        let mut wav_bytes = Vec::new();
+        wav_bytes.extend_from_slice(b"RIFF");
+        wav_bytes.extend_from_slice(&76u32.to_le_bytes());
+        wav_bytes.extend_from_slice(b"WAVE");
+        wav_bytes.extend_from_slice(b"fmt ");
+        wav_bytes.extend_from_slice(&16u32.to_le_bytes());
+        wav_bytes.extend_from_slice(&1u16.to_le_bytes()); // PCM
+        wav_bytes.extend_from_slice(&2u16.to_le_bytes()); // Stereo
+        wav_bytes.extend_from_slice(&44100u32.to_le_bytes()); // 44.1 kHz
+        wav_bytes.extend_from_slice(&176400u32.to_le_bytes()); // Byte rate
+        wav_bytes.extend_from_slice(&4u16.to_le_bytes()); // Block align
+        wav_bytes.extend_from_slice(&16u16.to_le_bytes()); // Bits per sample
+        wav_bytes.extend_from_slice(b"data");
+        wav_bytes.extend_from_slice(&40u32.to_le_bytes());
+        wav_bytes.extend_from_slice(&[0u8; 40]);
+
+        fs::write(&wav_path, &wav_bytes).unwrap();
+
+        let track = extract_track_from_file(&wav_path);
+        assert!(track.is_some());
+        let t = track.unwrap();
+        assert_eq!(t.metadata.title, "Artist - Title");
+        assert_eq!(t.metadata.sample_rate, Some(44100));
+        assert_eq!(t.metadata.channels, Some(2));
+    }
 }
+

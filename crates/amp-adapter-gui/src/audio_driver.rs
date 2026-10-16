@@ -1,11 +1,12 @@
 //! Pure-Rust real-time audio playback driver.
-//! Connects CPAL hardware audio sink, lock-free ring buffer, 10-band EQ, and FFT visualizer.
+//! Connects CPAL hardware audio sink, Symphonia decoder, 10-band EQ, and FFT visualizer.
 
 #![forbid(unsafe_code)]
 
 use amp_adapter_cpal::{AudioDeviceDescription, CpalAudioSink};
+use amp_adapter_decoder::AudioStreamDecoder;
 use amp_core_engine::{GraphicEqualizer, SpectrumVisualizer};
-use amp_domain::{PlaybackState, Track};
+use amp_domain::{AudioSource, PlaybackState, Track};
 use amp_ports::AudioSinkPort;
 use rtrb::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,20 +18,24 @@ pub struct AudioPlaybackDriver {
     pub visualizer_spectrum: Arc<Mutex<[f32; 16]>>,
     pub volume: Arc<Mutex<f32>>,
     pub eq_gains: Arc<Mutex<[f32; 10]>>,
+    pub eq_preamp: Arc<Mutex<f32>>,
     pub eq_enabled: Arc<AtomicBool>,
     pub current_track: Arc<Mutex<Option<Track>>>,
     pub elapsed: Arc<Mutex<Duration>>,
+    pub total_duration: Arc<Mutex<Option<Duration>>>,
+    pub seek_requested: Arc<Mutex<Option<Duration>>>,
+    pub track_finished: Arc<AtomicBool>,
     pub current_device_name: Arc<Mutex<String>>,
     pub available_devices: Vec<AudioDeviceDescription>,
     audio_sink: Arc<Mutex<CpalAudioSink>>,
     producer: Arc<Mutex<Producer<f32>>>,
+    track_change_signal: Arc<AtomicBool>,
 }
 
 impl AudioPlaybackDriver {
     pub fn new() -> Result<Self, String> {
         let available_devices = CpalAudioSink::list_output_devices();
 
-        // Default to system default device, or MacBook Pro Speakers if available
         let (mut audio_sink, producer) = CpalAudioSink::new()?;
         let sample_rate = audio_sink.sample_rate();
         let device_name = audio_sink.device_name().to_string();
@@ -40,9 +45,14 @@ impl AudioPlaybackDriver {
         let visualizer_spectrum = Arc::new(Mutex::new([0.0f32; 16]));
         let volume = Arc::new(Mutex::new(0.85f32));
         let eq_gains = Arc::new(Mutex::new([0.0f32; 10]));
+        let eq_preamp = Arc::new(Mutex::new(0.0f32));
         let eq_enabled = Arc::new(AtomicBool::new(true));
         let current_track = Arc::new(Mutex::new(None));
         let elapsed = Arc::new(Mutex::new(Duration::ZERO));
+        let total_duration = Arc::new(Mutex::new(None));
+        let seek_requested = Arc::new(Mutex::new(None));
+        let track_finished = Arc::new(AtomicBool::new(false));
+        let track_change_signal = Arc::new(AtomicBool::new(false));
         let current_device_name = Arc::new(Mutex::new(device_name));
 
         let producer_arc = Arc::new(Mutex::new(producer));
@@ -52,11 +62,16 @@ impl AudioPlaybackDriver {
         let spec_out = Arc::clone(&visualizer_spectrum);
         let vol_ref = Arc::clone(&volume);
         let eq_ref = Arc::clone(&eq_gains);
+        let preamp_ref = Arc::clone(&eq_preamp);
         let eq_on_ref = Arc::clone(&eq_enabled);
+        let track_ref = Arc::clone(&current_track);
         let elapsed_ref = Arc::clone(&elapsed);
+        let total_dur_ref = Arc::clone(&total_duration);
+        let seek_ref = Arc::clone(&seek_requested);
+        let finished_ref = Arc::clone(&track_finished);
+        let change_ref = Arc::clone(&track_change_signal);
         let prod_ref = Arc::clone(&producer_arc);
 
-        // Spawn background audio synthesis and streaming thread
         std::thread::Builder::new()
             .name("multiplay-audio-worker".to_string())
             .spawn(move || {
@@ -66,8 +81,14 @@ impl AudioPlaybackDriver {
                     spec_out,
                     vol_ref,
                     eq_ref,
+                    preamp_ref,
                     eq_on_ref,
+                    track_ref,
                     elapsed_ref,
+                    total_dur_ref,
+                    seek_ref,
+                    finished_ref,
+                    change_ref,
                     sample_rate,
                 );
             })
@@ -78,13 +99,18 @@ impl AudioPlaybackDriver {
             visualizer_spectrum,
             volume,
             eq_gains,
+            eq_preamp,
             eq_enabled,
             current_track,
             elapsed,
+            total_duration,
+            seek_requested,
+            track_finished,
             current_device_name,
             available_devices,
             audio_sink: audio_sink_arc,
             producer: producer_arc,
+            track_change_signal,
         })
     }
 
@@ -112,7 +138,13 @@ impl AudioPlaybackDriver {
     pub fn play(&self, track: Track) {
         *self.current_track.lock().unwrap() = Some(track);
         *self.elapsed.lock().unwrap() = Duration::ZERO;
+        self.track_finished.store(false, Ordering::SeqCst);
+        self.track_change_signal.store(true, Ordering::SeqCst);
         self.is_playing.store(true, Ordering::SeqCst);
+    }
+
+    pub fn seek(&self, target: Duration) {
+        *self.seek_requested.lock().unwrap() = Some(target);
     }
 
     pub fn toggle_play_pause(&self) {
@@ -123,6 +155,7 @@ impl AudioPlaybackDriver {
     pub fn stop(&self) {
         self.is_playing.store(false, Ordering::SeqCst);
         *self.elapsed.lock().unwrap() = Duration::ZERO;
+        *self.seek_requested.lock().unwrap() = Some(Duration::ZERO);
         let mut spec = self.visualizer_spectrum.lock().unwrap();
         *spec = [0.0; 16];
     }
@@ -136,6 +169,10 @@ impl AudioPlaybackDriver {
             let mut gains = self.eq_gains.lock().unwrap();
             gains[band] = gain_db.clamp(-12.0, 12.0);
         }
+    }
+
+    pub fn set_eq_preamp(&self, gain_db: f32) {
+        *self.eq_preamp.lock().unwrap() = gain_db.clamp(-12.0, 12.0);
     }
 
     pub fn toggle_eq(&self) {
@@ -160,30 +197,58 @@ fn run_playback_loop(
     visualizer_spectrum: Arc<Mutex<[f32; 16]>>,
     volume: Arc<Mutex<f32>>,
     eq_gains: Arc<Mutex<[f32; 10]>>,
+    eq_preamp: Arc<Mutex<f32>>,
     eq_enabled: Arc<AtomicBool>,
+    current_track: Arc<Mutex<Option<Track>>>,
     elapsed: Arc<Mutex<Duration>>,
+    total_duration: Arc<Mutex<Option<Duration>>>,
+    seek_requested: Arc<Mutex<Option<Duration>>>,
+    track_finished: Arc<AtomicBool>,
+    track_change_signal: Arc<AtomicBool>,
     sample_rate: u32,
 ) {
     let mut eq = GraphicEqualizer::new(sample_rate as f32);
     let mut vis = SpectrumVisualizer::new();
     let chunk_frames = 512;
     let mut pcm_buffer = vec![0.0f32; chunk_frames * 2];
-    let mut phase: f32 = 0.0;
-    let mut phase2: f32 = 0.0;
-    let mut sub_phase: f32 = 0.0;
-
-    // Musical scale frequencies for synthetic melodic playback (Aphex / Kraftwerk style)
-    let notes = [220.0, 261.63, 329.63, 392.0, 440.0, 523.25, 659.25, 783.99];
+    let mut active_decoder: Option<AudioStreamDecoder> = None;
 
     while !std::thread::panicking() {
+        // 1. Handle track change request
+        if track_change_signal.swap(false, Ordering::SeqCst) {
+            let track_opt = current_track.lock().unwrap().clone();
+            active_decoder = None;
+
+            if let Some(track) = track_opt {
+                if let AudioSource::LocalFile { ref path } = track.source {
+                    if let Ok(dec) = AudioStreamDecoder::open_file(path) {
+                        *total_duration.lock().unwrap() = dec.duration().or(track.metadata.duration);
+                        active_decoder = Some(dec);
+                    }
+                }
+            }
+        }
+
+        // 2. Handle pause / stopped state
         if !is_playing.load(Ordering::Relaxed) {
             std::thread::sleep(Duration::from_millis(15));
             continue;
         }
 
-        let vol = *volume.lock().unwrap();
+        // 3. Handle seek request
+        let seek_opt = seek_requested.lock().unwrap().take();
+        if let Some(target) = seek_opt {
+            if let Some(ref mut dec) = active_decoder {
+                let _ = dec.seek(target);
+                *elapsed.lock().unwrap() = dec.elapsed();
+            }
+        }
+
+        // 4. Update EQ settings (only updates when changed)
         let eq_on = eq_enabled.load(Ordering::Relaxed);
         eq.set_enabled(eq_on);
+        let preamp = *eq_preamp.lock().unwrap();
+        eq.set_preamp_gain(preamp);
         {
             let gains = *eq_gains.lock().unwrap();
             for (idx, &g) in gains.iter().enumerate() {
@@ -191,46 +256,57 @@ fn run_playback_loop(
             }
         }
 
-        let el_secs = elapsed.lock().unwrap().as_secs_f32();
-        let note_idx = ((el_secs * 3.0) as usize) % notes.len();
-        let target_freq = notes[note_idx];
+        let vol = *volume.lock().unwrap();
 
-        // Synthesize rich ambient stereo chords
-        #[allow(clippy::chunks_exact_to_as_chunks)]
-        for frame in pcm_buffer.chunks_exact_mut(2) {
-            let osc1 = (phase * 2.0 * std::f32::consts::PI).sin() * 0.25;
-            let osc2 = (phase2 * 2.0 * std::f32::consts::PI).sin() * 0.15;
-            let sub = (sub_phase * 2.0 * std::f32::consts::PI).sin() * 0.35;
-
-            let sample_l = (osc1 + osc2 + sub) * vol;
-            let sample_r = (osc1 * 0.8 + osc2 * 1.2 + sub) * vol;
-
-            frame[0] = sample_l;
-            frame[1] = sample_r;
-
-            phase += target_freq / sample_rate as f32;
-            if phase > 1.0 { phase -= 1.0; }
-
-            phase2 += (target_freq * 1.5) / sample_rate as f32;
-            if phase2 > 1.0 { phase2 -= 1.0; }
-
-            sub_phase += (target_freq * 0.5) / sample_rate as f32;
-            if sub_phase > 1.0 { sub_phase -= 1.0; }
+        // 5. Decode audio frames from real decoder
+        let mut read_samples = 0;
+        if let Some(ref mut dec) = active_decoder {
+            match dec.read_interleaved_samples(&mut pcm_buffer) {
+                Ok(n) if n > 0 => {
+                    read_samples = n;
+                    *elapsed.lock().unwrap() = dec.elapsed();
+                }
+                Ok(_) => {
+                    // EOF reached
+                    track_finished.store(true, Ordering::SeqCst);
+                    is_playing.store(false, Ordering::SeqCst);
+                    active_decoder = None;
+                }
+                Err(e) => {
+                    eprintln!("Decoder frame error: {e}");
+                    track_finished.store(true, Ordering::SeqCst);
+                    is_playing.store(false, Ordering::SeqCst);
+                    active_decoder = None;
+                }
+            }
+        } else {
+            // No active file loaded: sleep briefly to avoid busy loop
+            std::thread::sleep(Duration::from_millis(15));
+            continue;
         }
 
-        // Apply 10-band equalizer
-        eq.process_interleaved(&mut pcm_buffer);
+        if read_samples == 0 {
+            continue;
+        }
 
-        // Update FFT spectrum visualizer
-        vis.push_samples(&pcm_buffer);
+        // 6. Apply master volume
+        for s in &mut pcm_buffer[..read_samples] {
+            *s *= vol;
+        }
+
+        // 7. Apply 10-band equalizer
+        eq.process_interleaved(&mut pcm_buffer[..read_samples]);
+
+        // 8. Update FFT spectrum visualizer
+        vis.push_samples(&pcm_buffer[..read_samples]);
         let bands = vis.compute_spectrum_bands();
         if let Ok(mut spec) = visualizer_spectrum.try_lock() {
             *spec = bands;
         }
 
-        // Push samples to CPAL lock-free ring buffer
+        // 9. Push samples to CPAL lock-free ring buffer
         if let Ok(mut prod) = producer.try_lock() {
-            for &s in &pcm_buffer {
+            for &s in &pcm_buffer[..read_samples] {
                 while prod.push(s).is_err() {
                     if !is_playing.load(Ordering::Relaxed) {
                         break;
@@ -238,12 +314,6 @@ fn run_playback_loop(
                     std::thread::yield_now();
                 }
             }
-        }
-
-        // Advance elapsed duration
-        let chunk_dur = Duration::from_secs_f32(chunk_frames as f32 / sample_rate as f32);
-        if let Ok(mut el) = elapsed.try_lock() {
-            *el += chunk_dur;
         }
     }
 }

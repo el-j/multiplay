@@ -6,10 +6,10 @@
   "status": "completed",
   "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 15,
-    "completedPlans": 15,
-    "totalTasks": 50,
-    "completedTasks": 50
+    "totalPlans": 19,
+    "completedPlans": 19,
+    "totalTasks": 60,
+    "completedTasks": 60
   },
   "plans": [
     {
@@ -101,6 +101,30 @@
       "title": "Build Automation, CI/CD Pipeline & Cross-Platform Release Packaging",
       "status": "completed",
       "tasks": ["TASK-047", "TASK-048", "TASK-049", "TASK-050"]
+    },
+    {
+      "id": "PLAN-016",
+      "title": "Modular Detachable & Magnetically Dockable Window System",
+      "status": "completed",
+      "tasks": ["TASK-051", "TASK-052", "TASK-053"]
+    },
+    {
+      "id": "PLAN-017",
+      "title": "Playlist Drag-and-Drop Ingestion & Multi-Format Local Media Scanner",
+      "status": "completed",
+      "tasks": ["TASK-054", "TASK-055", "TASK-056"]
+    },
+    {
+      "id": "PLAN-018",
+      "title": "Real Symphonia Audio Playback Engine & Gapless Decoder Integration",
+      "status": "completed",
+      "tasks": ["TASK-057", "TASK-058"]
+    },
+    {
+      "id": "PLAN-019",
+      "title": "Audiophile Equalizer DSP Overhaul & Clipping Safeguard Engine",
+      "status": "completed",
+      "tasks": ["TASK-059", "TASK-060"]
     }
   ]
 }
