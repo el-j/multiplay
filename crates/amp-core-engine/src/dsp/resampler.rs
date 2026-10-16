@@ -66,6 +66,7 @@ impl PureResampler {
         let out_frames = resampled_planar[0].len();
         let mut interleaved = Vec::with_capacity(out_frames * self.input_channels);
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..out_frames {
             for ch in 0..self.input_channels {
                 interleaved.push(resampled_planar[ch][i]);
@@ -92,6 +93,7 @@ mod tests {
 
         // Generate 1024 frames of 440 Hz stereo sine wave
         let mut input_planar = vec![vec![0.0f32; chunk_size], vec![0.0f32; chunk_size]];
+        #[allow(clippy::needless_range_loop)]
         for i in 0..chunk_size {
             let sample = (i as f32 * 0.05).sin();
             input_planar[0][i] = sample;

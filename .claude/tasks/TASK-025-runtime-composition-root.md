@@ -2,7 +2,7 @@
 id: TASK-025
 title: Main Runtime Composition Root & System Integration
 planId: PLAN-008
-status: pending
+status: completed
 role: system_composition
 verificationCommand: ./scripts/verify_pure_rust.sh && cargo test --workspace
 ---

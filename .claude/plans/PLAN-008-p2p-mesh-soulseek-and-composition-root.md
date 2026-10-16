@@ -1,7 +1,7 @@
 ---
 id: PLAN-008
 title: P2P Mesh, Soulseek Protocol & Runtime Composition Root
-status: planned
+status: completed
 role: system_composition
 tasks:
   - TASK-023

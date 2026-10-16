@@ -165,9 +165,13 @@ impl DockingWindowManager {
         let target_bottom = new_y.saturating_add(height);
         let target_right = new_x.saturating_add(width);
 
+        let mut candidates: Vec<(&WindowId, &WindowSlot)> = self.windows.iter().collect();
+        candidates.sort_by_key(|(_, w)| w.z_index);
+
+        let mut min_distance = i32::MAX;
         let mut snapped_dock: Option<WindowId> = None;
 
-        for (&other_id, other) in &self.windows {
+        for (&other_id, other) in candidates {
             if other_id == target_id || !other.visible {
                 continue;
             }
@@ -178,9 +182,10 @@ impl DockingWindowManager {
             let other_right = other.rect.x.saturating_add(other.rect.width);
 
             // 1. Top-to-Bottom edge magnetic snap: target top near other bottom
-            if (new_y as i32 - other_bottom as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
+            let dist_tb = (new_y as i32 - other_bottom as i32).abs();
+            if dist_tb <= SNAP_THRESHOLD_CELLS as i32 && dist_tb < min_distance {
+                min_distance = dist_tb;
                 new_y = other_bottom;
-                // Snap X alignment if close
                 if (new_x as i32 - other_left as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
                     new_x = other_left;
                 }
@@ -188,7 +193,9 @@ impl DockingWindowManager {
             }
 
             // 2. Bottom-to-Top edge magnetic snap: target bottom near other top
-            if (target_bottom as i32 - other_top as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
+            let dist_bt = (target_bottom as i32 - other_top as i32).abs();
+            if dist_bt <= SNAP_THRESHOLD_CELLS as i32 && dist_bt < min_distance {
+                min_distance = dist_bt;
                 new_y = other_top.saturating_sub(height);
                 if (new_x as i32 - other_left as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
                     new_x = other_left;
@@ -197,7 +204,9 @@ impl DockingWindowManager {
             }
 
             // 3. Left-to-Right edge magnetic snap: target left near other right
-            if (new_x as i32 - other_right as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
+            let dist_lr = (new_x as i32 - other_right as i32).abs();
+            if dist_lr <= SNAP_THRESHOLD_CELLS as i32 && dist_lr < min_distance {
+                min_distance = dist_lr;
                 new_x = other_right;
                 if (new_y as i32 - other_top as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
                     new_y = other_top;
@@ -206,7 +215,9 @@ impl DockingWindowManager {
             }
 
             // 4. Right-to-Left edge magnetic snap: target right near other left
-            if (target_right as i32 - other_left as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
+            let dist_rl = (target_right as i32 - other_left as i32).abs();
+            if dist_rl <= SNAP_THRESHOLD_CELLS as i32 && dist_rl < min_distance {
+                min_distance = dist_rl;
                 new_x = other_left.saturating_sub(width);
                 if (new_y as i32 - other_top as i32).abs() <= SNAP_THRESHOLD_CELLS as i32 {
                     new_y = other_top;

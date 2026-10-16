@@ -62,8 +62,10 @@ impl SkinLoader {
         let cursor = Cursor::new(bytes);
         let mut archive = ZipArchive::new(cursor).map_err(|e| format!("Failed to open .wsz zip: {e}"))?;
 
-        let mut theme = WinampTheme::default();
-        theme.name = skin_name.to_string();
+        let mut theme = WinampTheme {
+            name: skin_name.to_string(),
+            ..Default::default()
+        };
 
         let mut viscolor_raw = None;
         let mut pledit_raw = None;

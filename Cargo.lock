@@ -179,6 +179,7 @@ dependencies = [
  "amp-ports",
  "crossterm",
  "ratatui",
+ "rtrb",
  "tokio",
  "uuid",
 ]

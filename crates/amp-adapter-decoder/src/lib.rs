@@ -180,7 +180,7 @@ mod tests {
         // Verify samples arrived in the consumer
         let mut sample_count = 0;
         while let Ok(sample) = consumer.pop() {
-            assert!(sample >= -1.0 && sample <= 1.0);
+            assert!((-1.0..=1.0).contains(&sample));
             sample_count += 1;
         }
         assert_eq!(sample_count, 256 * 2); // 256 frames * 2 channels

@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 8 Plans | 25 Tasks | 12 Completed | Active: PLAN-005 (TASK-013)*
+*Tracking: 8 Plans | 25 Tasks | 25 Completed | Status: ALL COMPLETED*
 
 ---
 
@@ -91,34 +91,34 @@
 | [TASK-011](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-011-cqrs-event-bus-dispatcher.md) | CQRS Command-Event Bus & State Machine Orchestrator | Completed | storage_and_state | `cargo test -p amp-core-engine test_cqrs` |
 | [TASK-012](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-012-library-scanner-lofty-tagger.md) | Local Library Filesystem Scanner with Pure-Rust Lofty Tagger | Completed | storage_and_state | `cargo test -p amp-adapter-storage test_scanner` |
 
-### PLAN-005: Multi-Source Search Aggregator, Stream Resolvers & Downloader (Active)
+### PLAN-005: Multi-Source Search Aggregator, Stream Resolvers & Downloader (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-013](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-013-filtered-search-coordinator.md) | Parallel Multi-Source Search Coordinator with Filter Mask | Pending | integrations | `cargo test -p amp-core-engine test_search_coordinator` |
-| [TASK-014](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-014-youtube-stream-resolver.md) | YouTube Pure-Rust Stream Resolver & Search Adapter (`rusty-ytdl`) | Pending | integrations | `cargo test -p amp-adapter-youtube` |
-| [TASK-015](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-015-spotify-librespot-adapter.md) | Spotify Pure-Rust Stream Adapter (`librespot-core`) | Pending | integrations | `cargo test -p amp-adapter-spotify` |
-| [TASK-016](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-016-offline-downloader-tagger.md) | Offline Stream Downloader Pipeline with Pure-Rust Lofty Tagging | Pending | integrations | `cargo test -p amp-core-engine test_downloader` |
+| [TASK-013](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-013-filtered-search-coordinator.md) | Parallel Multi-Source Search Coordinator with Filter Mask | Completed | integrations | `cargo test -p amp-core-engine test_search_coordinator` |
+| [TASK-014](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-014-youtube-stream-resolver.md) | YouTube Pure-Rust Stream Resolver & Search Adapter (`rusty-ytdl`) | Completed | integrations | `cargo test -p amp-adapter-youtube` |
+| [TASK-015](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-015-spotify-librespot-adapter.md) | Spotify Pure-Rust Stream Adapter (`librespot-core`) | Completed | integrations | `cargo test -p amp-adapter-spotify` |
+| [TASK-016](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-016-offline-downloader-tagger.md) | Offline Stream Downloader Pipeline with Pure-Rust Lofty Tagging | Completed | integrations | `cargo test -p amp-core-engine test_downloader` |
 
-### PLAN-006: Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI
+### PLAN-006: Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-017](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-017-dense-winamp-faceplate.md) | Dense Winamp 1.x Faceplate Terminal Widget (`ratatui`) | Pending | frontend_tui | `cargo test -p amp-adapter-tui test_dense_console` |
-| [TASK-018](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-018-magnetic-docking-window-manager.md) | Magnetic Multi-Window Docking & Snapping Window Manager | Pending | frontend_tui | `cargo test -p amp-adapter-tui test_docking` |
-| [TASK-019](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-019-search-modal-source-badges.md) | Omnibar Search Modal with Filter Pills & Source Badges | Pending | frontend_tui | `cargo test -p amp-adapter-tui test_search_view` |
-| [TASK-020](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-020-detachable-video-window.md) | Detachable Video Stream Canvas View | Pending | frontend_tui | `cargo test -p amp-adapter-tui test_video_view` |
+| [TASK-017](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-017-dense-winamp-faceplate.md) | Dense Winamp 1.x Faceplate Terminal Widget (`ratatui`) | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_dense_console` |
+| [TASK-018](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-018-magnetic-docking-window-manager.md) | Magnetic Multi-Window Docking & Snapping Window Manager | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_docking` |
+| [TASK-019](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-019-search-modal-source-badges.md) | Omnibar Search Modal with Filter Pills & Source Badges | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_search_view` |
+| [TASK-020](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-020-detachable-video-window.md) | Detachable Video Stream Canvas View | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_video_view` |
 
-### PLAN-007: Classic Winamp Skin (.wsz) Loader & Pure-Rust Plugin System
+### PLAN-007: Classic Winamp Skin (.wsz) Loader & Pure-Rust Plugin System (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-021](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-021-winamp-wsz-skin-loader.md) | Winamp Classic Skin (.wsz) Decompressor & Palette Extractor | Pending | extensibility | `cargo test -p amp-core-engine test_skin_loader` |
-| [TASK-022](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-022-pure-rust-plugin-host.md) | Safe Pure-Rust Plugin Host & Capability Registry | Pending | extensibility | `cargo test -p amp-core-engine test_plugin_registry` |
+| [TASK-021](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-021-winamp-wsz-skin-loader.md) | Winamp Classic Skin (.wsz) Decompressor & Palette Extractor | Completed | extensibility | `cargo test -p amp-core-engine test_skin_loader` |
+| [TASK-022](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-022-pure-rust-plugin-host.md) | Safe Pure-Rust Plugin Host & Capability Registry | Completed | extensibility | `cargo test -p amp-core-engine test_plugin_registry` |
 
-### PLAN-008: P2P Mesh, Soulseek Protocol & Runtime Composition Root
+### PLAN-008: P2P Mesh, Soulseek Protocol & Runtime Composition Root (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-023](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-023-soulseek-protocol-adapter.md) | Pure-Rust Soulseek Protocol Search & Transfer Adapter | Pending | system_composition | `cargo test -p amp-adapter-soulseek` |
-| [TASK-024](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-024-encrypted-p2p-mesh-adapter.md) | Encrypted Private P2P Mesh Adapter (`libp2p`) | Pending | system_composition | `cargo test -p amp-adapter-p2p` |
-| [TASK-025](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-025-runtime-composition-root.md) | Main Runtime Composition Root (`amp-app`) & System Integration | Pending | system_composition | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-023](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-023-soulseek-protocol-adapter.md) | Pure-Rust Soulseek Protocol Search & Transfer Adapter | Completed | system_composition | `cargo test -p amp-adapter-soulseek` |
+| [TASK-024](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-024-encrypted-p2p-mesh-adapter.md) | Encrypted Private P2P Mesh Adapter (`libp2p`) | Completed | system_composition | `cargo test -p amp-adapter-p2p` |
+| [TASK-025](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-025-runtime-composition-root.md) | Main Runtime Composition Root (`amp-app`) & System Integration | Completed | system_composition | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
 
 ---
 

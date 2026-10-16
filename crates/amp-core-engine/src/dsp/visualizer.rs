@@ -24,8 +24,8 @@ impl SpectrumVisualizer {
     /// Creates a new spectrum visualizer with precomputed Hann window and reusable FFT scratchpads.
     pub fn new() -> Self {
         let mut window = [0.0f32; FFT_SIZE];
-        for i in 0..FFT_SIZE {
-            window[i] = 0.5 * (1.0 - (2.0 * PI * i as f32 / (FFT_SIZE - 1) as f32).cos());
+        for (i, w) in window.iter_mut().enumerate() {
+            *w = 0.5 * (1.0 - (2.0 * PI * i as f32 / (FFT_SIZE - 1) as f32).cos());
         }
 
         let mut planner = FftPlanner::new();

@@ -177,8 +177,8 @@ impl<'a> Widget for DenseWinampConsole<'a> {
         buf.set_string(x0 + 1, y0 + 4, &progress_line, bg_style);
 
         // Line 5: Bottom status and skin text
-        let status_line = format!(" EQUALIZER [ON]  PLAYLIST [ON]  VISUALIZER [ON]  MULTI-WINDOW DOCKED ");
-        buf.set_string(x0 + 1, y0 + 5, &status_line, badge_style);
+        let status_line = " EQUALIZER [ON]  PLAYLIST [ON]  VISUALIZER [ON]  MULTI-WINDOW DOCKED ";
+        buf.set_string(x0 + 1, y0 + 5, status_line, badge_style);
 
         // Line 6: Border bottom
         let border_line = "═".repeat(FACEPLATE_WIDTH as usize);

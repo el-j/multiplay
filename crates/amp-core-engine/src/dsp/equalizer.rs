@@ -75,6 +75,7 @@ impl GraphicEqualizer {
 
     /// In-place processing of interleaved stereo PCM audio samples `[L, R, L, R, ...]`.
     #[inline(always)]
+    #[allow(clippy::chunks_exact_to_as_chunks)]
     pub fn process_interleaved(&mut self, samples: &mut [f32]) {
         if !self.is_enabled {
             return;
