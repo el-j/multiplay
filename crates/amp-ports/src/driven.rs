@@ -57,3 +57,11 @@ pub trait LibraryStoragePort: Send + Sync {
     async fn remove_track(&self, id: &TrackId) -> Result<(), String>;
     async fn search_cached(&self, text_query: &str) -> Result<Vec<Track>, String>;
 }
+
+/// Driven port for secure credential and secret token storage.
+#[async_trait]
+pub trait CredentialVaultPort: Send + Sync {
+    async fn store_secret(&self, key: &str, secret: &str) -> Result<(), String>;
+    async fn get_secret(&self, key: &str) -> Result<Option<String>, String>;
+    async fn delete_secret(&self, key: &str) -> Result<(), String>;
+}

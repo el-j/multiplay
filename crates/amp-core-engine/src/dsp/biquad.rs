@@ -82,4 +82,23 @@ mod tests {
         }
         assert!((output - 0.5).abs() < 1e-4);
     }
+
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_biquad_numerical_stability(
+            center_freq in 20.0f32..20000.0f32,
+            q in 0.2f32..10.0f32,
+            db_gain in -12.0f32..12.0f32,
+            input_val in -1.0f32..1.0f32
+        ) {
+            let mut filter = BiquadFilter::new_peaking_eq(48000.0, center_freq, q, db_gain);
+            let mut out = 0.0f32;
+            for _ in 0..64 {
+                out = filter.process_sample(input_val);
+            }
+            prop_assert!(out.is_finite());
+        }
+    }
 }

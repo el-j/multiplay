@@ -3,12 +3,19 @@
 
 #![forbid(unsafe_code)]
 
+pub mod config;
+pub mod jam_crdt;
 pub mod source_badge;
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;
 
+pub use config::{
+    AppConfig, AudioHardwareConfig, LibraryConfig, P2PNetworkConfig, StreamingProvidersConfig,
+    UiAndThemeConfig,
+};
+pub use jam_crdt::{CollaborativeQueue, JamItem, JamOperation, LamportTimestamp};
 pub use source_badge::{SourceFilterMask, SourceKind};
 
 /// Unique identifier for an audio track in the system.
@@ -92,7 +99,7 @@ impl TrackMetadata {
 }
 
 /// A playable track entity with unique ID, source locator, metadata, and timestamps.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Track {
     pub id: TrackId,
     pub source: AudioSource,

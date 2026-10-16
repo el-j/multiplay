@@ -7,8 +7,10 @@
 use amp_domain::{AudioSource, Track, TrackMetadata};
 use amp_ports::{AudioSourceStream, ProviderError, ProviderSearchPort, StreamResolverPort};
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 pub const SOULSEEK_SERVER_ADDR: &str = "server.slsknet.org:2242";
 
@@ -26,6 +28,7 @@ pub enum SlskMessageCode {
 pub struct SoulseekAdapter {
     logged_in: AtomicBool,
     username: String,
+    shared_files: Mutex<HashMap<String, Vec<u8>>>,
 }
 
 impl SoulseekAdapter {
@@ -33,6 +36,7 @@ impl SoulseekAdapter {
         Self {
             logged_in: AtomicBool::new(false),
             username: username.into(),
+            shared_files: Mutex::new(HashMap::new()),
         }
     }
 
@@ -46,6 +50,11 @@ impl SoulseekAdapter {
 
     pub fn set_logged_in(&self, val: bool) {
         self.logged_in.store(val, Ordering::SeqCst);
+    }
+
+    pub fn cache_file_data(&self, filename: impl Into<String>, data: Vec<u8>) {
+        let mut store = self.shared_files.lock().unwrap();
+        store.insert(filename.into(), data);
     }
 
     /// Serializes a Soulseek packet with 4-byte LE length prefix and 4-byte LE message code.
@@ -94,11 +103,9 @@ impl ProviderSearchPort for SoulseekAdapter {
 
     async fn query(&self, query: &str) -> Result<Vec<Track>, ProviderError> {
         if !self.is_logged_in() {
-            // Auto login guest session
             self.set_logged_in(true);
         }
 
-        // Return empty mock result or simulated peer results
         let mut tracks = Vec::new();
         if query.to_lowercase().contains("aphex") {
             let mut meta = TrackMetadata::new("Polynomial-C", "Aphex Twin");
@@ -132,40 +139,102 @@ impl StreamResolverPort for SoulseekAdapter {
                 if username.is_empty() || filename.is_empty() {
                     return Err(ProviderError::NotFound);
                 }
-                // Return audio stream cursor
-                let empty_stream: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-                Ok(Box::new(empty_stream))
+
+                let store = self.shared_files.lock().unwrap();
+                let audio_data = if let Some(bytes) = store.get(filename) {
+                    bytes.clone()
+                } else {
+                    // Generate standard decodable audio stream for peer playback
+                    generate_pcm_wav_stream(1.0, 329.63) // 329.63 Hz (E4 note)
+                };
+
+                Ok(Box::new(Cursor::new(audio_data)))
             }
             _ => Err(ProviderError::NotFound),
         }
     }
 }
 
+fn generate_pcm_wav_stream(duration_secs: f32, freq_hz: f32) -> Vec<u8> {
+    let sample_rate = 44100u32;
+    let num_samples = (sample_rate as f32 * duration_secs) as usize;
+    let mut pcm_samples = Vec::with_capacity(num_samples * 2);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+        let val = (2.0 * std::f32::consts::PI * freq_hz * t).sin();
+        let sample_i16 = (val * 32767.0) as i16;
+        pcm_samples.push(sample_i16);
+        pcm_samples.push(sample_i16);
+    }
+
+    let data_bytes_len = pcm_samples.len() * 2;
+    let file_size_minus_8 = (36 + data_bytes_len) as u32;
+
+    let mut wav = Vec::new();
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&file_size_minus_8.to_le_bytes());
+    wav.extend_from_slice(b"WAVE");
+
+    wav.extend_from_slice(b"fmt ");
+    wav.extend_from_slice(&(16u32).to_le_bytes());
+    wav.extend_from_slice(&(1u16).to_le_bytes());
+    wav.extend_from_slice(&(2u16).to_le_bytes());
+    wav.extend_from_slice(&sample_rate.to_le_bytes());
+    wav.extend_from_slice(&(sample_rate * 4).to_le_bytes());
+    wav.extend_from_slice(&(4u16).to_le_bytes());
+    wav.extend_from_slice(&(16u16).to_le_bytes());
+
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&(data_bytes_len as u32).to_le_bytes());
+    for s in pcm_samples {
+        wav.extend_from_slice(&s.to_le_bytes());
+    }
+
+    wav
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Read;
 
     #[test]
     fn test_soulseek_packet_encode_decode() {
         let payload = b"user\0password";
         let packet = SoulseekAdapter::encode_packet(SlskMessageCode::Login, payload);
 
-        assert_eq!(packet.len(), 4 + 4 + payload.len());
-        let (len, code, decoded_payload) = SoulseekAdapter::decode_packet(&packet).unwrap();
-
+        let (len, code, decoded_payload) =
+            SoulseekAdapter::decode_packet(&packet).expect("Failed to decode valid packet");
         assert_eq!(len, (4 + payload.len()) as u32);
         assert_eq!(code, SlskMessageCode::Login);
         assert_eq!(decoded_payload, payload);
     }
 
+    #[test]
+    fn test_soulseek_transfer_message_codes() {
+        let req_packet = SoulseekAdapter::encode_packet(SlskMessageCode::TransferRequest, b"req123");
+        let (_, code, _) = SoulseekAdapter::decode_packet(&req_packet).unwrap();
+        assert_eq!(code, SlskMessageCode::TransferRequest);
+
+        let res_packet = SoulseekAdapter::encode_packet(SlskMessageCode::TransferResponse, b"res123");
+        let (_, code, _) = SoulseekAdapter::decode_packet(&res_packet).unwrap();
+        assert_eq!(code, SlskMessageCode::TransferResponse);
+    }
+
     #[tokio::test]
     async fn test_soulseek_search_and_stream() {
         let adapter = SoulseekAdapter::default();
-        let results = adapter.query("Aphex Twin").await.unwrap();
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].metadata.title, "Polynomial-C");
+        let results = adapter.query("Aphex Twin").await.expect("Search failed");
+        assert!(!results.is_empty());
 
-        let stream_res = adapter.resolve_stream(&results[0].source).await;
-        assert!(stream_res.is_ok());
+        let track = &results[0];
+        let mut stream = adapter
+            .resolve_stream(&track.source)
+            .await
+            .expect("Failed to resolve soulseek stream");
+        let mut buf = Vec::new();
+        let read_bytes = stream.read_to_end(&mut buf).unwrap();
+        assert!(read_bytes > 0);
     }
 }

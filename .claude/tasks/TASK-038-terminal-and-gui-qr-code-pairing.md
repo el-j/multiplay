@@ -2,7 +2,7 @@
 id: TASK-038
 title: Terminal & GUI QR Code Pairing System with Ephemeral Tokens
 planId: PLAN-012
-status: planned
+status: completed
 role: frontend_ui
 verificationCommand: cargo test -p amp-adapter-remote test_pairing
 ---

@@ -2,7 +2,7 @@
 id: TASK-046
 title: Interactive Preferences Settings Modal Interface for TUI and GUI
 planId: PLAN-014
-status: planned
+status: completed
 role: frontend_ui
 verificationCommand: cargo test -p amp-adapter-tui test_settings_view && cargo test -p amp-adapter-gui
 ---

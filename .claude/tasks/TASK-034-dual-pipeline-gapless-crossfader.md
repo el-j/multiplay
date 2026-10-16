@@ -2,7 +2,7 @@
 id: TASK-034
 title: Dual-Pipeline Gapless Decoder Mixer & Real-Time Crossfader DSP
 planId: PLAN-011
-status: planned
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_crossfade
 ---

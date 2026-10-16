@@ -2,7 +2,7 @@
 id: TASK-031
 title: Comprehensive Property-Based Testing (proptest) & Mutation Test Suite
 planId: PLAN-010
-status: in_progress
+status: completed
 role: qa_and_hardening
 verificationCommand: cargo test --workspace
 ---

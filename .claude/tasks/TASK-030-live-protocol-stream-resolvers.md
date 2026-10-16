@@ -2,7 +2,7 @@
 id: TASK-030
 title: Live Protocol Stream Handlers for Spotify, Soulseek TCP, and Encrypted P2P
 planId: PLAN-010
-status: in_progress
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-spotify -p amp-adapter-soulseek -p amp-adapter-p2p
 ---

@@ -2,7 +2,7 @@
 id: TASK-043
 title: Hierarchical TOML Configuration Domain Schema
 planId: PLAN-014
-status: planned
+status: completed
 role: architecture
 verificationCommand: cargo test -p amp-domain test_config_schema
 ---

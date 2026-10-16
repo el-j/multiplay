@@ -3,10 +3,12 @@
 #![forbid(unsafe_code)]
 
 use crate::audio_driver::AudioPlaybackDriver;
+use crate::dj_panel::{DjConsolePanel, DjConsoleState};
 use crate::equalizer_widget::EqualizerPanel;
+use crate::settings_panel::{GuiSettingsTab, SettingsGuiPanel};
 use crate::visualizer_widget::VisualizerWidget;
 use amp_domain::source_badge::SourceKind;
-use amp_domain::{AudioSource, Track, TrackMetadata};
+use amp_domain::{AppConfig, AudioSource, Track, TrackMetadata};
 use eframe::egui::{self, Color32, RichText, Ui};
 use std::time::Duration;
 
@@ -18,6 +20,11 @@ pub struct MultiplayGuiApp {
     filter_source: Option<SourceKind>,
     show_equalizer: bool,
     show_playlist: bool,
+    show_dj_console: bool,
+    dj_state: DjConsoleState,
+    show_settings: bool,
+    settings_tab: GuiSettingsTab,
+    config: AppConfig,
     volume: f32,
     eq_gains: [f32; 10],
     eq_enabled: bool,
@@ -79,6 +86,11 @@ impl MultiplayGuiApp {
             filter_source: None,
             show_equalizer: true,
             show_playlist: true,
+            show_dj_console: true,
+            dj_state: DjConsoleState::default(),
+            show_settings: false,
+            settings_tab: GuiSettingsTab::default(),
+            config: AppConfig::default(),
             volume: 0.85,
             eq_gains: [0.0; 10],
             eq_enabled: true,
@@ -114,6 +126,16 @@ impl eframe::App for MultiplayGuiApp {
             if self.show_playlist {
                 ui.add_space(8.0);
                 render_playlist_panel(self, ui);
+            }
+
+            if self.show_dj_console {
+                ui.add_space(8.0);
+                DjConsolePanel::show(ui, &mut self.dj_state);
+            }
+
+            if self.show_settings {
+                ui.add_space(8.0);
+                SettingsGuiPanel::show(ui, &mut self.settings_tab, &mut self.config);
             }
         });
     }
@@ -229,6 +251,12 @@ fn render_main_faceplate(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             ui.label(RichText::new(format!("{:02.0}%", app.volume * 100.0)).size(11.0).color(Color32::from_rgb(0, 230, 140)));
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button(RichText::new(if app.show_settings { "SETTINGS [ON]" } else { "SETTINGS [OFF]" }).size(11.0)).clicked() {
+                    app.show_settings = !app.show_settings;
+                }
+                if ui.button(RichText::new(if app.show_dj_console { "DJ CONSOLE [ON]" } else { "DJ CONSOLE [OFF]" }).size(11.0)).clicked() {
+                    app.show_dj_console = !app.show_dj_console;
+                }
                 if ui.button(RichText::new(if app.show_playlist { "PLAYLIST [ON]" } else { "PLAYLIST [OFF]" }).size(11.0)).clicked() {
                     app.show_playlist = !app.show_playlist;
                 }

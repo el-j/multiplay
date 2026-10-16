@@ -2,7 +2,7 @@
 id: TASK-035
 title: Pure-Rust EBU R128 Loudness Normalizer & Peak Limiter
 planId: PLAN-011
-status: planned
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_loudness
 ---

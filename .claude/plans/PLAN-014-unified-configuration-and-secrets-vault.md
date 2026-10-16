@@ -1,7 +1,7 @@
 ---
 id: PLAN-014
 title: Unified Configuration Management, Secure Credential Vault & Settings UI
-status: planned
+status: completed
 role: storage_and_state
 tasks:
   - TASK-043

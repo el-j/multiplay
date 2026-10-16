@@ -18,3 +18,8 @@ num-complex = "0.4"
 lofty = "0.21"
 uuid = { workspace = true }
 zip = { version = "9.0", default-features = false, features = ["deflate"] }
+rand = { version = "0.8", features = ["small_rng"] }
+basic-toml = "0.1"
+
+[dev-dependencies]
+proptest = "1.5"

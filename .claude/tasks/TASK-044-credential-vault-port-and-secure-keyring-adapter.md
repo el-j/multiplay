@@ -2,7 +2,7 @@
 id: TASK-044
 title: Driven Credential Vault Port & Secure Keyring Adapter
 planId: PLAN-014
-status: planned
+status: completed
 role: storage_and_state
 verificationCommand: cargo test -p amp-adapter-storage test_keyring
 ---

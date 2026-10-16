@@ -2,7 +2,7 @@
 id: TASK-042
 title: Multi-Deck Hardware-Style DJ Console Interface for TUI and GUI
 planId: PLAN-013
-status: planned
+status: completed
 role: frontend_ui
 verificationCommand: cargo test -p amp-adapter-tui test_dj_console && cargo test -p amp-adapter-gui
 ---

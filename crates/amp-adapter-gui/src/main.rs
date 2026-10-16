@@ -6,7 +6,9 @@
 
 mod app;
 mod audio_driver;
+mod dj_panel;
 mod equalizer_widget;
+mod settings_panel;
 mod visualizer_widget;
 
 use app::MultiplayGuiApp;

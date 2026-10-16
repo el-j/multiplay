@@ -2,7 +2,7 @@
 id: TASK-045
 title: Atomic Config Storage Engine & Hot-Reload Dispatcher
 planId: PLAN-014
-status: planned
+status: completed
 role: storage_and_state
 verificationCommand: cargo test -p amp-core-engine test_config_store
 ---

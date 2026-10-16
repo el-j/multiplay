@@ -2,7 +2,7 @@
 id: TASK-041
 title: Safe WSOLA Time-Stretcher & Crossfader Transform Mixer
 planId: PLAN-013
-status: planned
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_wsola_time_stretcher
 ---

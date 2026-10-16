@@ -2,7 +2,7 @@
 id: TASK-037
 title: Pure-Rust Embedded WebSocket Remote Daemon
 planId: PLAN-012
-status: planned
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-remote
 ---

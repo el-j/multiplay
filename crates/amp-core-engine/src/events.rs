@@ -39,5 +39,6 @@ pub enum PlayerEvent {
         percent: u8,
         completed: bool,
     },
+    ConfigChanged(Box<amp_domain::AppConfig>),
     ErrorNotification(String),
 }

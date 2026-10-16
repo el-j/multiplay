@@ -2,7 +2,7 @@
 id: TASK-039
 title: Multi-Deck Channel Architecture & 3-Band Kill Isolator EQs
 planId: PLAN-013
-status: planned
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-core-engine test_dj_deck
 ---

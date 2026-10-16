@@ -6,6 +6,7 @@
 use super::events::{PlayerCommand, PlayerEvent};
 use tokio::sync::{broadcast, mpsc};
 
+#[derive(Debug)]
 pub struct EventBus {
     pub cmd_sender: mpsc::UnboundedSender<PlayerCommand>,
     pub event_broadcaster: broadcast::Sender<PlayerEvent>,

@@ -2,7 +2,7 @@
 id: TASK-040
 title: Pure-Rust Real-Time Transient BPM & Beat Grid Detector
 planId: PLAN-013
-status: planned
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_bpm_detector
 ---

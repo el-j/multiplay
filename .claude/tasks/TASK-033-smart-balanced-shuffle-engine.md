@@ -2,7 +2,7 @@
 id: TASK-033
 title: Smart Balanced Shuffle Engine & Constraint-Based Queue Manager
 planId: PLAN-011
-status: planned
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-core-engine test_smart_shuffle
 ---

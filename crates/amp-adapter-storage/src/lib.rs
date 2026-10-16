@@ -3,11 +3,14 @@
 
 #![forbid(unsafe_code)]
 
+pub mod keyring;
 pub mod scanner;
 
 use amp_domain::{Track, TrackId};
 use amp_ports::driven::LibraryStoragePort;
 use async_trait::async_trait;
+
+pub use keyring::{KeyringStorageAdapter, SecretString};
 use redb::{Database, ReadableTable, TableDefinition};
 use std::path::Path;
 use std::sync::Arc;
