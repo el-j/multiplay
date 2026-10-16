@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 26 Plans | 82 Tasks | 82 Completed | 0 In Progress/Pending | Status: COMPLETE (100% Implemented & Verified)*
+*Tracking: 27 Plans | 86 Tasks | 82 Completed | 4 In Progress/Pending | Status: IN PROGRESS (Implementing PLAN-027)*
 
 ---
 
@@ -249,6 +249,14 @@
 | [TASK-080](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-080-satellite-windows-os-native-viewport-dispatch.md) | Satellite Windows OS Native Viewport Immediate Dispatch & Close Lifecycle Handling | Completed | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
 | [TASK-081](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-081-cross-viewport-coordinate-tracking-and-docking.md) | Cross-Viewport Coordinate Tracking, Magnetic Snapping & Group Movement Synchronization | Completed | gui_engineering | `cargo test -p amp-adapter-gui test_docking` |
 | [TASK-082](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-082-comprehensive-verification-and-quality-gate.md) | Comprehensive Testing, Verification, Zero Clippy Warnings, and Build Packaging | Completed | qa_and_hardening | `make all` |
+
+### PLAN-027: Window Stability, Scaler Smoothness & Multi-Viewport Polish (Flicker-Free Industry-Grade Architecture) (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-083](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-083-eliminate-viewport-builder-perframe-commands-and-feedback-loop.md) | Eliminate ViewportBuilder Per-Frame Size/Position Commands and Positive Feedback Loop | Pending | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
+| [TASK-084](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-084-drag-release-magnetic-snap-stabilization.md) | Drag-Release Magnetic Snap Stabilization and WindowServer Decoupling | Pending | gui_engineering | `cargo test -p amp-adapter-gui test_docking` |
+| [TASK-085](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-085-conditional-repaint-scheduling-and-vsync-hardware-tuning.md) | Conditional Repaint Scheduling & VSync Hardware Tuning | Pending | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
+| [TASK-086](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-086-comprehensive-verification-and-quality-gate.md) | Comprehensive Testing, Verification, Zero Clippy Warnings, and Build Packaging | Pending | qa_and_hardening | `make all` |
 
 ---
 

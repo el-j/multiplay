@@ -16,6 +16,8 @@ fn main() -> eframe::Result<()> {
             .with_position(Pos2::new(120.0, 100.0))
             .with_resizable(true)
             .with_active(true),
+        vsync: true,
+        multisampling: 0,
         ..Default::default()
     };
 

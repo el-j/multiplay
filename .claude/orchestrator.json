@@ -1,14 +1,14 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": null,
-  "activeTask": null,
-  "status": "completed",
+  "activePlan": "PLAN-027",
+  "activeTask": "TASK-083",
+  "status": "in_progress",
   "verificationCommand": "make all",
   "metrics": {
-    "totalPlans": 26,
+    "totalPlans": 27,
     "completedPlans": 26,
-    "totalTasks": 82,
+    "totalTasks": 86,
     "completedTasks": 82
   },
   "plans": [
@@ -167,6 +167,12 @@
       "title": "Multi-Viewport Native Desktop Architecture (True Independent OS Windows)",
       "status": "completed",
       "tasks": ["TASK-079", "TASK-080", "TASK-081", "TASK-082"]
+    },
+    {
+      "id": "PLAN-027",
+      "title": "Window Stability, Scaler Smoothness & Multi-Viewport Polish (Flicker-Free Industry-Grade Architecture)",
+      "status": "in_progress",
+      "tasks": ["TASK-083", "TASK-084", "TASK-085", "TASK-086"]
     }
   ]
 }
