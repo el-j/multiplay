@@ -7,7 +7,7 @@ SHELL := /bin/bash
 
 .PHONY: all help build build-release check lint fmt fmt-check test test-verbose \
         verify-pure-rust doc coverage mutation-test bundle bundle-macos package-linux \
-        package-windows clean
+        package-windows upgrade clean
 
 ## all: Run full validation suite (pure-Rust audit, linter, tests, build, and bundle output)
 all: verify-pure-rust lint test build bundle
@@ -100,6 +100,10 @@ package-windows: build-release
 	@cp target/release/amp-app.exe build/windows/multiplay.exe 2>/dev/null || true
 	@cp target/release/multiplay-gui.exe build/windows/multiplay-gui.exe 2>/dev/null || true
 	@echo "[SUCCESS] Windows binaries staged in build/windows"
+
+## upgrade: Update Rust toolchain to latest and upgrade all workspace dependencies
+upgrade:
+	./scripts/upgrade.sh
 
 ## clean: Remove build artifacts, target directories, and temporary files
 clean:
