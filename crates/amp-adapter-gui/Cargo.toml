@@ -1,0 +1,23 @@
+[package]
+name = "amp-adapter-gui"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "multiplay-gui"
+path = "src/main.rs"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+amp-core-engine = { path = "../amp-core-engine" }
+amp-adapter-cpal = { path = "../amp-adapter-cpal" }
+amp-adapter-decoder = { path = "../amp-adapter-decoder" }
+amp-adapter-storage = { path = "../amp-adapter-storage" }
+amp-adapter-youtube = { path = "../amp-adapter-youtube" }
+amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
+amp-adapter-p2p = { path = "../amp-adapter-p2p" }
+eframe = { version = "0.29", default-features = false, features = ["default_fonts", "wgpu"] }
+tokio = { workspace = true }
+rtrb = { workspace = true }
+uuid = { workspace = true }

@@ -11,6 +11,7 @@ members = [
     "crates/amp-adapter-tui",
     "crates/amp-adapter-soulseek",
     "crates/amp-adapter-p2p",
+    "crates/amp-adapter-gui",
     "crates/amp-app",
 ]
 resolver = "2"

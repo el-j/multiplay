@@ -1,15 +1,15 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": "COMPLETED",
-  "activeTask": "COMPLETED",
-  "status": "completed",
+  "activePlan": "PLAN-010",
+  "activeTask": "TASK-029",
+  "status": "in_progress",
   "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 8,
-    "completedPlans": 8,
-    "totalTasks": 25,
-    "completedTasks": 25
+    "totalPlans": 10,
+    "completedPlans": 9,
+    "totalTasks": 32,
+    "completedTasks": 28
   },
   "plans": [
     {
@@ -59,6 +59,18 @@
       "title": "P2P Mesh, Soulseek Protocol & Runtime Composition Root",
       "status": "completed",
       "tasks": ["TASK-023", "TASK-024", "TASK-025"]
+    },
+    {
+      "id": "PLAN-009",
+      "title": "Native OS Desktop Windowing, Equalizer & Playlist Widgets, and Standalone Launcher",
+      "status": "completed",
+      "tasks": ["TASK-026", "TASK-027", "TASK-028"]
+    },
+    {
+      "id": "PLAN-010",
+      "title": "Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing",
+      "status": "in_progress",
+      "tasks": ["TASK-029", "TASK-030", "TASK-031", "TASK-032"]
     }
   ]
 }

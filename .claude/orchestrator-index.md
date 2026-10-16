@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 8 Plans | 25 Tasks | 25 Completed | Status: ALL COMPLETED*
+*Tracking: 10 Plans | 32 Tasks | 28 Completed | Status: IN PROGRESS (Active: PLAN-010 / TASK-029)*
 
 ---
 
@@ -119,6 +119,21 @@
 | [TASK-023](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-023-soulseek-protocol-adapter.md) | Pure-Rust Soulseek Protocol Search & Transfer Adapter | Completed | system_composition | `cargo test -p amp-adapter-soulseek` |
 | [TASK-024](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-024-encrypted-p2p-mesh-adapter.md) | Encrypted Private P2P Mesh Adapter (`libp2p`) | Completed | system_composition | `cargo test -p amp-adapter-p2p` |
 | [TASK-025](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-025-runtime-composition-root.md) | Main Runtime Composition Root (`amp-app`) & System Integration | Completed | system_composition | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-009: Native OS Desktop Windowing, Equalizer & Playlist Widgets, and Standalone Launcher (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-026](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-026-native-desktop-window-launcher-and-app-bundle.md) | Standalone Native Desktop Window Launcher, macOS Application Bundle & Scripts | Completed | frontend_gui | `./scripts/launch_desktop_window.sh && test -x Multiplay.command` |
+| [TASK-027](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-027-docked-equalizer-and-playlist-editor-widgets.md) | Classic Winamp Equalizer & Playlist Editor Docked Widgets | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_equalizer_widget_rendering` |
+| [TASK-028](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-028-pure-rust-gui-desktop-node-adapter.md) | Pure-Rust GUI Desktop Node Adapter (`amp-adapter-gui`) Architecture | Completed | frontend_gui | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
+
+### PLAN-010: Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-029](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-029-runtime-audio-playback-streaming-worker.md) | Dynamic Background Audio Playback Streamer in Runtime Composition Root | In Progress | audio_engine | `cargo test -p amp-app --test e2e_pipeline` |
+| [TASK-030](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-030-live-protocol-stream-resolvers.md) | Live Protocol Stream Handlers for Spotify, Soulseek TCP, and Encrypted P2P | In Progress | integrations | `cargo test -p amp-adapter-spotify -p amp-adapter-soulseek` |
+| [TASK-031](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-031-property-testing-and-mutation-suite.md) | Comprehensive Property-Based Testing (`proptest`) & Mutation Test Suite | In Progress | qa_and_hardening | `cargo test --workspace` |
+| [TASK-032](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-032-complete-incode-docstrings-and-audit-closure.md) | 100% In-Code Documentation & Architecture Reference Alignment Audit | In Progress | architecture | `cargo doc --workspace --no-deps` |
 
 ---
 
