@@ -4,11 +4,12 @@
 
 use crate::audio_driver::AudioPlaybackDriver;
 use crate::dj_panel::DjConsoleState;
-use crate::docking::DockManager;
+use crate::docking::{DockManager, WindowId};
 use crate::settings_panel::GuiSettingsTab;
 use amp_adapter_storage::{collect_audio_files, extract_track_from_file};
 use amp_domain::source_badge::SourceKind;
 use amp_domain::{AppConfig, AudioSource, Track};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 
@@ -20,6 +21,7 @@ pub struct MultiplayGuiApp {
     pub search_query: String,
     pub filter_source: Option<SourceKind>,
     pub dock_manager: DockManager,
+    pub initialized_viewports: HashSet<WindowId>,
     pub dj_state: DjConsoleState,
     pub settings_tab: GuiSettingsTab,
     pub config: AppConfig,
@@ -40,6 +42,7 @@ impl MultiplayGuiApp {
             search_query: String::new(),
             filter_source: None,
             dock_manager: DockManager::default(),
+            initialized_viewports: HashSet::new(),
             dj_state: DjConsoleState::default(),
             settings_tab: GuiSettingsTab::default(),
             config: AppConfig::default(),
@@ -138,6 +141,26 @@ impl MultiplayGuiApp {
                 if let Ok(dm) = serde_json::from_str::<DockManager>(&json) {
                     self.dock_manager = dm;
                 }
+            }
+        }
+    }
+
+    /// Synchronizes positions of all transitively docked satellite windows when parent window moves.
+    pub fn sync_child_viewport_positions(&self, ctx: &eframe::egui::Context) {
+        for (&child, &(parent, _)) in &self.dock_manager.dock_parent {
+            if parent == WindowId::Main && self.dock_manager.is_visible(child) {
+                let rect = self.dock_manager.get_rect(child);
+                let viewport_id = match child {
+                    WindowId::Equalizer => eframe::egui::ViewportId::from_hash_of("win_eq"),
+                    WindowId::Playlist => eframe::egui::ViewportId::from_hash_of("win_playlist"),
+                    WindowId::Settings => eframe::egui::ViewportId::from_hash_of("win_settings"),
+                    WindowId::DjConsole => eframe::egui::ViewportId::from_hash_of("win_dj"),
+                    WindowId::Main => continue,
+                };
+                ctx.send_viewport_cmd_to(
+                    viewport_id,
+                    eframe::egui::ViewportCommand::OuterPosition(eframe::egui::Pos2::new(rect.x, rect.y)),
+                );
             }
         }
     }

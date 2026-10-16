@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 25 Plans | 78 Tasks | 78 Completed | 0 In Progress/Pending | Status: COMPLETE (100% Implemented & Verified)*
+*Tracking: 26 Plans | 82 Tasks | 82 Completed | 0 In Progress/Pending | Status: COMPLETE (100% Implemented & Verified)*
 
 ---
 
@@ -241,6 +241,14 @@
 | [TASK-076](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-076-domain-ports-engine-complete-rustdoc.md) | Domain, Ports & Core Engine Complete Rustdoc Documentation | Completed | documentation | `cargo doc -p amp-domain -p amp-ports -p amp-core-engine --no-deps` |
 | [TASK-077](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-077-adapter-crates-complete-rustdoc.md) | Adapter Crates & Application Shells Complete Rustdoc Documentation | Completed | documentation | `cargo doc --workspace --no-deps` |
 | [TASK-078](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-078-zero-warning-clippy-and-pure-rust-quality-gate.md) | Zero-Warning Clippy, 100% Pure-Rust & Release Quality Gate | Completed | architecture | `make all` |
+
+### PLAN-026: Multi-Viewport Native Desktop Architecture (True Independent OS Windows) (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-079](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-079-multi-viewport-architecture-and-root-main-player.md) | Multi-Viewport Native Window Architecture & Root Main Player Window Configuration | Completed | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
+| [TASK-080](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-080-satellite-windows-os-native-viewport-dispatch.md) | Satellite Windows OS Native Viewport Immediate Dispatch & Close Lifecycle Handling | Completed | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
+| [TASK-081](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-081-cross-viewport-coordinate-tracking-and-docking.md) | Cross-Viewport Coordinate Tracking, Magnetic Snapping & Group Movement Synchronization | Completed | gui_engineering | `cargo test -p amp-adapter-gui test_docking` |
+| [TASK-082](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-082-comprehensive-verification-and-quality-gate.md) | Comprehensive Testing, Verification, Zero Clippy Warnings, and Build Packaging | Completed | qa_and_hardening | `make all` |
 
 ---
 

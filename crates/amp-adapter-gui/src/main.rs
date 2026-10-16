@@ -1,24 +1,26 @@
 //! Native Desktop GUI Entrypoint for Multiplay.
-//! Pure-Rust, GPU-accelerated (Metal/Vulkan/DirectX) immediate-mode GUI powered by egui.
+//! Pure-Rust, GPU-accelerated (Metal/Vulkan/DirectX) multi-viewport native GUI powered by egui.
 //! Zero NodeJS, zero TypeScript, zero Electron.
 
 #![forbid(unsafe_code)]
 
 use amp_adapter_gui::MultiplayGuiApp;
-use eframe::egui::Vec2;
+use eframe::egui::{Pos2, Vec2, ViewportBuilder};
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size(Vec2::new(560.0, 580.0))
-            .with_min_inner_size(Vec2::new(480.0, 420.0))
-            .with_title("Multiplay Pure-Rust Audiophile Player")
+        viewport: ViewportBuilder::default()
+            .with_title("WINAMP :: MAIN PLAYER")
+            .with_inner_size(Vec2::new(480.0, 190.0))
+            .with_min_inner_size(Vec2::new(380.0, 180.0))
+            .with_position(Pos2::new(120.0, 100.0))
+            .with_resizable(true)
             .with_active(true),
         ..Default::default()
     };
 
     eframe::run_native(
-        "Multiplay Pure-Rust Audiophile Player",
+        "WINAMP :: MAIN PLAYER",
         native_options,
         Box::new(|_cc| {
             let app = MultiplayGuiApp::new().expect("Failed to initialize MultiplayGuiApp");

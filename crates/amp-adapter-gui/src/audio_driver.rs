@@ -13,6 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct AudioPlaybackDriver {
     pub is_playing: Arc<AtomicBool>,
     pub visualizer_spectrum: Arc<Mutex<[f32; 16]>>,
@@ -58,43 +59,7 @@ impl AudioPlaybackDriver {
         let producer_arc = Arc::new(Mutex::new(producer));
         let audio_sink_arc = Arc::new(Mutex::new(audio_sink));
 
-        let playing_flag = Arc::clone(&is_playing);
-        let spec_out = Arc::clone(&visualizer_spectrum);
-        let vol_ref = Arc::clone(&volume);
-        let eq_ref = Arc::clone(&eq_gains);
-        let preamp_ref = Arc::clone(&eq_preamp);
-        let eq_on_ref = Arc::clone(&eq_enabled);
-        let track_ref = Arc::clone(&current_track);
-        let elapsed_ref = Arc::clone(&elapsed);
-        let total_dur_ref = Arc::clone(&total_duration);
-        let seek_ref = Arc::clone(&seek_requested);
-        let finished_ref = Arc::clone(&track_finished);
-        let change_ref = Arc::clone(&track_change_signal);
-        let prod_ref = Arc::clone(&producer_arc);
-
-        std::thread::Builder::new()
-            .name("multiplay-audio-worker".to_string())
-            .spawn(move || {
-                run_playback_loop(
-                    prod_ref,
-                    playing_flag,
-                    spec_out,
-                    vol_ref,
-                    eq_ref,
-                    preamp_ref,
-                    eq_on_ref,
-                    track_ref,
-                    elapsed_ref,
-                    total_dur_ref,
-                    seek_ref,
-                    finished_ref,
-                    change_ref,
-                    sample_rate,
-                );
-            })
-            .map_err(|e| format!("Failed to spawn audio worker: {e}"))?;
-
-        Ok(Self {
+        let driver = Self {
             is_playing,
             visualizer_spectrum,
             volume,
@@ -111,7 +76,15 @@ impl AudioPlaybackDriver {
             audio_sink: audio_sink_arc,
             producer: producer_arc,
             track_change_signal,
-        })
+        };
+
+        let worker_driver = driver.clone();
+        std::thread::Builder::new()
+            .name("multiplay-audio-worker".to_string())
+            .spawn(move || run_playback_loop(worker_driver, sample_rate))
+            .map_err(|e| format!("Failed to spawn audio worker: {e}"))?;
+
+        Ok(driver)
     }
 
     /// Dynamically switches hardware output device during runtime.
@@ -190,23 +163,24 @@ impl AudioPlaybackDriver {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn run_playback_loop(
-    producer: Arc<Mutex<Producer<f32>>>,
-    is_playing: Arc<AtomicBool>,
-    visualizer_spectrum: Arc<Mutex<[f32; 16]>>,
-    volume: Arc<Mutex<f32>>,
-    eq_gains: Arc<Mutex<[f32; 10]>>,
-    eq_preamp: Arc<Mutex<f32>>,
-    eq_enabled: Arc<AtomicBool>,
-    current_track: Arc<Mutex<Option<Track>>>,
-    elapsed: Arc<Mutex<Duration>>,
-    total_duration: Arc<Mutex<Option<Duration>>>,
-    seek_requested: Arc<Mutex<Option<Duration>>>,
-    track_finished: Arc<AtomicBool>,
-    track_change_signal: Arc<AtomicBool>,
-    sample_rate: u32,
-) {
+fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
+    let AudioPlaybackDriver {
+        producer,
+        is_playing,
+        visualizer_spectrum,
+        volume,
+        eq_gains,
+        eq_preamp,
+        eq_enabled,
+        current_track,
+        elapsed,
+        total_duration,
+        seek_requested,
+        track_finished,
+        track_change_signal,
+        ..
+    } = driver;
+
     let mut eq = GraphicEqualizer::new(sample_rate as f32);
     let mut vis = SpectrumVisualizer::new();
     let chunk_frames = 512;
