@@ -1,14 +1,14 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": null,
-  "activeTask": null,
-  "status": "completed",
-  "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
+  "activePlan": "PLAN-020",
+  "activeTask": "TASK-061",
+  "status": "in_progress",
+  "verificationCommand": "./scripts/verify_pure_rust.sh && cargo check --workspace",
   "metrics": {
-    "totalPlans": 19,
+    "totalPlans": 25,
     "completedPlans": 19,
-    "totalTasks": 60,
+    "totalTasks": 78,
     "completedTasks": 60
   },
   "plans": [
@@ -125,6 +125,42 @@
       "title": "Audiophile Equalizer DSP Overhaul & Clipping Safeguard Engine",
       "status": "completed",
       "tasks": ["TASK-059", "TASK-060"]
+    },
+    {
+      "id": "PLAN-020",
+      "title": "Orchestration Audit Remediation & Completion Re-baseline",
+      "status": "in_progress",
+      "tasks": ["TASK-061", "TASK-062"]
+    },
+    {
+      "id": "PLAN-021",
+      "title": "Elimination of Synthetic Stubs & Production Provider Hardening",
+      "status": "in_progress",
+      "tasks": ["TASK-063", "TASK-064", "TASK-065", "TASK-066"]
+    },
+    {
+      "id": "PLAN-022",
+      "title": "End-to-End Audio Pipeline Integration & Cross-Platform Runtime Wiring",
+      "status": "in_progress",
+      "tasks": ["TASK-067", "TASK-068", "TASK-069"]
+    },
+    {
+      "id": "PLAN-023",
+      "title": "Boss-File Refactoring & Modular Architectural Decomposition",
+      "status": "in_progress",
+      "tasks": ["TASK-070", "TASK-071", "TASK-072"]
+    },
+    {
+      "id": "PLAN-024",
+      "title": "End-to-End Verification, Test Suite Hardening & CI Test Resilience",
+      "status": "in_progress",
+      "tasks": ["TASK-073", "TASK-074", "TASK-075"]
+    },
+    {
+      "id": "PLAN-025",
+      "title": "100% In-Code Documentation, Complete Rustdoc Coverage & Zero-Warning Gate",
+      "status": "in_progress",
+      "tasks": ["TASK-076", "TASK-077", "TASK-078"]
     }
   ]
 }

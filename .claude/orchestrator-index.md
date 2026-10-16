@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 19 Plans | 60 Tasks | 60 Completed | Status: COMPLETED*
+*Tracking: 25 Plans | 78 Tasks | 60 Completed | 18 In Progress/Pending | Status: IN PROGRESS (Audit Remediation & Hardening)*
 
 ---
 
@@ -199,6 +199,48 @@
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-059](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-059-continuous-biquad-coefficient-morphing-and-state-preservation.md) | Continuous Biquad Filter Coefficient Morphing & State Preservation | Completed | dsp_engineering | `cargo test -p amp-core-engine test_biquad_state_preservation` |
 | [TASK-060](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-060-preamp-gain-staging-headroom-and-soft-knee-limiter.md) | Preamp Gain Staging, Headroom Management & Soft-Knee Limiter DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine test_eq_headroom_and_limiter` |
+
+### PLAN-020: Orchestration Audit Remediation & Completion Re-baseline (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-061](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-061-orchestration-audit-remediation.md) | Re-baseline the orchestration status and close the completion claim gap | In Progress | architecture | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
+| [TASK-062](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-062-domain-contract-alignment-and-error-standardization.md) | Domain Contract Alignment & Error Standardization | In Progress | architecture | `cargo test -p amp-domain -p amp-ports` |
+
+### PLAN-021: Elimination of Synthetic Stubs & Production Provider Hardening (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-063](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-063-spotify-adapter-stub-elimination-and-session-hardening.md) | Pure-Rust Spotify Adapter Stub Elimination & Session Hardening | In Progress | integrations | `cargo test -p amp-adapter-spotify` |
+| [TASK-064](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-064-soulseek-protocol-real-search-and-frame-state-machine.md) | Pure-Rust Soulseek Protocol Search & Message Frame State Machine | In Progress | integrations | `cargo test -p amp-adapter-soulseek` |
+| [TASK-065](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-065-p2p-mesh-cryptographic-handshake-and-block-transfer.md) | Pure-Rust P2P Mesh Cryptographic Handshake & Block Transfer | In Progress | integrations | `cargo test -p amp-adapter-p2p` |
+| [TASK-066](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-066-youtube-stream-resolver-live-buffering-hardening.md) | Pure-Rust YouTube Stream Resolver Live Buffering Hardening | In Progress | integrations | `cargo test -p amp-adapter-youtube` |
+
+### PLAN-022: End-to-End Audio Pipeline Integration & Cross-Platform Runtime Wiring (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-067](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-067-unified-playback-composition-root.md) | Unified Playback Composition Root & Hardware Audio Wiring | In Progress | audio_engine | `cargo test -p amp-core-engine -p amp-adapter-cpal -p amp-adapter-decoder` |
+| [TASK-068](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-068-unified-ui-runtime-integration.md) | Unified UI Runtime Integration Across CLI, TUI, and GUI | In Progress | architecture | `cargo test -p amp-app -p amp-adapter-tui -p amp-adapter-gui` |
+| [TASK-069](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-069-gapless-playback-seek-and-underrun-resilience.md) | Gapless Playback, Accurate Seeking & Underrun Resilience | In Progress | audio_engine | `cargo test -p amp-core-engine test_gapless` |
+
+### PLAN-023: Boss-File Refactoring & Modular Architectural Decomposition (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-070](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-070-decompose-app-main-monolith.md) | Decompose amp-app/src/main.rs Monolith into Modular Subsystems | In Progress | architecture | `cargo check -p amp-app` |
+| [TASK-071](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-071-decompose-gui-app-and-docking.md) | Decompose GUI App and Docking Modules into Focused Subsystems | In Progress | gui_engineering | `cargo check -p amp-adapter-gui` |
+| [TASK-072](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-072-decompose-cpal-and-decoder-adapters.md) | Decompose CPAL Sink and Symphonia Decoder into Modular Units | In Progress | audio_engine | `cargo check -p amp-adapter-cpal -p amp-adapter-decoder` |
+
+### PLAN-024: End-to-End Verification, Test Suite Hardening & CI Test Resilience (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-073](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-073-multi-format-e2e-audio-pipeline-test-harness.md) | Multi-Format E2E Audio Pipeline Test Harness | In Progress | testing | `cargo test -p amp-core-engine test_e2e_playback_pipeline` |
+| [TASK-074](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-074-memory-efficient-test-harness-and-ci-resilience.md) | Memory-Efficient Test Execution Harness & CI Resilience | In Progress | testing | `./scripts/run_all_tests.sh` |
+| [TASK-075](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-075-full-mutation-testing-pass-with-cargo-mutants.md) | Full Mutation Testing Execution & Mutation Gap Closure | In Progress | testing | `make mutation-test` |
+
+### PLAN-025: 100% In-Code Documentation, Complete Rustdoc Coverage & Zero-Warning Gate (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-076](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-076-domain-ports-engine-complete-rustdoc.md) | Domain, Ports & Core Engine Complete Rustdoc Documentation | In Progress | documentation | `cargo doc -p amp-domain -p amp-ports -p amp-core-engine --no-deps` |
+| [TASK-077](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-077-adapter-crates-complete-rustdoc.md) | Adapter Crates & Application Shells Complete Rustdoc Documentation | In Progress | documentation | `cargo doc --workspace --no-deps` |
+| [TASK-078](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-078-zero-warning-clippy-and-pure-rust-quality-gate.md) | Zero-Warning Clippy, 100% Pure-Rust & Release Quality Gate | In Progress | architecture | `make all` |
 
 ---
 
