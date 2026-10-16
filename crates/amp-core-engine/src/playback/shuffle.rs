@@ -200,9 +200,12 @@ mod tests {
 
         // Verify artist spacing where mathematically feasible
         for i in 0..played_artists.len().saturating_sub(2) {
-            if played_artists[i] == played_artists[i + 1] {
-                panic!("Consecutive duplicate artist detected: {:?}", played_artists);
-            }
+            assert_ne!(
+                played_artists[i],
+                played_artists[i + 1],
+                "Consecutive duplicate artist detected: {:?}",
+                played_artists
+            );
         }
     }
 

@@ -2,7 +2,7 @@
 id: TASK-067
 title: Unified Playback Composition Root & Hardware Audio Wiring
 planId: PLAN-022
-status: pending
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-core-engine -p amp-adapter-cpal -p amp-adapter-decoder
 ---

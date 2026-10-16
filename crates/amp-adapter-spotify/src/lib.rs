@@ -1,5 +1,5 @@
 //! Pure-Rust Spotify Stream Adapter.
-//! Implements `StreamResolverPort` to decrypt and stream Spotify tracks.
+//! Implements `StreamResolverPort` to resolve authenticated Spotify track audio streams.
 
 #![forbid(unsafe_code)]
 
@@ -11,12 +11,15 @@ use std::io::Cursor;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+/// Pure-Rust Spotify streaming adapter adhering to hexagonal port contracts.
+/// Requires explicit authentication and disallows synthetic audio fallbacks.
 pub struct PureSpotifyAdapter {
     authenticated: AtomicBool,
     cached_streams: Mutex<HashMap<String, Vec<u8>>>,
 }
 
 impl PureSpotifyAdapter {
+    /// Creates a new unauthenticated Spotify adapter instance.
     pub fn new() -> Self {
         Self {
             authenticated: AtomicBool::new(false),
@@ -24,18 +27,35 @@ impl PureSpotifyAdapter {
         }
     }
 
-    pub fn authenticate(&self, _token: &str) -> Result<(), ProviderError> {
+    /// Authenticates with a Spotify session token or access credential.
+    pub fn authenticate(&self, token: &str) -> Result<(), ProviderError> {
+        if token.trim().is_empty() {
+            return Err(ProviderError::AuthenticationRequired);
+        }
         self.authenticated.store(true, Ordering::SeqCst);
         Ok(())
     }
 
+    /// Revokes current authentication state.
+    pub fn deauthenticate(&self) {
+        self.authenticated.store(false, Ordering::SeqCst);
+    }
+
+    /// Returns whether the adapter has an active authenticated session.
     pub fn is_authenticated(&self) -> bool {
         self.authenticated.load(Ordering::SeqCst)
     }
 
+    /// Stores verified audio stream bytes in the session stream cache.
     pub fn cache_stream_data(&self, track_uri: impl Into<String>, audio_bytes: Vec<u8>) {
         let mut cache = self.cached_streams.lock().unwrap();
         cache.insert(track_uri.into(), audio_bytes);
+    }
+
+    /// Clears the in-memory stream cache.
+    pub fn clear_cache(&self) {
+        let mut cache = self.cached_streams.lock().unwrap();
+        cache.clear();
     }
 }
 
@@ -65,54 +85,13 @@ impl StreamResolverPort for PureSpotifyAdapter {
         }
 
         let cache = self.cached_streams.lock().unwrap();
-        let audio_data = if let Some(bytes) = cache.get(track_uri) {
-            bytes.clone()
+        if let Some(bytes) = cache.get(track_uri) {
+            Ok(Box::new(Cursor::new(bytes.clone())))
         } else {
-            // Synthesize standard 44.1kHz stereo audio stream if not explicitly preloaded
-            generate_pcm_wav_stream(1.0, 440.0)
-        };
-
-        Ok(Box::new(Cursor::new(audio_data)))
+            // Strict production contract: Never synthesize fake audio on missing data
+            Err(ProviderError::NotFound)
+        }
     }
-}
-
-pub fn generate_pcm_wav_stream(duration_secs: f32, freq_hz: f32) -> Vec<u8> {
-    let sample_rate = 44100u32;
-    let num_samples = (sample_rate as f32 * duration_secs) as usize;
-    let mut pcm_samples = Vec::with_capacity(num_samples * 2);
-
-    for i in 0..num_samples {
-        let t = i as f32 / sample_rate as f32;
-        let val = (2.0 * std::f32::consts::PI * freq_hz * t).sin();
-        let sample_i16 = (val * 32767.0) as i16;
-        pcm_samples.push(sample_i16);
-        pcm_samples.push(sample_i16);
-    }
-
-    let data_bytes_len = pcm_samples.len() * 2;
-    let file_size_minus_8 = (36 + data_bytes_len) as u32;
-
-    let mut wav = Vec::new();
-    wav.extend_from_slice(b"RIFF");
-    wav.extend_from_slice(&file_size_minus_8.to_le_bytes());
-    wav.extend_from_slice(b"WAVE");
-
-    wav.extend_from_slice(b"fmt ");
-    wav.extend_from_slice(&(16u32).to_le_bytes());
-    wav.extend_from_slice(&(1u16).to_le_bytes()); // PCM
-    wav.extend_from_slice(&(2u16).to_le_bytes()); // Stereo
-    wav.extend_from_slice(&sample_rate.to_le_bytes());
-    wav.extend_from_slice(&(sample_rate * 4).to_le_bytes());
-    wav.extend_from_slice(&(4u16).to_le_bytes());
-    wav.extend_from_slice(&(16u16).to_le_bytes());
-
-    wav.extend_from_slice(b"data");
-    wav.extend_from_slice(&(data_bytes_len as u32).to_le_bytes());
-    for s in pcm_samples {
-        wav.extend_from_slice(&s.to_le_bytes());
-    }
-
-    wav
 }
 
 #[cfg(test)]
@@ -137,30 +116,38 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_auth_required_error() {
+    async fn test_auth_validation_and_rejection() {
         let adapter = PureSpotifyAdapter::new();
         let spotify_src = AudioSource::Spotify {
             track_uri: "spotify:track:6rqhFgbbKwnb9MLmUQDhG6".to_string(),
         };
 
+        // Unauthenticated access fails fast
         let res = adapter.resolve_stream(&spotify_src).await;
         assert!(matches!(res, Err(ProviderError::AuthenticationRequired)));
 
-        adapter.authenticate("valid_token").unwrap();
+        // Empty token rejected
+        assert!(matches!(
+            adapter.authenticate(""),
+            Err(ProviderError::AuthenticationRequired)
+        ));
+
+        // Valid authentication succeeds
+        adapter.authenticate("valid_session_token").unwrap();
         assert!(adapter.is_authenticated());
-        let mut stream = adapter.resolve_stream(&spotify_src).await.unwrap();
-        let mut buf = Vec::new();
-        let read_bytes = stream.read_to_end(&mut buf).unwrap();
-        assert!(read_bytes > 0);
+
+        // Uncached track returns NotFound without synthesizing audio
+        let uncached_res = adapter.resolve_stream(&spotify_src).await;
+        assert!(matches!(uncached_res, Err(ProviderError::NotFound)));
     }
 
     #[tokio::test]
-    async fn test_custom_cached_stream_delivery() {
+    async fn test_authenticated_cached_stream_delivery() {
         let adapter = PureSpotifyAdapter::new();
         adapter.authenticate("valid_token").unwrap();
 
         let track_uri = "spotify:track:custom123";
-        let custom_bytes = vec![1, 2, 3, 4, 5, 6, 7, 8];
+        let custom_bytes = vec![0x4F, 0x67, 0x67, 0x53, 0x00, 0x02]; // Valid OGG magic header
         adapter.cache_stream_data(track_uri, custom_bytes.clone());
 
         let spotify_src = AudioSource::Spotify {
@@ -170,5 +157,13 @@ mod tests {
         let mut buf = Vec::new();
         stream.read_to_end(&mut buf).unwrap();
         assert_eq!(buf, custom_bytes);
+
+        // Verify deauthentication revokes access immediately
+        adapter.deauthenticate();
+        assert!(!adapter.is_authenticated());
+        assert!(matches!(
+            adapter.resolve_stream(&spotify_src).await,
+            Err(ProviderError::AuthenticationRequired)
+        ));
     }
 }

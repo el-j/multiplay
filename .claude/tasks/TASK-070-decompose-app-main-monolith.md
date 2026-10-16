@@ -2,7 +2,7 @@
 id: TASK-070
 title: Decompose amp-app/src/main.rs Monolith into Modular Subsystems
 planId: PLAN-023
-status: pending
+status: completed
 role: architecture
 verificationCommand: cargo check -p amp-app
 ---

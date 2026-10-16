@@ -8,6 +8,7 @@ use std::collections::HashSet;
 pub enum SourceKind {
     LocalFile,
     NetworkSmb,
+    DirectHttp,
     YouTube,
     Spotify,
     Bandcamp,
@@ -22,6 +23,7 @@ impl SourceKind {
         match self {
             Self::LocalFile  => "󰉋 [LOC]",
             Self::NetworkSmb => "󰒍 [SMB]",
+            Self::DirectHttp => "󰌹 [HTTP]",
             Self::YouTube    => " [YT]",
             Self::Spotify    => " [SPOT]",
             Self::Bandcamp   => "󰓇 [BC]",
@@ -36,6 +38,7 @@ impl SourceKind {
         match self {
             Self::LocalFile  => "Local Library",
             Self::NetworkSmb => "SMB / Network Share",
+            Self::DirectHttp => "Direct HTTP Stream",
             Self::YouTube    => "YouTube Audio",
             Self::Spotify    => "Spotify Premium",
             Self::Bandcamp   => "Bandcamp",
@@ -57,6 +60,7 @@ impl Default for SourceFilterMask {
         let mut enabled = HashSet::new();
         enabled.insert(SourceKind::LocalFile);
         enabled.insert(SourceKind::NetworkSmb);
+        enabled.insert(SourceKind::DirectHttp);
         enabled.insert(SourceKind::YouTube);
         enabled.insert(SourceKind::Spotify);
         enabled.insert(SourceKind::Bandcamp);
@@ -103,7 +107,8 @@ mod tests {
         assert!(mask.is_enabled(SourceKind::LocalFile));
         assert!(mask.is_enabled(SourceKind::YouTube));
         assert!(mask.is_enabled(SourceKind::Spotify));
-        assert_eq!(mask.enabled_sources.len(), 8);
+        assert!(mask.is_enabled(SourceKind::DirectHttp));
+        assert_eq!(mask.enabled_sources.len(), 9);
     }
 
     #[test]

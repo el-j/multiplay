@@ -2,7 +2,7 @@
 id: TASK-066
 title: Pure-Rust YouTube Stream Resolver Live Buffering Hardening
 planId: PLAN-021
-status: pending
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-youtube
 ---

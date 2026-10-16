@@ -5,10 +5,12 @@
 
 pub mod driven;
 pub mod driving;
+pub mod error;
 pub mod plugin;
 
 pub use driven::*;
 pub use driving::*;
+pub use error::*;
 pub use plugin::*;
 
 #[cfg(test)]

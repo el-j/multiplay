@@ -55,7 +55,7 @@ impl AudioSource {
         match self {
             Self::LocalFile { .. } => SourceKind::LocalFile,
             Self::NetworkSmb { .. } => SourceKind::NetworkSmb,
-            Self::DirectHttp { .. } => SourceKind::Bandcamp,
+            Self::DirectHttp { .. } => SourceKind::DirectHttp,
             Self::YouTube { .. } => SourceKind::YouTube,
             Self::Spotify { .. } => SourceKind::Spotify,
             Self::Bandcamp { .. } => SourceKind::Bandcamp,
@@ -184,5 +184,24 @@ mod tests {
 
         assert_eq!(s1, s2);
         assert_ne!(s1, s3);
+    }
+
+    #[test]
+    fn test_audio_source_kind_mapping() {
+        let sources = [
+            (AudioSource::LocalFile { path: "/a.flac".into() }, SourceKind::LocalFile),
+            (AudioSource::NetworkSmb { share_url: "smb://a/b".into() }, SourceKind::NetworkSmb),
+            (AudioSource::DirectHttp { url: "https://a.com/b.mp3".into() }, SourceKind::DirectHttp),
+            (AudioSource::YouTube { video_id: "dQw4w9WgXcQ".into() }, SourceKind::YouTube),
+            (AudioSource::Spotify { track_uri: "spotify:track:123".into() }, SourceKind::Spotify),
+            (AudioSource::Bandcamp { stream_url: "https://bc.com/a".into() }, SourceKind::Bandcamp),
+            (AudioSource::SoundCloud { track_url: "https://sc.com/a".into() }, SourceKind::SoundCloud),
+            (AudioSource::Soulseek { username: "u".into(), filename: "f".into() }, SourceKind::Soulseek),
+            (AudioSource::P2PShared { peer_id: "p".into(), file_hash: "h".into() }, SourceKind::P2PShared),
+        ];
+
+        for (source, expected_kind) in sources {
+            assert_eq!(source.kind(), expected_kind);
+        }
     }
 }

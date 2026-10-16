@@ -2,7 +2,7 @@
 id: TASK-076
 title: Domain, Ports & Core Engine Complete Rustdoc Documentation
 planId: PLAN-025
-status: pending
+status: completed
 role: documentation
 verificationCommand: cargo doc -p amp-domain -p amp-ports -p amp-core-engine --no-deps
 ---

@@ -1,7 +1,7 @@
 ---
 id: PLAN-020
 title: Orchestration Audit Remediation & Completion Re-baseline
-status: in_progress
+status: completed
 role: architecture
 tasks:
   - TASK-061

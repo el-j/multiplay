@@ -150,3 +150,24 @@ async fn test_full_audiophile_e2e_pipeline() {
     // Cleanup
     let _ = std::fs::remove_dir_all(&temp_dir);
 }
+
+#[tokio::test]
+async fn test_corrupt_stream_fail_fast_without_panic() {
+    use amp_adapter_decoder::AudioStreamDecoder;
+
+    let corrupt_payloads: Vec<Vec<u8>> = vec![
+        vec![], // Empty
+        vec![0x52, 0x49, 0x46, 0x46], // Incomplete "RIFF" header
+        vec![0xFF, 0xFB, 0x90, 0x44], // Truncated MP3 frame
+        vec![0x4F, 0x67, 0x67, 0x53, 0x00], // Truncated Ogg header
+        vec![0x66, 0x4C, 0x61, 0x43], // Truncated fLaC marker
+        vec![0xAA; 128], // Completely random garbage bytes
+    ];
+
+    for (idx, payload) in corrupt_payloads.into_iter().enumerate() {
+        let cursor = Cursor::new(payload);
+        let res = AudioStreamDecoder::open_media_source(cursor);
+        assert!(res.is_err(), "Payload #{idx} should return Err rather than panicking");
+    }
+}
+

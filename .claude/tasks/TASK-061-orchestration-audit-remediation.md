@@ -2,7 +2,7 @@
 id: TASK-061
 title: Re-baseline the orchestration status and close the completion claim gap
 planId: PLAN-020
-status: in_progress
+status: completed
 role: architecture
 verificationCommand: ./scripts/verify_pure_rust.sh && cargo test --workspace
 ---

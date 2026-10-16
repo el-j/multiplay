@@ -2,7 +2,7 @@
 id: TASK-071
 title: Decompose GUI App and Docking Modules into Focused Subsystems
 planId: PLAN-023
-status: pending
+status: completed
 role: gui_engineering
 verificationCommand: cargo check -p amp-adapter-gui
 ---

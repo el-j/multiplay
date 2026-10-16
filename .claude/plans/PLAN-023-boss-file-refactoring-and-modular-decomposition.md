@@ -1,7 +1,7 @@
 ---
 id: PLAN-023
 title: Boss-File Refactoring & Modular Architectural Decomposition
-status: in_progress
+status: completed
 role: architecture
 tasks:
   - TASK-070

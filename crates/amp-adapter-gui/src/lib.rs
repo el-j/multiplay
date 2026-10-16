@@ -4,6 +4,8 @@
 #![forbid(unsafe_code)]
 
 pub mod app;
+pub mod app_render;
+pub mod app_state;
 pub mod audio_driver;
 pub mod dj_panel;
 pub mod docking;

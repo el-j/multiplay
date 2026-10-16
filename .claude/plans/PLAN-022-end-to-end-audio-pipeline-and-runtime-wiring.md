@@ -1,7 +1,7 @@
 ---
 id: PLAN-022
 title: End-to-End Audio Pipeline Integration & Cross-Platform Runtime Wiring
-status: in_progress
+status: completed
 role: audio_engine
 tasks:
   - TASK-067

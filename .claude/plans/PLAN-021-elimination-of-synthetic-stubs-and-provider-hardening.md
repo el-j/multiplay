@@ -1,7 +1,7 @@
 ---
 id: PLAN-021
 title: Elimination of Synthetic Stubs & Production Provider Hardening
-status: in_progress
+status: completed
 role: integrations
 tasks:
   - TASK-063

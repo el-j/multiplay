@@ -1,83 +1,10 @@
-//! Pure geometry and state manager for magnetic window snapping and multi-window docking.
-//! Inspired by the classic Winamp modular window system.
+//! DockManager orchestrator for window positioning, snapping, and group translation.
 
 #![forbid(unsafe_code)]
 
+use super::geometry::{DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-
-pub const DEFAULT_SNAP_THRESHOLD: f32 = 14.0;
-pub const DEFAULT_TEAR_OFF_THRESHOLD: f32 = 24.0;
-
-/// Identifier for distinct modular desktop windows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum WindowId {
-    Main,
-    Equalizer,
-    Playlist,
-    Settings,
-    DjConsole,
-}
-
-/// 2D rectangular bounding box for floating windows.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct DockRect {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
-}
-
-impl DockRect {
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
-    }
-
-    #[inline]
-    pub fn left(&self) -> f32 {
-        self.x
-    }
-
-    #[inline]
-    pub fn right(&self) -> f32 {
-        self.x + self.width
-    }
-
-    #[inline]
-    pub fn top(&self) -> f32 {
-        self.y
-    }
-
-    #[inline]
-    pub fn bottom(&self) -> f32 {
-        self.y + self.height
-    }
-
-    #[inline]
-    pub fn translate(&mut self, dx: f32, dy: f32) {
-        self.x += dx;
-        self.y += dy;
-    }
-
-    /// Checks if two rects share an overlapping vertical interval.
-    pub fn overlaps_vertical(&self, other: &Self) -> bool {
-        self.top() < other.bottom() && self.bottom() > other.top()
-    }
-
-    /// Checks if two rects share an overlapping horizontal interval.
-    pub fn overlaps_horizontal(&self, other: &Self) -> bool {
-        self.left() < other.right() && self.right() > other.left()
-    }
-}
-
-/// Docking bond edge relative to the host/anchor window.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DockEdge {
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
 
 /// Manages docking connections and magnetic snapping across all windows.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,7 +52,6 @@ impl Default for DockManager {
 
 impl DockManager {
     /// Attempts to snap `moving_rect` against a list of stationary target rectangles.
-    /// Returns Some((snapped_rect, target_id, edge)) if a snap occurred.
     pub fn compute_snap(
         &self,
         moving_id: WindowId,
@@ -139,7 +65,7 @@ impl DockManager {
                 continue;
             }
 
-            // 1. Magnetic snap to Right edge of target (target | moving)
+            // Magnetic snap to Right edge
             if moving_rect.overlaps_vertical(&target_rect)
                 && (moving_rect.left() - target_rect.right()).abs() <= self.snap_threshold
             {
@@ -151,7 +77,7 @@ impl DockManager {
                 break;
             }
 
-            // 2. Magnetic snap to Left edge of target (moving | target)
+            // Magnetic snap to Left edge
             if moving_rect.overlaps_vertical(&target_rect)
                 && (moving_rect.right() - target_rect.left()).abs() <= self.snap_threshold
             {
@@ -163,7 +89,7 @@ impl DockManager {
                 break;
             }
 
-            // 3. Magnetic snap to Bottom edge of target (target / moving)
+            // Magnetic snap to Bottom edge
             if moving_rect.overlaps_horizontal(&target_rect)
                 && (moving_rect.top() - target_rect.bottom()).abs() <= self.snap_threshold
             {
@@ -175,7 +101,7 @@ impl DockManager {
                 break;
             }
 
-            // 4. Magnetic snap to Top edge of target (moving / target)
+            // Magnetic snap to Top edge
             if moving_rect.overlaps_horizontal(&target_rect)
                 && (moving_rect.bottom() - target_rect.top()).abs() <= self.snap_threshold
             {
@@ -266,84 +192,3 @@ impl DockManager {
         self.windows.insert(id, rect);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_docking_snaps_to_bottom() {
-        let mut dm = DockManager::new_empty();
-        dm.windows.insert(WindowId::Main, DockRect::new(100.0, 100.0, 400.0, 200.0));
-        dm.set_visible(WindowId::Main, true);
-
-        // Position Equalizer 5 pixels below Main (within 14px threshold)
-        let eq_rect = DockRect::new(105.0, 305.0, 400.0, 150.0);
-        let (snapped, dock) = dm.compute_snap(WindowId::Equalizer, eq_rect);
-
-        assert_eq!(snapped.y, 300.0); // Flushed to Main bottom (100 + 200)
-        assert_eq!(snapped.x, 100.0); // Flushed to Main left
-        assert_eq!(dock, Some((WindowId::Main, DockEdge::Bottom)));
-    }
-
-    #[test]
-    fn test_docking_snaps_to_right() {
-        let mut dm = DockManager::new_empty();
-        dm.windows.insert(WindowId::Main, DockRect::new(100.0, 100.0, 400.0, 200.0));
-        dm.set_visible(WindowId::Main, true);
-
-        // Position Settings 8 pixels to the right of Main
-        let settings_rect = DockRect::new(508.0, 105.0, 300.0, 200.0);
-        let (snapped, dock) = dm.compute_snap(WindowId::Settings, settings_rect);
-
-        assert_eq!(snapped.x, 500.0); // Flushed to Main right (100 + 400)
-        assert_eq!(snapped.y, 100.0); // Flushed to Main top
-        assert_eq!(dock, Some((WindowId::Main, DockEdge::Right)));
-    }
-
-    #[test]
-    fn test_group_movement_propagates_to_docked_children() {
-        let mut dm = DockManager::default();
-        dm.windows.insert(WindowId::Main, DockRect::new(100.0, 100.0, 400.0, 200.0));
-        dm.windows.insert(WindowId::Equalizer, DockRect::new(100.0, 300.0, 400.0, 150.0));
-        dm.dock(WindowId::Equalizer, WindowId::Main, DockEdge::Bottom);
-
-        dm.move_window_group(WindowId::Main, 50.0, 30.0);
-
-        assert_eq!(dm.get_rect(WindowId::Main).x, 150.0);
-        assert_eq!(dm.get_rect(WindowId::Main).y, 130.0);
-        assert_eq!(dm.get_rect(WindowId::Equalizer).x, 150.0);
-        assert_eq!(dm.get_rect(WindowId::Equalizer).y, 330.0);
-    }
-
-    #[test]
-    fn test_undock_allows_independent_movement() {
-        let mut dm = DockManager::default();
-        dm.windows.insert(WindowId::Main, DockRect::new(100.0, 100.0, 400.0, 200.0));
-        dm.windows.insert(WindowId::Equalizer, DockRect::new(100.0, 300.0, 400.0, 150.0));
-        dm.dock(WindowId::Equalizer, WindowId::Main, DockEdge::Bottom);
-
-        dm.undock(WindowId::Equalizer);
-        dm.move_window_group(WindowId::Main, 50.0, 30.0);
-
-        assert_eq!(dm.get_rect(WindowId::Main).x, 150.0);
-        assert_eq!(dm.get_rect(WindowId::Equalizer).x, 100.0); // Did not move
-    }
-
-    #[test]
-    fn test_layout_persistence() {
-        let mut dm = DockManager::default();
-        dm.set_rect(WindowId::Main, DockRect::new(200.0, 150.0, 500.0, 220.0));
-        dm.set_visible(WindowId::Equalizer, false);
-        dm.dock(WindowId::Playlist, WindowId::Main, DockEdge::Bottom);
-
-        let json = serde_json::to_string(&dm).expect("Failed to serialize DockManager");
-        let restored: DockManager = serde_json::from_str(&json).expect("Failed to deserialize DockManager");
-
-        assert_eq!(restored.get_rect(WindowId::Main).x, 200.0);
-        assert_eq!(restored.get_rect(WindowId::Main).y, 150.0);
-        assert!(!restored.is_visible(WindowId::Equalizer));
-        assert_eq!(restored.dock_parent.get(&WindowId::Playlist), Some(&(WindowId::Main, DockEdge::Bottom)));
-    }
-}
-

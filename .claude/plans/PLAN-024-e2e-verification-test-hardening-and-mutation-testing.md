@@ -1,7 +1,7 @@
 ---
 id: PLAN-024
 title: End-to-End Verification, Test Suite Hardening & CI Test Resilience
-status: in_progress
+status: completed
 role: testing
 tasks:
   - TASK-073

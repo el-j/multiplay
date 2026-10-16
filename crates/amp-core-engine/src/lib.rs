@@ -28,7 +28,10 @@ pub use dsp::{
 };
 pub use events::{PlayerCommand, PlayerEvent};
 pub use filtered_search::FilteredSearchCoordinator;
-pub use playback::{RepeatMode, ShuffleMode, SmartQueueManager};
+pub use playback::{
+    ComfortSilenceGenerator, GaplessConfig, GaplessTrackScheduler, RepeatMode, ShuffleMode,
+    SmartQueueManager,
+};
 pub use plugin_registry::PluginRegistry;
 pub use precache::SharedPrecacheBuffer;
 pub use skin::{SkinLoader, WinampTheme};

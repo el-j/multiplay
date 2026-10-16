@@ -2,7 +2,7 @@
 id: TASK-072
 title: Decompose CPAL Sink and Symphonia Decoder into Modular Units
 planId: PLAN-023
-status: pending
+status: completed
 role: audio_engine
 verificationCommand: cargo check -p amp-adapter-cpal -p amp-adapter-decoder
 ---

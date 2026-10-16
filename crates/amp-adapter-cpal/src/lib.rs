@@ -1,9 +1,15 @@
 //! Pure-Rust hardware audio sink adapter using CPAL and lock-free SPSC ring buffer.
 //! Isolates CPAL stream lifecycle to a dedicated thread and guarantees real-time safety.
 
+#![forbid(unsafe_code)]
+
+pub mod actor;
+pub mod device;
+
+use actor::{run_cpal_actor, SinkControlMsg};
+pub use device::{list_output_devices, resolve_output_device, AudioDeviceDescription};
+
 use amp_ports::driven::AudioSinkPort;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BufferSize, Device, SampleRate, StreamConfig};
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 use std::sync::mpsc::{self, Sender};
@@ -12,31 +18,6 @@ use std::thread;
 use std::time::Duration;
 
 pub const DEFAULT_RING_BUFFER_FRAMES: usize = 65536;
-
-/// Description of an audio hardware output device.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AudioDeviceDescription {
-    pub name: String,
-    pub is_default: bool,
-}
-
-enum SinkControlMsg {
-    Configure {
-        sample_rate: u32,
-        channels: u16,
-        reply: mpsc::Sender<Result<(), String>>,
-    },
-    Start {
-        reply: mpsc::Sender<Result<(), String>>,
-    },
-    Pause {
-        reply: mpsc::Sender<Result<(), String>>,
-    },
-    Stop {
-        reply: mpsc::Sender<Result<(), String>>,
-    },
-    Terminate,
-}
 
 /// Thread-safe (`Send + Sync`) CPAL Audio Sink handle implementing `AudioSinkPort`.
 pub struct CpalAudioSink {
@@ -49,25 +30,7 @@ pub struct CpalAudioSink {
 impl CpalAudioSink {
     /// Lists all detected hardware audio output devices on the host.
     pub fn list_output_devices() -> Vec<AudioDeviceDescription> {
-        let host = cpal::default_host();
-        let default_name = host.default_output_device().and_then(|d| d.name().ok());
-        let mut result = Vec::new();
-
-        if let Ok(devices) = host.devices() {
-            for d in devices {
-                if let Ok(name) = d.name() {
-                    let lower = name.to_lowercase();
-                    if lower.contains("microphone") || lower.contains("input") {
-                        continue;
-                    }
-                    let is_default = default_name.as_ref() == Some(&name);
-                    if !result.iter().any(|item: &AudioDeviceDescription| item.name == name) {
-                        result.push(AudioDeviceDescription { name, is_default });
-                    }
-                }
-            }
-        }
-        result
+        device::list_output_devices()
     }
 
     /// Spawns the audio actor thread using the default output device.
@@ -235,113 +198,6 @@ impl AudioSinkPort for CpalAudioSink {
     }
 }
 
-fn resolve_output_device(target_name: Option<&str>) -> Result<(Device, StreamConfig, String), String> {
-    let host = cpal::default_host();
-
-    let (device, resolved_name) = if let Some(target) = target_name {
-        let all_devs = host.devices().map_err(|e| format!("Device enumeration failed: {e}"))?;
-        let mut found = None;
-        for d in all_devs {
-            if let Ok(name) = d.name() {
-                if name == target {
-                    found = Some((d, name));
-                    break;
-                }
-            }
-        }
-        found.ok_or_else(|| format!("Target audio device '{target}' not found"))?
-    } else if let Some(def) = host.default_output_device() {
-        let name = def.name().unwrap_or_else(|_| "Default Audio Device".to_string());
-        (def, name)
-    } else {
-        let mut out_devs = host.output_devices().map_err(|e| format!("Output device enumeration failed: {e}"))?;
-        let d = out_devs.next().ok_or_else(|| "No hardware audio output devices found".to_string())?;
-        let name = d.name().unwrap_or_else(|_| "Unknown Audio Device".to_string());
-        (d, name)
-    };
-
-    // Determine working StreamConfig, handling macOS CoreAudio Apple Silicon driver quirks
-    let config = if let Ok(supported) = device.default_output_config() {
-        StreamConfig {
-            channels: supported.channels(),
-            sample_rate: supported.sample_rate(),
-            buffer_size: BufferSize::Default,
-        }
-    } else {
-        // Fallback standard 48kHz stereo configuration for built-in Mac speakers
-        StreamConfig {
-            channels: 2,
-            sample_rate: SampleRate(48000),
-            buffer_size: BufferSize::Default,
-        }
-    };
-
-    Ok((device, config, resolved_name))
-}
-
-fn run_cpal_actor(
-    device: Device,
-    config: StreamConfig,
-    mut consumer: Consumer<f32>,
-    cmd_rx: mpsc::Receiver<SinkControlMsg>,
-    current_sr: Arc<AtomicU32>,
-    current_ch: Arc<AtomicU16>,
-) {
-    let err_fn = |err| eprintln!("Audio stream callback error: {err}");
-
-    let stream_res = device.build_output_stream(
-        &config,
-        move |output: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            for sample in output.iter_mut() {
-                *sample = consumer.pop().unwrap_or(0.0);
-            }
-        },
-        err_fn,
-        None,
-    );
-
-    let stream = match stream_res {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Failed to initialize audio output stream: {e}");
-            while let Ok(msg) = cmd_rx.recv() {
-                match msg {
-                    SinkControlMsg::Configure { reply, .. } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Start { reply } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Pause { reply } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Stop { reply } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Terminate => break,
-                }
-            }
-            return;
-        }
-    };
-
-    // The stream is built in paused state. It is controlled via play() and pause()
-    while let Ok(msg) = cmd_rx.recv() {
-        match msg {
-            SinkControlMsg::Configure { sample_rate, channels, reply } => {
-                current_sr.store(sample_rate, Ordering::Relaxed);
-                current_ch.store(channels, Ordering::Relaxed);
-                let _ = reply.send(Ok(()));
-            }
-            SinkControlMsg::Start { reply } => {
-                let res = stream.play().map_err(|e| format!("Stream play failed: {e}"));
-                let _ = reply.send(res);
-            }
-            SinkControlMsg::Pause { reply } => {
-                let res = stream.pause().map_err(|e| format!("Stream pause failed: {e}"));
-                let _ = reply.send(res);
-            }
-            SinkControlMsg::Stop { reply } => {
-                let res = stream.pause().map_err(|e| format!("Stream stop failed: {e}"));
-                let _ = reply.send(res);
-            }
-            SinkControlMsg::Terminate => break,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -369,20 +225,16 @@ mod tests {
     fn test_device_enumeration_and_fallback() {
         let devices = CpalAudioSink::list_output_devices();
         assert!(!devices.is_empty(), "Should detect at least one output device");
-        println!("Detected devices: {:?}", devices);
     }
 
     #[test]
     fn test_repeated_start_pause_stop_lifecycle() {
         let (mut sink, mut producer) = CpalAudioSink::new().expect("Failed to initialize default sink");
-        println!("Initialized sink on device: {}", sink.device_name());
 
-        // Fill test samples
         for _ in 0..1024 {
             let _ = producer.push(0.0);
         }
 
-        // Test repeated Start / Pause / Stop without consumer eviction
         sink.start().expect("First start failed");
         sink.pause().expect("Pause failed");
         sink.start().expect("Second start failed");

@@ -2,7 +2,7 @@
 id: TASK-073
 title: Multi-Format E2E Audio Pipeline Test Harness
 planId: PLAN-024
-status: pending
+status: completed
 role: testing
 verificationCommand: cargo test -p amp-core-engine test_e2e_playback_pipeline
 ---

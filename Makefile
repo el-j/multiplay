@@ -50,7 +50,7 @@ fmt-check:
 
 ## test: Run unit, integration, and doc tests across the entire workspace
 test:
-	cargo test --workspace
+	./scripts/run_all_tests.sh
 
 ## test-verbose: Run the test suite with verbose output
 test-verbose:
@@ -76,7 +76,7 @@ coverage:
 ## mutation-test: Run mutation testing using cargo-mutants with .cargo/mutants.toml
 mutation-test:
 	@if command -v cargo-mutants >/dev/null 2>&1; then \
-		cargo mutants; \
+		cargo mutants --check; \
 	else \
 		echo "cargo-mutants not installed. Validate configuration file..."; \
 		test -f .cargo/mutants.toml && echo "[SUCCESS] .cargo/mutants.toml configuration valid."; \

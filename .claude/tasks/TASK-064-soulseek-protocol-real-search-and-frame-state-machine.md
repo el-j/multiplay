@@ -2,7 +2,7 @@
 id: TASK-064
 title: Pure-Rust Soulseek Protocol Search & Message Frame State Machine
 planId: PLAN-021
-status: pending
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-soulseek
 ---

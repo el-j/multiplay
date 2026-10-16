@@ -2,7 +2,7 @@
 id: TASK-077
 title: Adapter Crates & Application Shells Complete Rustdoc Documentation
 planId: PLAN-025
-status: pending
+status: completed
 role: documentation
 verificationCommand: cargo doc --workspace --no-deps
 ---

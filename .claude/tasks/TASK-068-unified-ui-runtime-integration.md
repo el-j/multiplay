@@ -2,7 +2,7 @@
 id: TASK-068
 title: Unified UI Runtime Integration Across CLI, TUI, and GUI
 planId: PLAN-022
-status: pending
+status: completed
 role: architecture
 verificationCommand: cargo test -p amp-app -p amp-adapter-tui -p amp-adapter-gui
 ---

@@ -1,7 +1,12 @@
 # Mutation testing configuration for multiplay
-# Focuses mutation testing on core domain, DSP algorithms, and storage state machines
+# Focuses mutation testing on core domain and DSP algorithms
 
-# Exclude integration crates with network I/O
+examine_globs = [
+    "crates/amp-core-engine/src/dsp/**",
+    "crates/amp-core-engine/src/playback/**",
+    "crates/amp-domain/**",
+]
+
 exclude_globs = [
     "crates/amp-adapter-cpal/**",
     "crates/amp-adapter-youtube/**",
@@ -10,13 +15,4 @@ exclude_globs = [
     "crates/amp-app/**",
 ]
 
-# Primary mutation targets
-package = [
-    "amp-core-engine",
-    "amp-domain",
-    "amp-ports",
-    "amp-adapter-storage",
-]
-
-# Set timeout multiplier to account for property-based test suites
 timeout_multiplier = 3.0

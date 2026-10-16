@@ -2,7 +2,7 @@
 id: TASK-062
 title: Domain Contract Alignment & Error Standardization
 planId: PLAN-020
-status: in_progress
+status: completed
 role: architecture
 verificationCommand: cargo test -p amp-domain -p amp-ports
 ---
