@@ -1,7 +1,7 @@
 ---
 id: PLAN-006
 title: Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI
-status: planned
+status: completed
 role: frontend_tui
 tasks:
   - TASK-017

@@ -1,0 +1,10 @@
+[package]
+name = "amp-ports"
+version = "0.1.0"
+edition = "2021"
+description = "Driving and driven port contracts for multiplay audio player"
+
+[dependencies]
+amp-domain = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }

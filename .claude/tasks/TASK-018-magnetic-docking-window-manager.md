@@ -2,7 +2,7 @@
 id: TASK-018
 title: Magnetic Multi-Window Docking & Snapping Window Manager
 planId: PLAN-006
-status: pending
+status: completed
 role: frontend_tui
 verificationCommand: cargo test -p amp-adapter-tui test_docking
 ---

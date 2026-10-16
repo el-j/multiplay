@@ -1,0 +1,16 @@
+[package]
+name = "amp-adapter-youtube"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+rusty_ytdl = { version = "0.7", default-features = false, features = ["rustls-tls", "search"] }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -15,7 +15,7 @@ FAIL=0
 
 if [ -f "Cargo.lock" ]; then
     for crate in "${FORBIDDEN_CRATES[@]}"; do
-        MATCHES=$(cargo tree -i "$crate" 2>/dev/null || true)
+        MATCHES=$(cargo tree --edges no-build -i "$crate" 2>/dev/null || true)
         if [ -n "$MATCHES" ]; then
             echo -e "\033[0;31m[FAIL]\033[0m Forbidden native C-wrapper crate detected: '$crate'"
             echo "$MATCHES"

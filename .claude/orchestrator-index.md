@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 8 Plans | 25 Tasks | 0 Completed | Active: PLAN-001 (TASK-001)*
+*Tracking: 8 Plans | 25 Tasks | 12 Completed | Active: PLAN-005 (TASK-013)*
 
 ---
 
@@ -63,35 +63,35 @@
 
 ## Plans & Tasks Roadmap
 
-### PLAN-001: Pure-Rust Toolchain, Domain Models & Hexagonal Port Contracts (Active)
+### PLAN-001: Pure-Rust Toolchain, Domain Models & Hexagonal Port Contracts (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-001](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-001-cargo-workspace-and-toolchain.md) | Root Cargo Workspace & Pure-Rust Toolchain Constraints | In Progress | architecture | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
-| [TASK-002](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-002-domain-models-and-entities.md) | Pure Domain Models, Entities & Source Badges (`amp-domain`) | Pending | architecture | `cargo test -p amp-domain` |
-| [TASK-003](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-003-hexagonal-port-contracts.md) | Driving & Driven Hexagonal Port Traits (`amp-ports`) | Pending | architecture | `cargo test -p amp-ports` |
+| [TASK-001](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-001-cargo-workspace-and-toolchain.md) | Root Cargo Workspace & Pure-Rust Toolchain Constraints | Completed | architecture | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
+| [TASK-002](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-002-domain-models-and-entities.md) | Pure Domain Models, Entities & Source Badges (`amp-domain`) | Completed | architecture | `cargo test -p amp-domain` |
+| [TASK-003](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-003-hexagonal-port-contracts.md) | Driving & Driven Hexagonal Port Traits (`amp-ports`) | Completed | architecture | `cargo test -p amp-ports` |
 
-### PLAN-002: Real-Time Audio Engine, Precaching Buffer & Hardware Output
+### PLAN-002: Real-Time Audio Engine, Precaching Buffer & Hardware Output (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-004](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-004-memory-precache-buffer.md) | In-Memory Precaching Stream Buffer (`SharedPrecacheBuffer`) | Pending | audio_engine | `cargo test -p amp-core-engine test_precache` |
-| [TASK-005](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-005-cpal-hardware-audio-sink.md) | Pure-Rust CPAL Hardware Audio Sink & Lock-Free Ring Buffer | Pending | audio_engine | `cargo test -p amp-adapter-cpal` |
-| [TASK-006](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-006-symphonia-decoder-engine.md) | Symphonia Pure-Rust Multi-Format Demuxer & Decoder | Pending | audio_engine | `cargo test -p amp-adapter-decoder` |
+| [TASK-004](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-004-memory-precache-buffer.md) | In-Memory Precaching Stream Buffer (`SharedPrecacheBuffer`) | Completed | audio_engine | `cargo test -p amp-core-engine test_precache` |
+| [TASK-005](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-005-cpal-hardware-audio-sink.md) | Pure-Rust CPAL Hardware Audio Sink & Lock-Free Ring Buffer | Completed | audio_engine | `cargo test -p amp-adapter-cpal` |
+| [TASK-006](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-006-symphonia-decoder-engine.md) | Symphonia Pure-Rust Multi-Format Demuxer & Decoder | Completed | audio_engine | `cargo test -p amp-adapter-decoder` |
 
-### PLAN-003: Audiophile DSP Pipeline, Sinc Resampling & FFT Visualizer
+### PLAN-003: Audiophile DSP Pipeline, Sinc Resampling & FFT Visualizer (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-007](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-007-rubato-sinc-resampler.md) | Bit-Perfect Polyphase Sinc Resampler (`rubato`) | Pending | dsp_engineering | `cargo test -p amp-core-engine test_resampler` |
-| [TASK-008](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-008-10-band-graphic-equalizer.md) | 10-Band Graphic Equalizer with IIR Peaking Biquad Filterbank | Pending | dsp_engineering | `cargo test -p amp-core-engine test_equalizer` |
-| [TASK-009](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-009-fft-spectrum-visualizer.md) | Real-Time Zero-Allocation 16-Band FFT Spectrum Analyzer | Pending | dsp_engineering | `cargo test -p amp-core-engine test_visualizer` |
+| [TASK-007](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-007-rubato-sinc-resampler.md) | Bit-Perfect Polyphase Sinc Resampler (`rubato`) | Completed | dsp_engineering | `cargo test -p amp-core-engine test_resampler` |
+| [TASK-008](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-008-10-band-graphic-equalizer.md) | 10-Band Graphic Equalizer with IIR Peaking Biquad Filterbank | Completed | dsp_engineering | `cargo test -p amp-core-engine test_equalizer` |
+| [TASK-009](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-009-fft-spectrum-visualizer.md) | Real-Time Zero-Allocation 16-Band FFT Spectrum Analyzer | Completed | dsp_engineering | `cargo test -p amp-core-engine test_visualizer` |
 
-### PLAN-004: Embedded Storage (redb), CQRS Event Bus & Library Indexer
+### PLAN-004: Embedded Storage (redb), CQRS Event Bus & Library Indexer (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-010](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-010-redb-storage-adapter.md) | Pure-Rust Embedded ACID Key-Value Storage Adapter (`redb`) | Pending | storage_and_state | `cargo test -p amp-adapter-storage` |
-| [TASK-011](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-011-cqrs-event-bus-dispatcher.md) | CQRS Command-Event Bus & State Machine Orchestrator | Pending | storage_and_state | `cargo test -p amp-core-engine test_cqrs` |
-| [TASK-012](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-012-library-scanner-lofty-tagger.md) | Local Library Filesystem Scanner with Pure-Rust Lofty Tagger | Pending | storage_and_state | `cargo test -p amp-adapter-storage test_scanner` |
+| [TASK-010](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-010-redb-storage-adapter.md) | Pure-Rust Embedded ACID Key-Value Storage Adapter (`redb`) | Completed | storage_and_state | `cargo test -p amp-adapter-storage` |
+| [TASK-011](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-011-cqrs-event-bus-dispatcher.md) | CQRS Command-Event Bus & State Machine Orchestrator | Completed | storage_and_state | `cargo test -p amp-core-engine test_cqrs` |
+| [TASK-012](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-012-library-scanner-lofty-tagger.md) | Local Library Filesystem Scanner with Pure-Rust Lofty Tagger | Completed | storage_and_state | `cargo test -p amp-adapter-storage test_scanner` |
 
-### PLAN-005: Multi-Source Search Aggregator, Stream Resolvers & Downloader
+### PLAN-005: Multi-Source Search Aggregator, Stream Resolvers & Downloader (Active)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-013](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-013-filtered-search-coordinator.md) | Parallel Multi-Source Search Coordinator with Filter Mask | Pending | integrations | `cargo test -p amp-core-engine test_search_coordinator` |

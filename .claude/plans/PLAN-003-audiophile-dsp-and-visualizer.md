@@ -1,7 +1,7 @@
 ---
 id: PLAN-003
 title: Audiophile DSP Pipeline, Sinc Resampling & FFT Visualizer
-status: planned
+status: completed
 role: dsp_engineering
 tasks:
   - TASK-007

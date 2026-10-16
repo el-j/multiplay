@@ -2,7 +2,7 @@
 id: TASK-017
 title: Dense Winamp 1.x Faceplate Terminal Widget
 planId: PLAN-006
-status: pending
+status: completed
 role: frontend_tui
 verificationCommand: cargo test -p amp-adapter-tui test_dense_console
 ---

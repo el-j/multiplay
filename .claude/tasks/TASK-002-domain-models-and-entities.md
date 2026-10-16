@@ -2,7 +2,7 @@
 id: TASK-002
 title: Pure Domain Models, Entities & Source Badges
 planId: PLAN-001
-status: pending
+status: completed
 role: architecture
 verificationCommand: cargo test -p amp-domain
 ---

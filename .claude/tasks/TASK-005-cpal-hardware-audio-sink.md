@@ -2,7 +2,7 @@
 id: TASK-005
 title: Pure-Rust CPAL Hardware Audio Sink & Lock-Free Ring Buffer
 planId: PLAN-002
-status: pending
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-adapter-cpal
 ---

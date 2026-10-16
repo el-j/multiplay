@@ -2,7 +2,7 @@
 id: TASK-008
 title: 10-Band Graphic Equalizer with IIR Peaking Biquad Filterbank
 planId: PLAN-003
-status: pending
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_equalizer
 ---

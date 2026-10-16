@@ -2,7 +2,7 @@
 id: TASK-010
 title: Pure-Rust Embedded ACID Key-Value Storage Adapter
 planId: PLAN-004
-status: pending
+status: completed
 role: storage_and_state
 verificationCommand: cargo test -p amp-adapter-storage
 ---

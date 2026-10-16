@@ -2,7 +2,7 @@
 id: TASK-016
 title: Offline Stream Downloader Pipeline with Pure-Rust Lofty Tagging
 planId: PLAN-005
-status: pending
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-core-engine test_downloader
 ---

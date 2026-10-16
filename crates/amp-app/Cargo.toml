@@ -1,0 +1,24 @@
+[package]
+name = "amp-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+amp-core-engine = { path = "../amp-core-engine" }
+amp-adapter-cpal = { path = "../amp-adapter-cpal" }
+amp-adapter-decoder = { path = "../amp-adapter-decoder" }
+amp-adapter-storage = { path = "../amp-adapter-storage" }
+amp-adapter-youtube = { path = "../amp-adapter-youtube" }
+amp-adapter-spotify = { path = "../amp-adapter-spotify" }
+amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
+amp-adapter-p2p = { path = "../amp-adapter-p2p" }
+amp-adapter-tui = { path = "../amp-adapter-tui" }
+tokio = { workspace = true }
+ratatui = "0.28"
+crossterm = "0.28"
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

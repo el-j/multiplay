@@ -2,7 +2,7 @@
 id: TASK-024
 title: Encrypted Private P2P Mesh Adapter
 planId: PLAN-008
-status: pending
+status: completed
 role: system_composition
 verificationCommand: cargo test -p amp-adapter-p2p
 ---

@@ -2,7 +2,7 @@
 id: TASK-011
 title: CQRS Command-Event Bus & State Machine Orchestrator
 planId: PLAN-004
-status: pending
+status: completed
 role: storage_and_state
 verificationCommand: cargo test -p amp-core-engine test_cqrs
 ---

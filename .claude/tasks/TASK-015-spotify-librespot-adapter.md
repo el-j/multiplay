@@ -2,7 +2,7 @@
 id: TASK-015
 title: Spotify Pure-Rust Stream Adapter
 planId: PLAN-005
-status: pending
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-spotify
 ---

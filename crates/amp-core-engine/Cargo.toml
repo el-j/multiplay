@@ -1,0 +1,20 @@
+[package]
+name = "amp-core-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Core playback orchestrator, RAM precaching, DSP pipeline and event dispatcher"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+tokio = { workspace = true }
+rtrb = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+rubato = "0.15"
+rustfft = "6.4"
+num-complex = "0.4"
+lofty = "0.21"
+uuid = { workspace = true }
+zip = { version = "9.0", default-features = false, features = ["deflate"] }

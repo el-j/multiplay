@@ -1,0 +1,12 @@
+[package]
+name = "amp-domain"
+version = "0.1.0"
+edition = "2021"
+description = "Pure domain models, entities, and value objects for multiplay"
+
+[dependencies]
+serde = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -2,7 +2,7 @@
 id: TASK-004
 title: In-Memory Precaching Stream Buffer
 planId: PLAN-002
-status: pending
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-core-engine test_precache
 ---

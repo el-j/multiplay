@@ -2,7 +2,7 @@
 id: TASK-022
 title: Safe Pure-Rust Plugin Host & Capability Registry
 planId: PLAN-007
-status: pending
+status: completed
 role: extensibility
 verificationCommand: cargo test -p amp-core-engine test_plugin_registry
 ---

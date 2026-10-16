@@ -2,7 +2,7 @@
 id: TASK-006
 title: Symphonia Pure-Rust Multi-Format Demuxer & Decoder
 planId: PLAN-002
-status: pending
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-adapter-decoder
 ---

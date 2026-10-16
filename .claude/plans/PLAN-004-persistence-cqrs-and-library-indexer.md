@@ -1,7 +1,7 @@
 ---
 id: PLAN-004
 title: Embedded Storage (redb), CQRS Event Bus & Library Indexer
-status: planned
+status: completed
 role: storage_and_state
 tasks:
   - TASK-010

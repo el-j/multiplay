@@ -1,7 +1,7 @@
 ---
 id: PLAN-001
 title: Pure-Rust Toolchain, Domain Models & Hexagonal Port Contracts
-status: in_progress
+status: completed
 role: architecture
 tasks:
   - TASK-001

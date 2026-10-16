@@ -1,7 +1,7 @@
 ---
 id: PLAN-005
 title: Multi-Source Search Aggregator, Stream Resolvers & Downloader
-status: planned
+status: completed
 role: integrations
 tasks:
   - TASK-013

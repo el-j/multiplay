@@ -1,0 +1,11 @@
+[package]
+name = "amp-adapter-decoder"
+version = "0.1.0"
+edition = "2021"
+description = "Pure-Rust multi-format audio demuxer and decoder adapter using Symphonia"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+symphonia = { version = "0.5", default-features = false, features = ["mp3", "flac", "pcm", "vorbis", "aac", "isomp4", "ogg", "wav"] }
+rtrb = { workspace = true }

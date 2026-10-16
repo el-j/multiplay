@@ -1,7 +1,7 @@
 ---
 id: PLAN-007
 title: Classic Winamp Skin (.wsz) Loader & Pure-Rust Plugin System
-status: planned
+status: completed
 role: extensibility
 tasks:
   - TASK-021

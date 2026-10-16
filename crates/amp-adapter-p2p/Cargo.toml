@@ -1,0 +1,16 @@
+[package]
+name = "amp-adapter-p2p"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

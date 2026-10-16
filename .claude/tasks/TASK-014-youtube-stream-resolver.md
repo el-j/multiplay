@@ -2,7 +2,7 @@
 id: TASK-014
 title: YouTube Pure-Rust Stream Resolver & Search Adapter
 planId: PLAN-005
-status: pending
+status: completed
 role: integrations
 verificationCommand: cargo test -p amp-adapter-youtube
 ---

@@ -2,7 +2,7 @@
 id: TASK-023
 title: Pure-Rust Soulseek Protocol Search & Transfer Adapter
 planId: PLAN-008
-status: pending
+status: completed
 role: system_composition
 verificationCommand: cargo test -p amp-adapter-soulseek
 ---

@@ -2,7 +2,7 @@
 id: TASK-012
 title: Local Library Filesystem Scanner with Pure-Rust Lofty Tagger
 planId: PLAN-004
-status: pending
+status: completed
 role: storage_and_state
 verificationCommand: cargo test -p amp-adapter-storage test_scanner
 ---

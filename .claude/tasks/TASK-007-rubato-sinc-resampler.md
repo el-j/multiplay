@@ -2,7 +2,7 @@
 id: TASK-007
 title: Bit-Perfect Polyphase Sinc Resampler
 planId: PLAN-003
-status: pending
+status: completed
 role: dsp_engineering
 verificationCommand: cargo test -p amp-core-engine test_resampler
 ---

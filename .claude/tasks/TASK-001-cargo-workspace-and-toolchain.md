@@ -2,7 +2,7 @@
 id: TASK-001
 title: Root Cargo Workspace & Pure-Rust Toolchain Constraints
 planId: PLAN-001
-status: in_progress
+status: completed
 role: architecture
 verificationCommand: ./scripts/verify_pure_rust.sh && cargo check --workspace
 ---

@@ -2,7 +2,7 @@
 id: TASK-021
 title: Winamp Classic Skin (.wsz) Decompressor & Palette Extractor
 planId: PLAN-007
-status: pending
+status: completed
 role: extensibility
 verificationCommand: cargo test -p amp-core-engine test_skin_loader
 ---

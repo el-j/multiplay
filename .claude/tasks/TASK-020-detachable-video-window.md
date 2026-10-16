@@ -2,7 +2,7 @@
 id: TASK-020
 title: Detachable Video Stream Canvas View
 planId: PLAN-006
-status: pending
+status: completed
 role: frontend_tui
 verificationCommand: cargo test -p amp-adapter-tui test_video_view
 ---

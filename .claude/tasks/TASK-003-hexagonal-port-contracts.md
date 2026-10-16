@@ -2,7 +2,7 @@
 id: TASK-003
 title: Driving & Driven Hexagonal Port Traits
 planId: PLAN-001
-status: pending
+status: completed
 role: architecture
 verificationCommand: cargo test -p amp-ports
 ---

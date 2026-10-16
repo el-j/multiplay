@@ -1,0 +1,14 @@
+[package]
+name = "amp-adapter-soulseek"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
