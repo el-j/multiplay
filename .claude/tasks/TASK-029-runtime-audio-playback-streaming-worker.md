@@ -2,7 +2,7 @@
 id: TASK-029
 title: Dynamic Background Audio Playback Streamer in Runtime Composition Root
 planId: PLAN-010
-status: in_progress
+status: completed
 role: audio_engine
 verificationCommand: cargo test -p amp-app --test e2e_pipeline
 ---

@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 10 Plans | 32 Tasks | 28 Completed | Status: IN PROGRESS (Active: PLAN-010 / TASK-029)*
+*Tracking: 14 Plans | 46 Tasks | 29 Completed | Status: IN PROGRESS (Active: PLAN-010 / TASK-030)*
 
 ---
 
@@ -130,10 +130,41 @@
 ### PLAN-010: Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-029](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-029-runtime-audio-playback-streaming-worker.md) | Dynamic Background Audio Playback Streamer in Runtime Composition Root | In Progress | audio_engine | `cargo test -p amp-app --test e2e_pipeline` |
+| [TASK-029](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-029-runtime-audio-playback-streaming-worker.md) | Dynamic Background Audio Playback Streamer in Runtime Composition Root | Completed | audio_engine | `cargo test -p amp-app --test e2e_pipeline` |
 | [TASK-030](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-030-live-protocol-stream-resolvers.md) | Live Protocol Stream Handlers for Spotify, Soulseek TCP, and Encrypted P2P | In Progress | integrations | `cargo test -p amp-adapter-spotify -p amp-adapter-soulseek` |
 | [TASK-031](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-031-property-testing-and-mutation-suite.md) | Comprehensive Property-Based Testing (`proptest`) & Mutation Test Suite | In Progress | qa_and_hardening | `cargo test --workspace` |
 | [TASK-032](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-032-complete-incode-docstrings-and-audit-closure.md) | 100% In-Code Documentation & Architecture Reference Alignment Audit | In Progress | architecture | `cargo doc --workspace --no-deps` |
+
+
+### PLAN-011: Advanced Audio Playback Intelligence (Smart Shuffle, Gapless Crossfading & EBU R128 Normalization) (Planned)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-033](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-033-smart-balanced-shuffle-engine.md) | Smart Balanced Shuffle Engine & Constraint-Based Queue Manager | Planned | audio_engine | `cargo test -p amp-core-engine test_smart_shuffle` |
+| [TASK-034](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-034-dual-pipeline-gapless-crossfader.md) | Dual-Pipeline Gapless Decoder Mixer & Real-Time Crossfader DSP | Planned | dsp_engineering | `cargo test -p amp-core-engine test_crossfade` |
+| [TASK-035](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-035-pure-rust-ebu-r128-loudness-normalizer.md) | Pure-Rust EBU R128 Loudness Normalizer & Peak Limiter | Planned | dsp_engineering | `cargo test -p amp-core-engine test_loudness` |
+
+### PLAN-012: Distributed Mesh Jam Session & Authenticated Mobile Remote Control (Planned)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-036](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-036-collaborative-crdt-queue-state-machine.md) | Collaborative CRDT Queue & Lamport State Machine | Planned | distributed_systems | `cargo test -p amp-domain test_crdt_queue` |
+| [TASK-037](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-037-embedded-websocket-remote-daemon.md) | Pure-Rust Embedded WebSocket Remote Daemon (`amp-adapter-remote`) | Planned | integrations | `cargo test -p amp-adapter-remote` |
+| [TASK-038](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-038-terminal-and-gui-qr-code-pairing.md) | Terminal & GUI QR Code Pairing System with Ephemeral Tokens | Planned | frontend_ui | `cargo test -p amp-adapter-remote test_pairing` |
+
+### PLAN-013: Multi-Deck Professional DJ Engine & Universal Source Mixer (Planned)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-039](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-039-multi-deck-channel-architecture-and-kill-eqs.md) | Multi-Deck Channel Architecture & 3-Band Kill Isolator EQs | Planned | audio_engine | `cargo test -p amp-core-engine test_dj_deck` |
+| [TASK-040](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-040-pure-rust-realtime-bpm-beat-detector.md) | Pure-Rust Real-Time Transient BPM & Beat Grid Detector | Planned | dsp_engineering | `cargo test -p amp-core-engine test_bpm_detector` |
+| [TASK-041](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-041-safe-wsola-time-stretcher-and-crossfader-mixer.md) | Safe WSOLA Time-Stretcher & Crossfader Transform Mixer | Planned | dsp_engineering | `cargo test -p amp-core-engine test_wsola_time_stretcher` |
+| [TASK-042](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-042-multi-deck-dj-console-tui-and-gui-interface.md) | Multi-Deck Hardware-Style DJ Console Interface for TUI and GUI | Planned | frontend_ui | `cargo test -p amp-adapter-tui test_dj_console && cargo test -p amp-adapter-gui` |
+
+### PLAN-014: Unified Configuration Management, Secure Credential Vault & Settings UI (Planned)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-043](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-043-hierarchical-toml-configuration-domain-schema.md) | Hierarchical TOML Configuration Domain Schema | Planned | architecture | `cargo test -p amp-domain test_config_schema` |
+| [TASK-044](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-044-credential-vault-port-and-secure-keyring-adapter.md) | Driven Credential Vault Port & Secure Keyring Adapter | Planned | storage_and_state | `cargo test -p amp-adapter-storage test_keyring` |
+| [TASK-045](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-045-atomic-config-storage-and-hot-reload-engine.md) | Atomic Config Storage Engine & Hot-Reload Dispatcher | Planned | storage_and_state | `cargo test -p amp-core-engine test_config_store` |
+| [TASK-046](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-046-interactive-preferences-settings-modal.md) | Interactive Preferences Settings Modal Interface for TUI and GUI | Planned | frontend_ui | `cargo test -p amp-adapter-tui test_settings_view && cargo test -p amp-adapter-gui` |
 
 ---
 

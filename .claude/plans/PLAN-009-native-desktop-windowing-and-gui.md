@@ -1,7 +1,7 @@
 ---
 id: PLAN-009
 title: Native OS Desktop Windowing, Equalizer & Playlist Widgets, and Standalone Launcher
-status: in_progress
+status: completed
 role: frontend_gui
 tasks:
   - TASK-026

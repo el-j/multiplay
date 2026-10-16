@@ -2,7 +2,7 @@
 id: TASK-028
 title: Pure-Rust GUI Desktop Node Adapter Architecture
 planId: PLAN-009
-status: in_progress
+status: completed
 role: frontend_gui
 verificationCommand: ./scripts/verify_pure_rust.sh && cargo check --workspace
 ---

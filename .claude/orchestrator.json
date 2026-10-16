@@ -2,14 +2,14 @@
   "project": "multiplay",
   "version": "0.1.0",
   "activePlan": "PLAN-010",
-  "activeTask": "TASK-029",
+  "activeTask": "TASK-030",
   "status": "in_progress",
   "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 10,
+    "totalPlans": 14,
     "completedPlans": 9,
-    "totalTasks": 32,
-    "completedTasks": 28
+    "totalTasks": 46,
+    "completedTasks": 29
   },
   "plans": [
     {
@@ -71,6 +71,30 @@
       "title": "Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing",
       "status": "in_progress",
       "tasks": ["TASK-029", "TASK-030", "TASK-031", "TASK-032"]
+    },
+    {
+      "id": "PLAN-011",
+      "title": "Advanced Audio Playback Intelligence (Smart Shuffle, Gapless Crossfading & EBU R128 Normalization)",
+      "status": "planned",
+      "tasks": ["TASK-033", "TASK-034", "TASK-035"]
+    },
+    {
+      "id": "PLAN-012",
+      "title": "Distributed Mesh Jam Session & Authenticated Mobile Remote Control",
+      "status": "planned",
+      "tasks": ["TASK-036", "TASK-037", "TASK-038"]
+    },
+    {
+      "id": "PLAN-013",
+      "title": "Multi-Deck Professional DJ Engine & Universal Source Mixer",
+      "status": "planned",
+      "tasks": ["TASK-039", "TASK-040", "TASK-041", "TASK-042"]
+    },
+    {
+      "id": "PLAN-014",
+      "title": "Unified Configuration Management, Secure Credential Vault & Settings UI",
+      "status": "planned",
+      "tasks": ["TASK-043", "TASK-044", "TASK-045", "TASK-046"]
     }
   ]
 }
