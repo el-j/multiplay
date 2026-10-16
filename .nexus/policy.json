@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "verify": "./scripts/verify_pure_rust.sh && cargo test --workspace",
+  "maxFileLines": 500,
+  "testsFirst": true,
+  "remember": true,
+  "planFiles": {
+    "plans": [".claude/plans"],
+    "tasks": [".claude/tasks"],
+    "discover": true
+  },
+  "rules": [
+    "Pure Rust: #![forbid(unsafe_code)] in domain & adapters. Zero C/C++ dynamic or static linkage (no OpenSSL, SQLite, FFmpeg, libpulse, or libasound).",
+    "Hexagonal architecture: domain and core engine never import concrete adapters; adapters implement ports.",
+    "Audio thread isolation: the real-time CPAL audio output callback must NEVER allocate memory, perform system calls, access the file system, or wait on locks.",
+    "Deterministic resource bounds: steady-state idle CPU < 0.2%, active playback CPU < 1.0%, base memory footprint <= 35 MB.",
+    "Plan first: all work tracked in .claude/plans/PLAN-NNN-*.md and .claude/tasks/TASK-NNN-*.md before code implementation.",
+    "Tests first: write failing unit/integration tests before writing implementation code.",
+    "Report progress through the Nexus tools; never edit the Nexus database or task states by hand.",
+    "Document all public types, structs, traits, and functions with clear docstrings."
+  ]
+}
