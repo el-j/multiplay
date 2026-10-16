@@ -11,3 +11,8 @@
 
 ## Verification Command
 `cargo test -p amp-adapter-gui test_docking`
+
+## Status
+- **Status:** COMPLETED
+- **Outcome:** Added `was_dragging` tracking in `handle_satellite_geometry_and_snap`. Repositioning is completely suppressed while pointer is down and executed cleanly on mouse release. Verified with `cargo test -p amp-adapter-gui test_docking` passing without errors.
+

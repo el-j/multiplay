@@ -11,3 +11,8 @@
 
 ## Verification Command
 `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui`
+
+## Status
+- **Status:** COMPLETED
+- **Outcome:** Repaint scheduling is conditioned on `audio_driver.is_playing`, rendering idle states strictly event-driven. Configured `vsync: true` and `multisampling: 0` in `main.rs` for flicker-free Metal rendering. Verified with all tests passing.
+
