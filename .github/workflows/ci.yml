@@ -1,0 +1,78 @@
+name: Continuous Integration & Pure-Rust Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  quality-gate:
+    name: Pure-Rust Audit, Linter & Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify 100% Pure Rust (Zero-C dynamic/static linkage)
+        run: |
+          chmod +x ./scripts/verify_pure_rust.sh
+          ./scripts/verify_pure_rust.sh
+
+      - name: Format Check (rustfmt)
+        run: cargo fmt --all -- --check
+
+      - name: Strict Clippy Audit (Zero warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Rustdoc Build (Zero missing docs / errors)
+        run: cargo doc --workspace --no-deps
+
+  matrix-test:
+    name: Multi-Platform Test Matrix
+    needs: quality-gate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macOS (Apple Silicon / Metal)
+          - os: ubuntu-latest
+            platform: Linux (x86_64 / ALSA-free)
+          - os: windows-latest
+            platform: Windows (x86_64 / WASAPI)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Full Workspace Test Suite
+        run: cargo test --workspace --verbose
+
+      - name: Run E2E Integration Pipeline
+        run: cargo test -p amp-app --test e2e_pipeline --verbose
+
+      - name: Verify Mutation Testing Config
+        shell: bash
+        run: test -f .cargo/mutants.toml

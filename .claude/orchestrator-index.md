@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 14 Plans | 46 Tasks | 46 Completed | Status: COMPLETED*
+*Tracking: 15 Plans | 50 Tasks | 50 Completed | Status: COMPLETED*
 
 ---
 
@@ -165,6 +165,14 @@
 | [TASK-044](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-044-credential-vault-port-and-secure-keyring-adapter.md) | Driven Credential Vault Port & Secure Keyring Adapter | Completed | storage_and_state | `cargo test -p amp-adapter-storage test_keyring` |
 | [TASK-045](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-045-atomic-config-storage-and-hot-reload-engine.md) | Atomic Config Storage Engine & Hot-Reload Dispatcher | Completed | storage_and_state | `cargo test -p amp-core-engine test_config_store` |
 | [TASK-046](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-046-interactive-preferences-settings-modal.md) | Interactive Preferences Settings Modal Interface for TUI and GUI | Completed | frontend_ui | `cargo test -p amp-adapter-tui test_settings_view && cargo test -p amp-adapter-gui` |
+
+### PLAN-015: Build Automation, CI/CD Pipeline & Cross-Platform Release Packaging (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-047](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-047-comprehensive-production-makefile.md) | Comprehensive Production Makefile | Completed | devops_and_build | `make help && make verify-pure-rust && make check` |
+| [TASK-048](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-048-github-actions-ci-pipeline.md) | GitHub Actions Comprehensive CI Quality Pipeline | Completed | devops_and_ci | `test -f .github/workflows/ci.yml` |
+| [TASK-049](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-049-github-actions-release-and-publishing-pipeline.md) | GitHub Actions Automated Cross-Platform Release & Publishing Pipeline | Completed | devops_and_release | `test -f .github/workflows/release.yml` |
+| [TASK-050](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-050-end-to-end-verification-and-zero-gaps-audit.md) | End-to-End Verification, Zero-Gaps Audit, Coverage & Mutation Test Validation | Completed | qa_and_hardening | `make all && make verify-pure-rust` |
 
 ---
 

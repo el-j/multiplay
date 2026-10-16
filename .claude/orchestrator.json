@@ -6,10 +6,10 @@
   "status": "completed",
   "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 14,
-    "completedPlans": 14,
-    "totalTasks": 46,
-    "completedTasks": 46
+    "totalPlans": 15,
+    "completedPlans": 15,
+    "totalTasks": 50,
+    "completedTasks": 50
   },
   "plans": [
     {
@@ -95,6 +95,12 @@
       "title": "Unified Configuration Management, Secure Credential Vault & Settings UI",
       "status": "completed",
       "tasks": ["TASK-043", "TASK-044", "TASK-045", "TASK-046"]
+    },
+    {
+      "id": "PLAN-015",
+      "title": "Build Automation, CI/CD Pipeline & Cross-Platform Release Packaging",
+      "status": "completed",
+      "tasks": ["TASK-047", "TASK-048", "TASK-049", "TASK-050"]
     }
   ]
 }

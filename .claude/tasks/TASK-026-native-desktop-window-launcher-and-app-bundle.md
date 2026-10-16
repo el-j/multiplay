@@ -4,20 +4,26 @@ title: Standalone Native Desktop Window Launcher, macOS Application Bundle & Scr
 planId: PLAN-009
 status: completed
 role: frontend_gui
-verificationCommand: ./scripts/launch_desktop_window.sh && test -x Multiplay.command && test -f Multiplay.app/Contents/Info.plist
+verificationCommand: ./scripts/bundle_build.sh && test -x build/macos/Multiplay.command && test -f build/macos/Multiplay.app/Contents/Info.plist && test -x build/bin/multiplay && test -x build/bin/multiplay-gui
 ---
 
 # TASK-026: Standalone Native Desktop Window Launcher, macOS Application Bundle & Scripts
 
 ## Description
-Provide native window launching mechanisms so Multiplay opens its own dedicated floating desktop window:
-1. `scripts/launch_desktop_window.sh`: Executable shell script using AppleScript / `osascript` to launch a new, floating, styled native macOS window sized to retro Winamp dimensions ($80 \times 30$), titled `"Multiplay Pure-Rust Audiophile Player"`.
-2. `Multiplay.command`: Root-level executable for double-click launching directly from macOS Finder.
-3. `Multiplay.app`: macOS Application bundle with `Info.plist` and executable wrapper for system integration.
+Provide native window launching mechanisms bundled neatly into a dedicated `build/` output directory:
+1. `build/bin/`: Standalone binaries for CLI (`multiplay`) and Native GPU GUI (`multiplay-gui`).
+2. `build/macos/Multiplay.command`: Executable launcher inside `build/macos/` for double-click launching from Finder without polluting repo root.
+3. `build/macos/Multiplay.app`: macOS Application bundle with `Info.plist` and native GUI binary inside `Contents/MacOS/Multiplay`.
+4. `scripts/launch_desktop_window.sh`: Executable helper script to launch desktop windows.
 
 ## Verification
 ```bash
-./scripts/launch_desktop_window.sh
-test -x Multiplay.command
-test -f Multiplay.app/Contents/Info.plist
+./scripts/bundle_build.sh
+test -x build/macos/Multiplay.command
+test -f build/macos/Multiplay.app/Contents/Info.plist
+test -x build/bin/multiplay
+test -x build/bin/multiplay-gui
+test ! -e Multiplay.app
+test ! -e Multiplay.command
 ```
+

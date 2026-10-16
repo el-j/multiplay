@@ -10,8 +10,11 @@ WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 echo "Building Multiplay binary..."
 cd "$WORKSPACE_ROOT"
 cargo build --release -p amp-app
+mkdir -p "$WORKSPACE_ROOT/build/bin"
+cp "$WORKSPACE_ROOT/target/release/amp-app" "$WORKSPACE_ROOT/build/bin/multiplay"
+chmod +x "$WORKSPACE_ROOT/build/bin/multiplay"
 
-BINARY="$WORKSPACE_ROOT/target/release/amp-app"
+BINARY="$WORKSPACE_ROOT/build/bin/multiplay"
 
 if [ ! -f "$BINARY" ]; then
     echo "Error: Binary not found at $BINARY"

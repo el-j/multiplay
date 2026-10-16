@@ -1,0 +1,111 @@
+name: Automated Cross-Platform Release & Publishing
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Package Binary (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: multiplay-macos-arm64.tar.gz
+            is_macos: true
+          - os: macos-13
+            target: x86_64-apple-darwin
+            artifact_name: multiplay-macos-x86_64.tar.gz
+            is_macos: true
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: multiplay-linux-x86_64.tar.gz
+            is_linux: true
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: multiplay-windows-x86_64.zip
+            is_windows: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build Workspace Release Binaries
+        run: cargo build --workspace --release --target ${{ matrix.target }}
+
+      # Packaging for macOS
+      - name: Package macOS Artifacts
+        if: matrix.is_macos
+        run: |
+          mkdir -p staging/Multiplay.app/Contents/MacOS
+          mkdir -p staging/Multiplay.app/Contents/Resources
+          cp target/${{ matrix.target }}/release/amp-app staging/Multiplay.app/Contents/MacOS/Multiplay
+          cp target/${{ matrix.target }}/release/multiplay-gui staging/Multiplay.app/Contents/MacOS/MultiplayGUI || true
+          cp Multiplay.command staging/
+          chmod +x staging/Multiplay.app/Contents/MacOS/* staging/Multiplay.command
+          tar -czf ${{ matrix.artifact_name }} -C staging .
+
+      # Packaging for Linux
+      - name: Package Linux Artifacts
+        if: matrix.is_linux
+        run: |
+          mkdir -p staging/bin
+          cp target/${{ matrix.target }}/release/amp-app staging/bin/multiplay
+          cp target/${{ matrix.target }}/release/multiplay-gui staging/bin/multiplay-gui || true
+          chmod +x staging/bin/*
+          tar -czf ${{ matrix.artifact_name }} -C staging .
+
+      # Packaging for Windows
+      - name: Package Windows Artifacts
+        if: matrix.is_windows
+        shell: bash
+        run: |
+          mkdir -p staging/bin
+          cp target/${{ matrix.target }}/release/amp-app.exe staging/bin/multiplay.exe
+          cp target/${{ matrix.target }}/release/multiplay-gui.exe staging/bin/multiplay-gui.exe || true
+          cd staging && 7z a ../${{ matrix.artifact_name }} *
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ matrix.artifact_name }}
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate SHA-256 Checksums
+        working-directory: release-assets
+        run: |
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
