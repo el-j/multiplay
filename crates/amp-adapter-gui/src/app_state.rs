@@ -102,14 +102,25 @@ impl MultiplayGuiApp {
         }
     }
 
-    /// Fallback file picker action.
+    /// Opens native OS file dialog to pick audio files or skins.
     pub fn open_file_dialog(&mut self) {
-        self.scan_user_music_dir();
+        let files = crate::file_dialog::pick_audio_files();
+        if files.is_empty() {
+            self.scan_user_music_dir();
+        } else {
+            for file in files {
+                self.ingest_path(&file);
+            }
+        }
     }
 
-    /// Fallback folder picker action.
+    /// Opens native OS folder dialog to pick a music folder.
     pub fn open_folder_dialog(&mut self) {
-        self.scan_user_music_dir();
+        if let Some(folder) = crate::file_dialog::pick_folder() {
+            self.ingest_path(&folder);
+        } else {
+            self.scan_user_music_dir();
+        }
     }
 
     /// Checks if active track reached EOF and automatically triggers gapless advance.

@@ -10,6 +10,7 @@ pub mod audio_driver;
 pub mod dj_panel;
 pub mod docking;
 pub mod equalizer_widget;
+pub mod file_dialog;
 pub mod main_window;
 pub mod playlist_window;
 pub mod settings_panel;

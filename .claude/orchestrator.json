@@ -1,14 +1,14 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": null,
-  "activeTask": null,
-  "status": "completed",
+  "activePlan": "PLAN-030",
+  "activeTask": "TASK-095",
+  "status": "in_progress",
   "verificationCommand": "make all",
   "metrics": {
-    "totalPlans": 29,
+    "totalPlans": 30,
     "completedPlans": 29,
-    "totalTasks": 94,
+    "totalTasks": 98,
     "completedTasks": 94
   },
   "plans": [
@@ -185,6 +185,12 @@
       "title": "Progressive Network Streaming & Universal Resolvers (YouTube & HTTP)",
       "status": "completed",
       "tasks": ["TASK-091", "TASK-092", "TASK-093", "TASK-094"]
+    },
+    {
+      "id": "PLAN-030",
+      "title": "Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine",
+      "status": "in_progress",
+      "tasks": ["TASK-095", "TASK-096", "TASK-097", "TASK-098"]
     }
   ]
 }

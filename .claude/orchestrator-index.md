@@ -278,6 +278,14 @@
 | [TASK-093](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-093-direct-http-and-radio-resolver.md) | Pure-Rust Direct HTTP & Internet Radio Resolver | Completed | integrations | `cargo check --workspace && ./scripts/verify_pure_rust.sh` |
 | [TASK-094](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-094-streaming-verification-harness.md) | Real Network Streaming Verification Harness | Completed | testing | `make all` |
 
+### PLAN-030: Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine (In Progress)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-095](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-095-native-os-file-and-directory-dialogs.md) | Native OS File & Directory Selection Dialogs | Pending | frontend_gui | `cargo test -p amp-adapter-gui && ./scripts/verify_pure_rust.sh` |
+| [TASK-096](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-096-session-playlist-persistence-and-m3u8-support.md) | Session Playlist Persistence & M3U8 Export/Import | Pending | storage_and_state | `cargo test -p amp-adapter-gui -p amp-adapter-storage` |
+| [TASK-097](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md) | Full Winamp Skin (.wsz) GUI Rendering Engine | Pending | frontend_gui | `cargo test -p amp-adapter-gui -p amp-core-engine` |
+| [TASK-098](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md) | Dual Oscilloscope & Spectrum Visualizer Mode | Pending | dsp_engineering | `make all` |
+
 ---
 
 ## Verification Pipeline & Quality Standards
