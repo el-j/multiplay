@@ -4,7 +4,9 @@
 #![forbid(unsafe_code)]
 
 use amp_domain::{AudioSource, Track, TrackMetadata};
-use amp_ports::{AudioSourceStream, ProviderError, ProviderSearchPort, SharedPrecacheBuffer, StreamResolverPort};
+use amp_ports::{
+    AudioSourceStream, ProviderError, ProviderSearchPort, SharedPrecacheBuffer, StreamResolverPort,
+};
 use async_trait::async_trait;
 use rusty_ytdl::{
     search::{SearchOptions, SearchResult, SearchType, YouTube},
@@ -18,18 +20,17 @@ pub struct PureYouTubeAdapter {
 
 impl PureYouTubeAdapter {
     pub fn new() -> Result<Self, ProviderError> {
-        let searcher = YouTube::new()
-            .map_err(|e| ProviderError::Network(format!("Failed to initialize YouTube client: {e}")))?;
+        let searcher = YouTube::new().map_err(|e| {
+            ProviderError::Network(format!("Failed to initialize YouTube client: {e}"))
+        })?;
         Ok(Self { searcher })
     }
 }
 
 impl Default for PureYouTubeAdapter {
     fn default() -> Self {
-        Self::new().unwrap_or_else(|_| {
-            Self {
-                searcher: YouTube::new().expect("Failed to initialize default YouTube searcher"),
-            }
+        Self::new().unwrap_or_else(|_| Self {
+            searcher: YouTube::new().expect("Failed to initialize default YouTube searcher"),
         })
     }
 }
@@ -64,9 +65,7 @@ impl ProviderSearchPort for PureYouTubeAdapter {
                     metadata.cover_art_uri = Some(thumb.url.clone());
                 }
 
-                let source = AudioSource::YouTube {
-                    video_id: v.id,
-                };
+                let source = AudioSource::YouTube { video_id: v.id };
                 tracks.push(Track::new(source, metadata));
             }
         }
@@ -96,8 +95,9 @@ impl StreamResolverPort for PureYouTubeAdapter {
             ..Default::default()
         };
 
-        let video = Video::new_with_options(video_id, video_options)
-            .map_err(|e| ProviderError::Network(format!("Invalid YouTube video {video_id}: {e}")))?;
+        let video = Video::new_with_options(video_id, video_options).map_err(|e| {
+            ProviderError::Network(format!("Invalid YouTube video {video_id}: {e}"))
+        })?;
 
         let stream = video
             .stream()
@@ -117,7 +117,10 @@ impl StreamResolverPort for PureYouTubeAdapter {
         // Await initial probing threshold (~128KB) or stream end for instant start
         let probe_threshold = 128 * 1024;
         let mut attempts = 0;
-        while buffer.total_bytes_cached() < probe_threshold && !buffer.is_finished() && attempts < 100 {
+        while buffer.total_bytes_cached() < probe_threshold
+            && !buffer.is_finished()
+            && attempts < 100
+        {
             tokio::time::sleep(Duration::from_millis(15)).await;
             attempts += 1;
         }

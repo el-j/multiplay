@@ -14,4 +14,4 @@
 `cargo test -p amp-adapter-gui -p amp-adapter-storage`
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

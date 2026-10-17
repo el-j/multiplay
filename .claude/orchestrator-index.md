@@ -278,13 +278,38 @@
 | [TASK-093](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-093-direct-http-and-radio-resolver.md) | Pure-Rust Direct HTTP & Internet Radio Resolver | Completed | integrations | `cargo check --workspace && ./scripts/verify_pure_rust.sh` |
 | [TASK-094](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-094-streaming-verification-harness.md) | Real Network Streaming Verification Harness | Completed | testing | `make all` |
 
-### PLAN-030: Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine (In Progress)
+### PLAN-030: Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-095](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-095-native-os-file-and-directory-dialogs.md) | Native OS File & Directory Selection Dialogs | Pending | frontend_gui | `cargo test -p amp-adapter-gui && ./scripts/verify_pure_rust.sh` |
-| [TASK-096](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-096-session-playlist-persistence-and-m3u8-support.md) | Session Playlist Persistence & M3U8 Export/Import | Pending | storage_and_state | `cargo test -p amp-adapter-gui -p amp-adapter-storage` |
-| [TASK-097](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md) | Full Winamp Skin (.wsz) GUI Rendering Engine | Pending | frontend_gui | `cargo test -p amp-adapter-gui -p amp-core-engine` |
-| [TASK-098](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md) | Dual Oscilloscope & Spectrum Visualizer Mode | Pending | dsp_engineering | `make all` |
+| [TASK-095](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-095-native-os-file-and-directory-dialogs.md) | Native OS File & Directory Selection Dialogs | Completed | frontend_gui | `cargo test -p amp-adapter-gui && ./scripts/verify_pure_rust.sh` |
+| [TASK-096](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-096-session-playlist-persistence-and-m3u8-support.md) | Session Playlist Persistence & M3U8 Export/Import | Completed | storage_and_state | `cargo test -p amp-adapter-gui -p amp-adapter-storage` |
+| [TASK-097](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md) | Full Winamp Skin (.wsz) GUI Rendering Engine | Completed | frontend_gui | `cargo test -p amp-adapter-gui -p amp-core-engine` |
+| [TASK-098](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md) | Dual Oscilloscope & Spectrum Visualizer Mode | Completed | dsp_engineering | `make all` |
+
+### PLAN-031: Pro Live DJ Engine & Realtime Mixer (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-099](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-099-dual-deck-live-playback-mixer-and-feeder.md) | Dual-Deck Live Playback Mixer & Feeder | Completed | audio_engine | `cargo test -p amp-core-engine -p amp-adapter-gui` |
+| [TASK-100](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-100-live-3-band-kill-isolator-eq-and-wsola-pitch-shifting.md) | Live 3-Band Kill-Isolator EQ & WSOLA Pitch Shifting | Completed | dsp_engineering | `cargo test -p amp-core-engine test_dj` |
+| [TASK-101](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-101-auto-bpm-detection-and-beatmatching-sync.md) | Auto-BPM Detection & Beatmatching Sync | Completed | audio_engine | `cargo test -p amp-core-engine -p amp-adapter-gui test_bpm` |
+| [TASK-102](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-102-comprehensive-dj-engine-verification-harness.md) | Comprehensive DJ Engine Verification Harness | Completed | testing | `make all` |
+
+### PLAN-032: Integrated Mobile Remote Daemon & Distributed Jam Session (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-103](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-103-embedded-remote-daemon-autostart-and-qr-pairing.md) | Embedded Remote Daemon Auto-Start & QR Code Pairing in GUI | Completed | distributed_systems | `cargo test -p amp-adapter-remote -p amp-adapter-gui` |
+| [TASK-104](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-104-embedded-pure-rust-mobile-web-controller.md) | Embedded Pure-Rust Mobile Web Controller | Completed | distributed_systems | `cargo test -p amp-adapter-remote` |
+| [TASK-105](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-105-collaborative-jam-queue-and-mobile-sync.md) | Collaborative Jam Queue & Mobile Real-Time Sync | Completed | audio_engine | `cargo test -p amp-adapter-remote -p amp-adapter-gui test_remote` |
+| [TASK-106](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-106-remote-daemon-and-web-client-verification-harness.md) | Remote Daemon & Web Client Verification Harness | Completed | testing | `make all` |
+
+### PLAN-033: Audiophile Seamless Gapless Playback, Automix Crossfader & EBU R128 Normalization (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-107](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-107-lookahead-track-preloader-and-gapless-feeder.md) | Lookahead Track Preloader & Sample-Accurate Gapless Transition Feeder | Completed | audio_engine | `cargo test -p amp-adapter-gui -p amp-core-engine` |
+| [TASK-108](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-108-configurable-equal-power-automix-crossfader.md) | Configurable Equal-Power Automix Crossfader | Completed | dsp_engineering | `cargo test -p amp-core-engine -p amp-adapter-gui` |
+| [TASK-109](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-109-ebu-r128-and-replaygain-loudness-engine.md) | EBU R128 & ReplayGain Loudness Normalization Engine | Completed | dsp_engineering | `cargo test -p amp-domain -p amp-adapter-storage -p amp-core-engine -p amp-adapter-gui` |
+| [TASK-110](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-110-audiophile-headphone-crossfeed-dsp.md) | Audiophile Headphone Crossfeed DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine -p amp-adapter-gui` |
+| [TASK-111](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-111-gapless-crossfade-and-dsp-verification-harness.md) | Gapless, Crossfade & DSP Pipeline Verification Harness | Completed | testing | `cargo test --test gapless_crossfade_pipeline && make all` |
 
 ---
 

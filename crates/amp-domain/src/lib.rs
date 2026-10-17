@@ -79,6 +79,8 @@ pub struct TrackMetadata {
     pub bit_depth: Option<u16>,
     pub bitrate_kbps: Option<u32>,
     pub cover_art_uri: Option<String>,
+    pub replay_gain_mb: Option<i32>,
+    pub integrated_lufs_mb: Option<i32>,
 }
 
 impl TrackMetadata {
@@ -94,7 +96,29 @@ impl TrackMetadata {
             bit_depth: None,
             bitrate_kbps: None,
             cover_art_uri: None,
+            replay_gain_mb: None,
+            integrated_lufs_mb: None,
         }
+    }
+
+    /// Returns ReplayGain track gain in decibels (e.g. -6.5 dB).
+    pub fn replay_gain_db(&self) -> Option<f32> {
+        self.replay_gain_mb.map(|mb| mb as f32 / 100.0)
+    }
+
+    /// Sets ReplayGain track gain in decibels.
+    pub fn set_replay_gain_db(&mut self, gain_db: f32) {
+        self.replay_gain_mb = Some((gain_db * 100.0).round() as i32);
+    }
+
+    /// Returns EBU R128 integrated loudness in LUFS (e.g. -14.0 LUFS).
+    pub fn integrated_lufs(&self) -> Option<f32> {
+        self.integrated_lufs_mb.map(|mb| mb as f32 / 100.0)
+    }
+
+    /// Sets EBU R128 integrated loudness in LUFS.
+    pub fn set_integrated_lufs(&mut self, lufs: f32) {
+        self.integrated_lufs_mb = Some((lufs * 100.0).round() as i32);
     }
 }
 
@@ -178,8 +202,12 @@ mod tests {
 
     #[test]
     fn test_playback_state_equality() {
-        let s1 = PlaybackState::Buffering { progress_percent: 42 };
-        let s2 = PlaybackState::Buffering { progress_percent: 42 };
+        let s1 = PlaybackState::Buffering {
+            progress_percent: 42,
+        };
+        let s2 = PlaybackState::Buffering {
+            progress_percent: 42,
+        };
         let s3 = PlaybackState::Playing;
 
         assert_eq!(s1, s2);
@@ -189,15 +217,62 @@ mod tests {
     #[test]
     fn test_audio_source_kind_mapping() {
         let sources = [
-            (AudioSource::LocalFile { path: "/a.flac".into() }, SourceKind::LocalFile),
-            (AudioSource::NetworkSmb { share_url: "smb://a/b".into() }, SourceKind::NetworkSmb),
-            (AudioSource::DirectHttp { url: "https://a.com/b.mp3".into() }, SourceKind::DirectHttp),
-            (AudioSource::YouTube { video_id: "dQw4w9WgXcQ".into() }, SourceKind::YouTube),
-            (AudioSource::Spotify { track_uri: "spotify:track:123".into() }, SourceKind::Spotify),
-            (AudioSource::Bandcamp { stream_url: "https://bc.com/a".into() }, SourceKind::Bandcamp),
-            (AudioSource::SoundCloud { track_url: "https://sc.com/a".into() }, SourceKind::SoundCloud),
-            (AudioSource::Soulseek { username: "u".into(), filename: "f".into() }, SourceKind::Soulseek),
-            (AudioSource::P2PShared { peer_id: "p".into(), file_hash: "h".into() }, SourceKind::P2PShared),
+            (
+                AudioSource::LocalFile {
+                    path: "/a.flac".into(),
+                },
+                SourceKind::LocalFile,
+            ),
+            (
+                AudioSource::NetworkSmb {
+                    share_url: "smb://a/b".into(),
+                },
+                SourceKind::NetworkSmb,
+            ),
+            (
+                AudioSource::DirectHttp {
+                    url: "https://a.com/b.mp3".into(),
+                },
+                SourceKind::DirectHttp,
+            ),
+            (
+                AudioSource::YouTube {
+                    video_id: "dQw4w9WgXcQ".into(),
+                },
+                SourceKind::YouTube,
+            ),
+            (
+                AudioSource::Spotify {
+                    track_uri: "spotify:track:123".into(),
+                },
+                SourceKind::Spotify,
+            ),
+            (
+                AudioSource::Bandcamp {
+                    stream_url: "https://bc.com/a".into(),
+                },
+                SourceKind::Bandcamp,
+            ),
+            (
+                AudioSource::SoundCloud {
+                    track_url: "https://sc.com/a".into(),
+                },
+                SourceKind::SoundCloud,
+            ),
+            (
+                AudioSource::Soulseek {
+                    username: "u".into(),
+                    filename: "f".into(),
+                },
+                SourceKind::Soulseek,
+            ),
+            (
+                AudioSource::P2PShared {
+                    peer_id: "p".into(),
+                    file_hash: "h".into(),
+                },
+                SourceKind::P2PShared,
+            ),
         ];
 
         for (source, expected_kind) in sources {

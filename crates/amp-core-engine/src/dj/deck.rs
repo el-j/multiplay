@@ -56,9 +56,12 @@ impl KillIsolatorEq {
 
     /// Updates the gain in dB for the low, mid, and high bands (-60.0 dB to +6.0 dB).
     pub fn set_gains(&mut self, sample_rate: f32, low_db: f32, mid_db: f32, high_db: f32) {
-        self.filter_low = BiquadFilter::new_peaking_eq(sample_rate, 100.0, 0.707, low_db.clamp(-60.0, 6.0));
-        self.filter_mid = BiquadFilter::new_peaking_eq(sample_rate, 1_000.0, 0.707, mid_db.clamp(-60.0, 6.0));
-        self.filter_high = BiquadFilter::new_peaking_eq(sample_rate, 10_000.0, 0.707, high_db.clamp(-60.0, 6.0));
+        self.filter_low =
+            BiquadFilter::new_peaking_eq(sample_rate, 100.0, 0.707, low_db.clamp(-60.0, 6.0));
+        self.filter_mid =
+            BiquadFilter::new_peaking_eq(sample_rate, 1_000.0, 0.707, mid_db.clamp(-60.0, 6.0));
+        self.filter_high =
+            BiquadFilter::new_peaking_eq(sample_rate, 10_000.0, 0.707, high_db.clamp(-60.0, 6.0));
     }
 
     /// Processes a single sample through the 3-band isolator chain.

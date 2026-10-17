@@ -140,7 +140,10 @@ mod tests {
             let (g_out, g_in) = xfader.step_gains();
             // Equal power invariant: g1^2 + g2^2 should always equal 1.0
             let power_sum = g_out * g_out + g_in * g_in;
-            assert!((power_sum - 1.0).abs() < 1e-4, "Power sum mismatch: {power_sum}");
+            assert!(
+                (power_sum - 1.0).abs() < 1e-4,
+                "Power sum mismatch: {power_sum}"
+            );
         }
     }
 

@@ -24,5 +24,7 @@ rtrb = { workspace = true }
 uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+amp-adapter-remote = { path = "../amp-adapter-remote" }
+image = { version = "0.25", default-features = false, features = ["bmp"] }
 
 

@@ -67,7 +67,10 @@ impl GaplessTrackScheduler {
         if let Some(total) = self.total_duration {
             if total > self.config.prefetch_lead_time {
                 let trigger_time = total - self.config.prefetch_lead_time;
-                if current_pos >= trigger_time && !self.next_track_primed && self.next_track.is_some() {
+                if current_pos >= trigger_time
+                    && !self.next_track_primed
+                    && self.next_track.is_some()
+                {
                     self.next_track_primed = true;
                     return true; // Prime next track now
                 }
@@ -126,7 +129,9 @@ mod tests {
 
     fn make_test_track(title: &str) -> Track {
         Track::new(
-            AudioSource::LocalFile { path: format!("/music/{title}.flac") },
+            AudioSource::LocalFile {
+                path: format!("/music/{title}.flac"),
+            },
             TrackMetadata::new(title, "Test Artist"),
         )
     }
@@ -152,7 +157,9 @@ mod tests {
         assert!(!scheduler.update_progress(Duration::from_secs(179)));
 
         // Advance to next track
-        let advanced = scheduler.advance_to_next(Some(Duration::from_secs(200))).unwrap();
+        let advanced = scheduler
+            .advance_to_next(Some(Duration::from_secs(200)))
+            .unwrap();
         assert_eq!(advanced.metadata.title, "Song 2");
         assert!(!scheduler.is_next_primed());
     }

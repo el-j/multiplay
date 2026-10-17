@@ -25,8 +25,8 @@ pub struct DenseWinampConsole<'a> {
     pub elapsed: Duration,
     pub state: PlaybackState,
     pub spectrum: &'a [f32; 16],
-    pub volume: u8,   // 0-100
-    pub balance: i8,  // -50 (L) to +50 (R)
+    pub volume: u8,  // 0-100
+    pub balance: i8, // -50 (L) to +50 (R)
     pub buffer_fill_percent: u8,
     pub sample_rate_khz: f32,
     pub bitrate_kbps: u32,
@@ -99,13 +99,31 @@ impl<'a> Widget for DenseWinampConsole<'a> {
             return;
         }
 
-        let bg_style = Style::default().bg(Color::Rgb(24, 24, 27)).fg(Color::Rgb(212, 212, 216));
-        let title_style = Style::default().bg(Color::Rgb(39, 39, 42)).fg(Color::Rgb(250, 204, 21)).add_modifier(Modifier::BOLD);
-        let vfd_style = Style::default().bg(Color::Rgb(9, 24, 18)).fg(Color::Rgb(52, 211, 153)).add_modifier(Modifier::BOLD);
-        let spec_style = Style::default().bg(Color::Rgb(15, 23, 42)).fg(Color::Rgb(56, 189, 248));
-        let button_style = Style::default().bg(Color::Rgb(63, 63, 70)).fg(Color::White).add_modifier(Modifier::BOLD);
-        let active_button_style = Style::default().bg(Color::Rgb(34, 197, 94)).fg(Color::Black).add_modifier(Modifier::BOLD);
-        let badge_style = Style::default().bg(Color::Rgb(24, 24, 27)).fg(Color::Rgb(161, 161, 170));
+        let bg_style = Style::default()
+            .bg(Color::Rgb(24, 24, 27))
+            .fg(Color::Rgb(212, 212, 216));
+        let title_style = Style::default()
+            .bg(Color::Rgb(39, 39, 42))
+            .fg(Color::Rgb(250, 204, 21))
+            .add_modifier(Modifier::BOLD);
+        let vfd_style = Style::default()
+            .bg(Color::Rgb(9, 24, 18))
+            .fg(Color::Rgb(52, 211, 153))
+            .add_modifier(Modifier::BOLD);
+        let spec_style = Style::default()
+            .bg(Color::Rgb(15, 23, 42))
+            .fg(Color::Rgb(56, 189, 248));
+        let button_style = Style::default()
+            .bg(Color::Rgb(63, 63, 70))
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD);
+        let active_button_style = Style::default()
+            .bg(Color::Rgb(34, 197, 94))
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD);
+        let badge_style = Style::default()
+            .bg(Color::Rgb(24, 24, 27))
+            .fg(Color::Rgb(161, 161, 170));
 
         let x0 = area.x;
         let y0 = area.y;
@@ -123,7 +141,10 @@ impl<'a> Widget for DenseWinampConsole<'a> {
         };
         let minutes = self.elapsed.as_secs() / 60;
         let seconds = self.elapsed.as_secs() % 60;
-        let vfd_timer = format!(" {:02} {} {:02}:{:02} ", self.track_num, state_indicator, minutes, seconds);
+        let vfd_timer = format!(
+            " {:02} {} {:02}:{:02} ",
+            self.track_num, state_indicator, minutes, seconds
+        );
         buf.set_string(x0 + 1, y0 + 1, &vfd_timer, vfd_style);
 
         // Spectrum bars (16 channels)
@@ -135,7 +156,12 @@ impl<'a> Widget for DenseWinampConsole<'a> {
         buf.set_string(x0 + 19, y0 + 1, format!("|{}|", spec_str), spec_style);
 
         // Audio format badges: kbps, kHz, ST/MO
-        let format_badge = format!("[{}k][{:.1}][{}]", self.bitrate_kbps, self.sample_rate_khz, if self.is_stereo { "ST" } else { "MO" });
+        let format_badge = format!(
+            "[{}k][{:.1}][{}]",
+            self.bitrate_kbps,
+            self.sample_rate_khz,
+            if self.is_stereo { "ST" } else { "MO" }
+        );
         buf.set_string(x0 + 38, y0 + 1, &format_badge, badge_style);
 
         // Line 2: Volume & Balance level meters
@@ -155,9 +181,21 @@ impl<'a> Widget for DenseWinampConsole<'a> {
         buf.set_string(x0 + 55, y0 + 2, &buf_str, bg_style);
 
         // Line 3: Tape-Deck Buttons [PREV] [PLAY] [PAUSE] [STOP] [NEXT] [EJECT]
-        let play_style = if self.state == PlaybackState::Playing { active_button_style } else { button_style };
-        let pause_style = if self.state == PlaybackState::Paused { active_button_style } else { button_style };
-        let stop_style = if self.state == PlaybackState::Stopped { active_button_style } else { button_style };
+        let play_style = if self.state == PlaybackState::Playing {
+            active_button_style
+        } else {
+            button_style
+        };
+        let pause_style = if self.state == PlaybackState::Paused {
+            active_button_style
+        } else {
+            button_style
+        };
+        let stop_style = if self.state == PlaybackState::Stopped {
+            active_button_style
+        } else {
+            button_style
+        };
 
         buf.set_string(x0 + 2, y0 + 3, "[|<<]", button_style);
         buf.set_string(x0 + 9, y0 + 3, "[ > ]", play_style);
@@ -192,7 +230,9 @@ mod tests {
 
     #[test]
     fn test_dense_console_rendering() {
-        let spectrum = [0.1, 0.3, 0.6, 0.9, 0.8, 0.5, 0.2, 0.0, 0.1, 0.4, 0.7, 0.9, 0.6, 0.3, 0.1, 0.0];
+        let spectrum = [
+            0.1, 0.3, 0.6, 0.9, 0.8, 0.5, 0.2, 0.0, 0.1, 0.4, 0.7, 0.9, 0.6, 0.3, 0.1, 0.0,
+        ];
         let console = DenseWinampConsole::new(&spectrum)
             .title("Aphex Twin - Windowlicker")
             .track_num(3)
@@ -219,6 +259,9 @@ mod tests {
                 break;
             }
         }
-        assert!(vfd_found, "VFD display time string not rendered correctly in buffer");
+        assert!(
+            vfd_found,
+            "VFD display time string not rendered correctly in buffer"
+        );
     }
 }

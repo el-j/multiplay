@@ -67,7 +67,9 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
     let channels = properties.channels().map(|c| c as u16);
     let bitrate_kbps = properties.audio_bitrate();
 
-    let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag());
+    let tag = tagged_file
+        .primary_tag()
+        .or_else(|| tagged_file.first_tag());
 
     let title = tag
         .and_then(|t| t.title().as_deref().map(str::to_string))
@@ -85,6 +87,25 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
     let album = tag.and_then(|t| t.album().as_deref().map(str::to_string));
     let track_number = tag.and_then(|t| t.track());
 
+    let (replay_gain_mb, integrated_lufs_mb) = if let Some(t) = tag {
+        let rg = t
+            .get(&lofty::tag::ItemKey::ReplayGainTrackGain)
+            .or_else(|| t.get(&lofty::tag::ItemKey::Unknown("REPLAYGAIN_TRACK_GAIN".to_string())))
+            .and_then(|item| item.value().text())
+            .and_then(|s| s.replace("dB", "").trim().parse::<f32>().ok())
+            .map(|db| (db * 100.0).round() as i32);
+
+        let lufs = t
+            .get(&lofty::tag::ItemKey::Unknown("R128_TRACK_GAIN".to_string()))
+            .and_then(|item| item.value().text())
+            .and_then(|s| s.replace("LUFS", "").replace("dB", "").trim().parse::<f32>().ok())
+            .map(|v| (v * 100.0).round() as i32);
+
+        (rg, lufs)
+    } else {
+        (None, None)
+    };
+
     let metadata = TrackMetadata {
         title,
         artist,
@@ -96,6 +117,8 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
         bit_depth: properties.bit_depth().map(|b| b as u16),
         bitrate_kbps,
         cover_art_uri: None,
+        replay_gain_mb,
+        integrated_lufs_mb,
     };
 
     Some(Track {
@@ -160,4 +183,3 @@ mod tests {
         assert_eq!(t.metadata.channels, Some(2));
     }
 }
-

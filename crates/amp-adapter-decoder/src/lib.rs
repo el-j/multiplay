@@ -34,12 +34,12 @@ mod tests {
         // fmt chunk
         bytes.extend_from_slice(b"fmt ");
         bytes.extend_from_slice(&16u32.to_le_bytes()); // subchunk1 size
-        bytes.extend_from_slice(&1u16.to_le_bytes());  // PCM format
-        bytes.extend_from_slice(&2u16.to_le_bytes());  // Stereo 2 channels
+        bytes.extend_from_slice(&1u16.to_le_bytes()); // PCM format
+        bytes.extend_from_slice(&2u16.to_le_bytes()); // Stereo 2 channels
         bytes.extend_from_slice(&sample_rate.to_le_bytes());
         let byte_rate = sample_rate * 2 * 2;
         bytes.extend_from_slice(&byte_rate.to_le_bytes());
-        bytes.extend_from_slice(&4u16.to_le_bytes());  // block align
+        bytes.extend_from_slice(&4u16.to_le_bytes()); // block align
         bytes.extend_from_slice(&16u16.to_le_bytes()); // bits per sample
 
         // data chunk
@@ -64,12 +64,9 @@ mod tests {
         let (mut producer, mut consumer) = RingBuffer::<f32>::new(4096);
         let stop_signal = Arc::new(AtomicBool::new(false));
 
-        let spec = PureDecoderEngine::decode_stream_to_ring_buffer(
-            cursor,
-            &mut producer,
-            stop_signal,
-        )
-        .expect("decoding test wav failed");
+        let spec =
+            PureDecoderEngine::decode_stream_to_ring_buffer(cursor, &mut producer, stop_signal)
+                .expect("decoding test wav failed");
 
         assert_eq!(spec.sample_rate, 44100);
         assert_eq!(spec.channels, 2);
@@ -94,7 +91,9 @@ mod tests {
         assert_eq!(decoder.sample_rate(), 44100);
 
         let mut buffer = vec![0.0f32; 256]; // 128 frames
-        let read = decoder.read_interleaved_samples(&mut buffer).expect("read failed");
+        let read = decoder
+            .read_interleaved_samples(&mut buffer)
+            .expect("read failed");
         assert_eq!(read, 256);
         assert!((decoder.elapsed().as_secs_f64() - 128.0 / 44100.0).abs() < 1e-5);
 
@@ -114,7 +113,9 @@ mod tests {
 
         assert_eq!(decoder.sample_rate(), 44100);
         let mut buffer = vec![0.0f32; 128];
-        let read = decoder.read_interleaved_samples(&mut buffer).expect("read failed");
+        let read = decoder
+            .read_interleaved_samples(&mut buffer)
+            .expect("read failed");
         assert_eq!(read, 128);
     }
 }

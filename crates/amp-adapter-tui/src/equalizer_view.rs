@@ -32,7 +32,9 @@ impl<'a> Widget for EqualizerWidget<'a> {
             return;
         }
 
-        let bg_style = Style::default().bg(Color::Rgb(16, 20, 24)).fg(Color::DarkGray);
+        let bg_style = Style::default()
+            .bg(Color::Rgb(16, 20, 24))
+            .fg(Color::DarkGray);
         let title_style = Style::default()
             .bg(Color::Rgb(24, 32, 40))
             .fg(Color::Rgb(0, 235, 136))
@@ -40,7 +42,9 @@ impl<'a> Widget for EqualizerWidget<'a> {
         let on_style = if self.is_enabled {
             Style::default().bg(Color::Rgb(0, 160, 90)).fg(Color::White)
         } else {
-            Style::default().bg(Color::Rgb(40, 40, 40)).fg(Color::DarkGray)
+            Style::default()
+                .bg(Color::Rgb(40, 40, 40))
+                .fg(Color::DarkGray)
         };
         let slider_style = Style::default().fg(Color::Rgb(50, 180, 255));
         let zero_style = Style::default().fg(Color::DarkGray);
@@ -69,7 +73,9 @@ impl<'a> Widget for EqualizerWidget<'a> {
         );
 
         // Line 2 & 3: 10 Bands (60, 170, 310, 600, 1k, 3k, 6k, 12k, 14k, 16k)
-        let labels = ["60", "170", "310", "600", "1k", "3k", "6k", "12k", "14k", "16k"];
+        let labels = [
+            "60", "170", "310", "600", "1k", "3k", "6k", "12k", "14k", "16k",
+        ];
         let col_width = (area.width.saturating_sub(4) / 10).max(5);
 
         for (i, (&gain, label)) in self.gains.iter().zip(labels.iter()).enumerate() {
@@ -91,7 +97,11 @@ impl<'a> Widget for EqualizerWidget<'a> {
                 " ▼▼ "
             };
 
-            let s_style = if gain == 0.0 { zero_style } else { slider_style };
+            let s_style = if gain == 0.0 {
+                zero_style
+            } else {
+                slider_style
+            };
             buf.set_string(x, area.top() + 2, symbol, s_style);
             buf.set_string(x, area.top() + 3, format!("{label:^4}"), bg_style);
         }

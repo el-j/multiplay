@@ -77,7 +77,10 @@ impl SecurePeerNode {
     }
 
     /// Authenticates a peer node via mutual handshake verification.
-    pub async fn verify_peer_handshake(&self, handshake: &PeerHandshake) -> Result<(), ProviderError> {
+    pub async fn verify_peer_handshake(
+        &self,
+        handshake: &PeerHandshake,
+    ) -> Result<(), ProviderError> {
         if handshake.auth_token.trim().is_empty() {
             return Err(ProviderError::AuthenticationRequired);
         }
@@ -250,7 +253,8 @@ mod tests {
             artist: "Autechre".to_string(),
             bitrate_kbps: Some(1411),
             duration_secs: Some(345),
-        }).await;
+        })
+        .await;
 
         // Query finds the announced track
         let query_res = node.query("eutow").await.unwrap();

@@ -54,6 +54,7 @@ pub struct AudioHardwareConfig {
     pub crossfade_duration_ms: u32,
     pub loudness_normalization: bool,
     pub target_lufs: i32, // Stored as integer * 10 or dB (e.g. -14)
+    pub headphone_crossfeed: String,
 }
 
 impl Default for AudioHardwareConfig {
@@ -66,6 +67,7 @@ impl Default for AudioHardwareConfig {
             crossfade_duration_ms: 2000,
             loudness_normalization: true,
             target_lufs: -14,
+            headphone_crossfeed: "Off".to_string(),
         }
     }
 }
@@ -150,7 +152,10 @@ mod tests {
     fn test_config_schema_serialization_roundtrip() {
         let mut config = AppConfig::default();
         config.audio.sample_rate = 96000;
-        config.library.music_directories.push("/Volumes/HiResAudio".into());
+        config
+            .library
+            .music_directories
+            .push("/Volumes/HiResAudio".into());
         config.plugins.insert("dsp_reverb".into(), "enabled".into());
 
         let json = serde_json::to_string_pretty(&config).expect("Serialization failed");
@@ -158,6 +163,9 @@ mod tests {
 
         assert_eq!(config, deserialized);
         assert_eq!(deserialized.audio.sample_rate, 96000);
-        assert_eq!(deserialized.plugins.get("dsp_reverb"), Some(&"enabled".to_string()));
+        assert_eq!(
+            deserialized.plugins.get("dsp_reverb"),
+            Some(&"enabled".to_string())
+        );
     }
 }

@@ -23,11 +23,7 @@ impl FilteredSearchCoordinator {
     }
 
     /// Registers a provider with its associated SourceKind badge.
-    pub fn register_provider(
-        &mut self,
-        kind: SourceKind,
-        provider: Arc<dyn ProviderSearchPort>,
-    ) {
+    pub fn register_provider(&mut self, kind: SourceKind, provider: Arc<dyn ProviderSearchPort>) {
         self.providers.push((kind, provider));
     }
 
@@ -122,11 +118,15 @@ mod tests {
         let mut coord = FilteredSearchCoordinator::new();
 
         let track_yt = Track::new(
-            AudioSource::YouTube { video_id: "yt1".into() },
+            AudioSource::YouTube {
+                video_id: "yt1".into(),
+            },
             TrackMetadata::new("YT Song", "YT Artist"),
         );
         let track_spot = Track::new(
-            AudioSource::Spotify { track_uri: "spot1".into() },
+            AudioSource::Spotify {
+                track_uri: "spot1".into(),
+            },
             TrackMetadata::new("Spot Song", "Spot Artist"),
         );
 

@@ -78,16 +78,27 @@ impl<'a> Widget for DjConsoleWidget<'a> {
             return;
         }
 
-        let bg_style = Style::default().bg(Color::Rgb(12, 16, 22)).fg(Color::DarkGray);
+        let bg_style = Style::default()
+            .bg(Color::Rgb(12, 16, 22))
+            .fg(Color::DarkGray);
         let header_style = Style::default()
             .bg(Color::Rgb(20, 28, 38))
             .fg(Color::Rgb(0, 235, 136))
             .add_modifier(Modifier::BOLD);
-        let deck_a_style = Style::default().fg(Color::Rgb(60, 180, 255)).add_modifier(Modifier::BOLD);
-        let deck_b_style = Style::default().fg(Color::Rgb(255, 140, 40)).add_modifier(Modifier::BOLD);
+        let deck_a_style = Style::default()
+            .fg(Color::Rgb(60, 180, 255))
+            .add_modifier(Modifier::BOLD);
+        let deck_b_style = Style::default()
+            .fg(Color::Rgb(255, 140, 40))
+            .add_modifier(Modifier::BOLD);
         let text_style = Style::default().fg(Color::White);
-        let active_cue_style = Style::default().bg(Color::Rgb(230, 40, 40)).fg(Color::White).add_modifier(Modifier::BOLD);
-        let idle_cue_style = Style::default().bg(Color::Rgb(40, 40, 40)).fg(Color::DarkGray);
+        let active_cue_style = Style::default()
+            .bg(Color::Rgb(230, 40, 40))
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD);
+        let idle_cue_style = Style::default()
+            .bg(Color::Rgb(40, 40, 40))
+            .fg(Color::DarkGray);
 
         // Fill background
         for y in area.top()..area.bottom() {
@@ -97,9 +108,15 @@ impl<'a> Widget for DjConsoleWidget<'a> {
         }
 
         // Header bar
-        let header_title = " ═══ MULTIPLAY PRO DJ CONSOLE ══════════════════════════════════════════════";
+        let header_title =
+            " ═══ MULTIPLAY PRO DJ CONSOLE ══════════════════════════════════════════════";
         buf.set_string(area.left(), area.top(), header_title, bg_style);
-        buf.set_string(area.left() + 5, area.top(), "MULTIPLAY PRO DJ CONSOLE", header_style);
+        buf.set_string(
+            area.left() + 5,
+            area.top(),
+            "MULTIPLAY PRO DJ CONSOLE",
+            header_style,
+        );
 
         let half_w = area.width / 2;
         let y_start = area.top() + 2;
@@ -112,7 +129,12 @@ impl<'a> Widget for DjConsoleWidget<'a> {
         );
         buf.set_string(area.left() + 14, y_start, &info_a, text_style);
         let track_a = format!("♪ {} - {}", self.deck_a.artist, self.deck_a.title);
-        buf.set_string(area.left() + 2, y_start + 1, &track_a[..track_a.len().min(half_w as usize - 4)], text_style);
+        buf.set_string(
+            area.left() + 2,
+            y_start + 1,
+            &track_a[..track_a.len().min(half_w as usize - 4)],
+            text_style,
+        );
 
         // Deck A Kill EQs
         let eq_a = format!(
@@ -124,7 +146,11 @@ impl<'a> Widget for DjConsoleWidget<'a> {
         buf.set_string(area.left() + 2, y_start + 2, &eq_a, text_style);
 
         // Deck A Cue PFL
-        let cue_a_style = if self.deck_a.cue_pfl { active_cue_style } else { idle_cue_style };
+        let cue_a_style = if self.deck_a.cue_pfl {
+            active_cue_style
+        } else {
+            idle_cue_style
+        };
         buf.set_string(area.left() + 2, y_start + 3, "[CUE A]", cue_a_style);
 
         // --- DECK B (Right) ---
@@ -136,7 +162,12 @@ impl<'a> Widget for DjConsoleWidget<'a> {
         );
         buf.set_string(right_x + 12, y_start, &info_b, text_style);
         let track_b = format!("♪ {} - {}", self.deck_b.artist, self.deck_b.title);
-        buf.set_string(right_x, y_start + 1, &track_b[..track_b.len().min(half_w as usize - 4)], text_style);
+        buf.set_string(
+            right_x,
+            y_start + 1,
+            &track_b[..track_b.len().min(half_w as usize - 4)],
+            text_style,
+        );
 
         // Deck B Kill EQs
         let eq_b = format!(
@@ -148,14 +179,19 @@ impl<'a> Widget for DjConsoleWidget<'a> {
         buf.set_string(right_x, y_start + 2, &eq_b, text_style);
 
         // Deck B Cue PFL
-        let cue_b_style = if self.deck_b.cue_pfl { active_cue_style } else { idle_cue_style };
+        let cue_b_style = if self.deck_b.cue_pfl {
+            active_cue_style
+        } else {
+            idle_cue_style
+        };
         buf.set_string(right_x, y_start + 3, "[CUE B]", cue_b_style);
 
         // --- Central Crossfader ---
         let cross_y = y_start + 4;
         let fader_width = 20.min(area.width.saturating_sub(10) as usize);
         let center_x = area.left() + (area.width.saturating_sub(fader_width as u16)) / 2;
-        let norm_fader = ((self.crossfader_pos + 1.0) * 0.5 * (fader_width as f32)).round() as usize;
+        let norm_fader =
+            ((self.crossfader_pos + 1.0) * 0.5 * (fader_width as f32)).round() as usize;
 
         let mut fader_track = String::with_capacity(fader_width);
         for i in 0..fader_width {
@@ -168,7 +204,11 @@ impl<'a> Widget for DjConsoleWidget<'a> {
             }
         }
 
-        let curve_label = if self.is_sharp_cut { "SHARP CUT" } else { "SMOOTH" };
+        let curve_label = if self.is_sharp_cut {
+            "SHARP CUT"
+        } else {
+            "SMOOTH"
+        };
         let fader_line = format!("[A] {} [B] ({})", fader_track, curve_label);
         buf.set_string(center_x.saturating_sub(4), cross_y, &fader_line, text_style);
     }

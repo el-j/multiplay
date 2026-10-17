@@ -13,7 +13,7 @@ pub enum PlayerCommand {
     Stop,
     SeekRelative(Duration, bool), // (Offset duration, forward)
     SeekAbsolute(Duration),
-    SetVolume(f32),              // Normalized volume (0.0 to 1.0)
+    SetVolume(f32), // Normalized volume (0.0 to 1.0)
     AddToQueue(Box<Track>),
     RemoveFromQueue(TrackId),
     ClearQueue,

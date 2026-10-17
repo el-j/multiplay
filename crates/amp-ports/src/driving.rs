@@ -26,7 +26,11 @@ pub trait PlayerControlPort: Send + Sync {
     async fn play_track(&self, track: Track) -> Result<(), PlayerControlError>;
     async fn toggle_pause(&self) -> Result<(), PlayerControlError>;
     async fn stop(&self) -> Result<(), PlayerControlError>;
-    async fn seek_relative(&self, offset: Duration, forward: bool) -> Result<(), PlayerControlError>;
+    async fn seek_relative(
+        &self,
+        offset: Duration,
+        forward: bool,
+    ) -> Result<(), PlayerControlError>;
     async fn seek_absolute(&self, timestamp: Duration) -> Result<(), PlayerControlError>;
     fn current_state(&self) -> PlaybackState;
     fn current_position(&self) -> Duration;
@@ -65,6 +69,10 @@ pub trait FilteredSearchPort: Send + Sync {
 /// Driving port for background track downloading and local caching.
 #[async_trait]
 pub trait TrackDownloadPort: Send + Sync {
-    async fn queue_download(&self, track: Track, target_directory: String) -> Result<String, String>;
+    async fn queue_download(
+        &self,
+        track: Track,
+        target_directory: String,
+    ) -> Result<String, String>;
     async fn cancel_download(&self, track_id: TrackId) -> Result<(), String>;
 }

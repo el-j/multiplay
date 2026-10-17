@@ -13,7 +13,7 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
 
 /// Opens a native OS dialog to pick one or more audio files.
 pub fn pick_audio_files() -> Vec<PathBuf> {
-    if std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok() {
+    if cfg!(test) || std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok() {
         return Vec::new();
     }
 
@@ -37,7 +37,7 @@ pub fn pick_audio_files() -> Vec<PathBuf> {
 
 /// Opens a native OS dialog to pick a directory.
 pub fn pick_folder() -> Option<PathBuf> {
-    if std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok() {
+    if cfg!(test) || std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok() {
         return None;
     }
 
@@ -76,10 +76,7 @@ fn pick_audio_files_macos() -> Vec<PathBuf> {
         end try
     "#;
 
-    let output = Command::new("osascript")
-        .arg("-e")
-        .arg(script)
-        .output();
+    let output = Command::new("osascript").arg("-e").arg(script).output();
 
     if let Ok(out) = output {
         if out.status.success() {
@@ -106,10 +103,7 @@ fn pick_folder_macos() -> Option<PathBuf> {
         end try
     "#;
 
-    let output = Command::new("osascript")
-        .arg("-e")
-        .arg(script)
-        .output();
+    let output = Command::new("osascript").arg("-e").arg(script).output();
 
     if let Ok(out) = output {
         if out.status.success() {

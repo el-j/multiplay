@@ -57,7 +57,11 @@ impl PureDecoderEngine {
 
         let spec = DecodedStreamSpec {
             sample_rate: track.codec_params.sample_rate.unwrap_or(44100),
-            channels: track.codec_params.channels.map(|c| c.count() as u16).unwrap_or(2),
+            channels: track
+                .codec_params
+                .channels
+                .map(|c| c.count() as u16)
+                .unwrap_or(2),
             duration_frames: track.codec_params.n_frames,
         };
 
@@ -71,7 +75,9 @@ impl PureDecoderEngine {
         while !stop_signal.load(Ordering::Relaxed) {
             let packet = match reader.next_packet() {
                 Ok(pkt) => pkt,
-                Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                Err(SymphoniaError::IoError(e))
+                    if e.kind() == std::io::ErrorKind::UnexpectedEof =>
+                {
                     break;
                 }
                 Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -90,7 +96,8 @@ impl PureDecoderEngine {
                 Ok(audio_buf) => {
                     if sample_buf.is_none() {
                         let audio_spec = *audio_buf.spec();
-                        sample_buf = Some(SampleBuffer::new(audio_buf.capacity() as u64, audio_spec));
+                        sample_buf =
+                            Some(SampleBuffer::new(audio_buf.capacity() as u64, audio_spec));
                     }
 
                     if let Some(buf) = sample_buf.as_mut() {

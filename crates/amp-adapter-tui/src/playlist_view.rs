@@ -33,7 +33,9 @@ impl<'a> Widget for PlaylistWidget<'a> {
             return;
         }
 
-        let bg_style = Style::default().bg(Color::Rgb(12, 16, 20)).fg(Color::DarkGray);
+        let bg_style = Style::default()
+            .bg(Color::Rgb(12, 16, 20))
+            .fg(Color::DarkGray);
         let title_style = Style::default()
             .bg(Color::Rgb(20, 28, 36))
             .fg(Color::Rgb(0, 235, 136))
@@ -65,7 +67,10 @@ impl<'a> Widget for PlaylistWidget<'a> {
             0
         };
 
-        for (row_offset, track_idx) in (start_idx..self.tracks.len()).take(available_rows).enumerate() {
+        for (row_offset, track_idx) in (start_idx..self.tracks.len())
+            .take(available_rows)
+            .enumerate()
+        {
             let y = area.top() + 1 + row_offset as u16;
             let track = &self.tracks[track_idx];
             let is_sel = track_idx == self.selected_index;

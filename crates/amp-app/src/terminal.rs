@@ -23,8 +23,8 @@ impl TerminalGuard {
             .map_err(|e| format!("Failed to enter alternate screen: {e}"))?;
 
         let backend = CrosstermBackend::new(stdout_handle);
-        let mut terminal = Terminal::new(backend)
-            .map_err(|e| format!("Failed to initialize terminal: {e}"))?;
+        let mut terminal =
+            Terminal::new(backend).map_err(|e| format!("Failed to initialize terminal: {e}"))?;
         terminal
             .hide_cursor()
             .map_err(|e| format!("Failed to hide cursor: {e}"))?;

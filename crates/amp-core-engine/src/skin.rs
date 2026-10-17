@@ -3,7 +3,9 @@
 
 #![forbid(unsafe_code)]
 
+use std::collections::HashMap;
 use std::io::{Cursor, Read};
+use std::path::Path;
 use zip::ZipArchive;
 
 pub type RgbColor = (u8, u8, u8);
@@ -17,6 +19,9 @@ pub struct WinampTheme {
     pub vfd_bg: RgbColor,
     pub vfd_fg: RgbColor,
     pub viscolor_gradient: [RgbColor; 16],
+    pub viscolor_bg: RgbColor,
+    pub viscolor_dots: RgbColor,
+    pub viscolor_osc: [RgbColor; 5],
     pub pledit_bg: RgbColor,
     pub pledit_fg: RgbColor,
 }
@@ -31,7 +36,7 @@ impl Default for WinampTheme {
             vfd_bg: (9, 24, 18),
             vfd_fg: (52, 211, 153),
             viscolor_gradient: [
-                (255, 0, 0),     // Peak
+                (255, 0, 0), // Peak
                 (255, 60, 0),
                 (255, 120, 0),
                 (255, 180, 0),
@@ -46,7 +51,16 @@ impl Default for WinampTheme {
                 (0, 220, 255),
                 (0, 160, 255),
                 (0, 100, 255),
-                (0, 50, 255),   // Floor
+                (0, 50, 255), // Floor
+            ],
+            viscolor_bg: (0, 0, 0),
+            viscolor_dots: (240, 255, 255),
+            viscolor_osc: [
+                (0, 255, 0),
+                (50, 255, 50),
+                (100, 255, 100),
+                (150, 255, 150),
+                (200, 255, 200),
             ],
             pledit_bg: (0, 0, 0),
             pledit_fg: (0, 255, 0),
@@ -54,79 +68,129 @@ impl Default for WinampTheme {
     }
 }
 
+/// Fully extracted Winamp classic skin archive with theme and raw bitmap assets.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WinampSkin {
+    pub theme: WinampTheme,
+    pub bitmaps: HashMap<String, Vec<u8>>,
+}
+
 pub struct SkinLoader;
 
 impl SkinLoader {
-    /// Loads and parses skin theme from in-memory .wsz zip bytes.
-    pub fn load_from_wsz_bytes(bytes: &[u8], skin_name: &str) -> Result<WinampTheme, String> {
+    /// Loads complete Winamp skin from in-memory .wsz zip bytes.
+    pub fn load_skin_from_wsz_bytes(bytes: &[u8], skin_name: &str) -> Result<WinampSkin, String> {
         let cursor = Cursor::new(bytes);
-        let mut archive = ZipArchive::new(cursor).map_err(|e| format!("Failed to open .wsz zip: {e}"))?;
+        let mut archive =
+            ZipArchive::new(cursor).map_err(|e| format!("Failed to open .wsz zip: {e}"))?;
 
         let mut theme = WinampTheme {
             name: skin_name.to_string(),
             ..Default::default()
         };
-
+        let mut bitmaps = HashMap::new();
         let mut viscolor_raw = None;
         let mut pledit_raw = None;
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
-            let name_lower = file.name().map_err(|e| e.to_string())?.to_ascii_lowercase();
+            let raw_name = file.name().map_err(|e| e.to_string())?.to_ascii_lowercase();
+            let base_name = Path::new(&raw_name)
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or(&raw_name)
+                .to_string();
 
-            if name_lower.ends_with("viscolor.txt") {
+            if base_name == "viscolor.txt" {
                 let mut content = String::new();
                 let _ = file.read_to_string(&mut content);
                 viscolor_raw = Some(content);
-            } else if name_lower.ends_with("pledit.txt") {
+            } else if base_name == "pledit.txt" {
                 let mut content = String::new();
                 let _ = file.read_to_string(&mut content);
                 pledit_raw = Some(content);
+            } else if base_name.ends_with(".bmp") {
+                let mut buf = Vec::new();
+                let _ = file.read_to_end(&mut buf);
+                bitmaps.insert(base_name, buf);
             }
         }
 
         if let Some(content) = viscolor_raw {
-            if let Ok(gradient) = Self::parse_viscolor(&content) {
-                theme.viscolor_gradient = gradient;
-            }
+            Self::parse_viscolor(&content, &mut theme);
         }
 
         if let Some(content) = pledit_raw {
             Self::parse_pledit(&content, &mut theme);
         }
 
-        Ok(theme)
+        Ok(WinampSkin { theme, bitmaps })
     }
 
-    /// Parses viscolor.txt 16-color visualizer gradient.
-    pub fn parse_viscolor(content: &str) -> Result<[RgbColor; 16], String> {
+    /// Loads complete Winamp skin from .wsz file on disk.
+    pub fn load_skin_from_wsz_file(path: &Path) -> Result<WinampSkin, String> {
+        let bytes = std::fs::read(path).map_err(|e| format!("Failed to read .wsz: {e}"))?;
+        let name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Custom Skin");
+        Self::load_skin_from_wsz_bytes(&bytes, name)
+    }
+
+    /// Loads and parses skin theme from in-memory .wsz zip bytes.
+    pub fn load_from_wsz_bytes(bytes: &[u8], skin_name: &str) -> Result<WinampTheme, String> {
+        Self::load_skin_from_wsz_bytes(bytes, skin_name).map(|s| s.theme)
+    }
+
+    /// Parses viscolor.txt palette (background, dots, 16 spectrum bands, oscilloscope lines).
+    pub fn parse_viscolor(content: &str, theme: &mut WinampTheme) {
         let lines: Vec<&str> = content
             .lines()
             .map(|l| l.trim())
             .filter(|l| !l.is_empty() && !l.starts_with('/') && !l.starts_with(';'))
             .collect();
 
-        if lines.len() < 18 {
-            return Err("viscolor.txt has fewer than 18 lines".to_string());
+        if lines.is_empty() {
+            return;
         }
 
-        // Lines 2 to 17 are the 16 gradient bands
-        let mut gradient = [(0u8, 0u8, 0u8); 16];
-        for i in 0..16 {
-            let line = lines[i + 2];
-            let parts: Vec<&str> = line
-                .split(|c: char| c == ',' || c.is_whitespace())
-                .filter(|s| !s.is_empty())
-                .collect();
-            if parts.len() >= 3 {
-                let r = parts[0].parse::<u8>().unwrap_or(0);
-                let g = parts[1].parse::<u8>().unwrap_or(0);
-                let b = parts[2].parse::<u8>().unwrap_or(0);
-                gradient[i] = (r, g, b);
+        if let Some(bg) = Self::parse_rgb_line(lines[0]) {
+            theme.viscolor_bg = bg;
+        }
+        if lines.len() > 1 {
+            if let Some(dots) = Self::parse_rgb_line(lines[1]) {
+                theme.viscolor_dots = dots;
             }
         }
+        for i in 0..16 {
+            if lines.len() > i + 2 {
+                if let Some(col) = Self::parse_rgb_line(lines[i + 2]) {
+                    theme.viscolor_gradient[i] = col;
+                }
+            }
+        }
+        for i in 0..5 {
+            if lines.len() > i + 18 {
+                if let Some(col) = Self::parse_rgb_line(lines[i + 18]) {
+                    theme.viscolor_osc[i] = col;
+                }
+            }
+        }
+    }
 
-        Ok(gradient)
+    fn parse_rgb_line(line: &str) -> Option<RgbColor> {
+        let parts: Vec<&str> = line
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if parts.len() >= 3 {
+            let r = parts[0].parse::<u8>().ok()?;
+            let g = parts[1].parse::<u8>().ok()?;
+            let b = parts[2].parse::<u8>().ok()?;
+            Some((r, g, b))
+        } else {
+            None
+        }
     }
 
     /// Parses pledit.txt playlist colors (NormalBG, Normal, Current, etc.)

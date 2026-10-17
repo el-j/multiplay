@@ -62,14 +62,24 @@ impl Default for SettingsViewState {
 
 impl SettingsViewState {
     pub fn next_category(&mut self) {
-        let current_idx = SettingsCategory::ALL.iter().position(|&c| c == self.active_category).unwrap_or(0);
+        let current_idx = SettingsCategory::ALL
+            .iter()
+            .position(|&c| c == self.active_category)
+            .unwrap_or(0);
         let next_idx = (current_idx + 1) % SettingsCategory::ALL.len();
         self.active_category = SettingsCategory::ALL[next_idx];
     }
 
     pub fn prev_category(&mut self) {
-        let current_idx = SettingsCategory::ALL.iter().position(|&c| c == self.active_category).unwrap_or(0);
-        let prev_idx = if current_idx == 0 { SettingsCategory::ALL.len() - 1 } else { current_idx - 1 };
+        let current_idx = SettingsCategory::ALL
+            .iter()
+            .position(|&c| c == self.active_category)
+            .unwrap_or(0);
+        let prev_idx = if current_idx == 0 {
+            SettingsCategory::ALL.len() - 1
+        } else {
+            current_idx - 1
+        };
         self.active_category = SettingsCategory::ALL[prev_idx];
     }
 }
@@ -114,7 +124,12 @@ impl<'a> Widget for SettingsViewModal<'a> {
         // Header
         let title = " ═══ MULTIPLAY PREFERENCES ═════════════════════════════════════════════════";
         buf.set_string(area.left(), area.top(), title, border_style);
-        buf.set_string(area.left() + 5, area.top(), "MULTIPLAY PREFERENCES", header_style);
+        buf.set_string(
+            area.left() + 5,
+            area.top(),
+            "MULTIPLAY PREFERENCES",
+            header_style,
+        );
 
         // Sidebar width
         let sidebar_width = 22;
@@ -143,47 +158,133 @@ impl<'a> Widget for SettingsViewModal<'a> {
         let content_y = area.top() + 2;
         match self.state.active_category {
             SettingsCategory::MusicFolders => {
-                buf.set_string(content_left + 1, content_y, "[ Indexed Music Directories ]", header_style);
-                for (idx, dir) in self.state.config.library.music_directories.iter().enumerate() {
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ Indexed Music Directories ]",
+                    header_style,
+                );
+                for (idx, dir) in self
+                    .state
+                    .config
+                    .library
+                    .music_directories
+                    .iter()
+                    .enumerate()
+                {
                     let line = format!(" • {dir}");
-                    buf.set_string(content_left + 1, content_y + 2 + idx as u16, &line, idle_cat_style);
+                    buf.set_string(
+                        content_left + 1,
+                        content_y + 2 + idx as u16,
+                        &line,
+                        idle_cat_style,
+                    );
                 }
             }
             SettingsCategory::AudioHardware => {
-                buf.set_string(content_left + 1, content_y, "[ Audio Hardware Output ]", header_style);
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ Audio Hardware Output ]",
+                    header_style,
+                );
                 let sr = format!("Sample Rate: {} Hz", self.state.config.audio.sample_rate);
-                let buf_sz = format!("Buffer Size: {} frames", self.state.config.audio.buffer_frames);
-                let ram = format!("Precache RAM: {} MB", self.state.config.audio.precache_ram_mb);
+                let buf_sz = format!(
+                    "Buffer Size: {} frames",
+                    self.state.config.audio.buffer_frames
+                );
+                let ram = format!(
+                    "Precache RAM: {} MB",
+                    self.state.config.audio.precache_ram_mb
+                );
                 buf.set_string(content_left + 1, content_y + 2, &sr, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 3, &buf_sz, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 4, &ram, idle_cat_style);
             }
             SettingsCategory::OnlineAccounts => {
-                buf.set_string(content_left + 1, content_y, "[ Streaming Providers ]", header_style);
-                let yt = format!("YouTube: {}", if self.state.config.streaming.enable_youtube { "ENABLED" } else { "DISABLED" });
-                let sp = format!("Spotify: {}", if self.state.config.streaming.enable_spotify { "ENABLED" } else { "DISABLED" });
-                let sc = format!("SoundCloud: {}", if self.state.config.streaming.enable_soundcloud { "ENABLED" } else { "DISABLED" });
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ Streaming Providers ]",
+                    header_style,
+                );
+                let yt = format!(
+                    "YouTube: {}",
+                    if self.state.config.streaming.enable_youtube {
+                        "ENABLED"
+                    } else {
+                        "DISABLED"
+                    }
+                );
+                let sp = format!(
+                    "Spotify: {}",
+                    if self.state.config.streaming.enable_spotify {
+                        "ENABLED"
+                    } else {
+                        "DISABLED"
+                    }
+                );
+                let sc = format!(
+                    "SoundCloud: {}",
+                    if self.state.config.streaming.enable_soundcloud {
+                        "ENABLED"
+                    } else {
+                        "DISABLED"
+                    }
+                );
                 buf.set_string(content_left + 1, content_y + 2, &yt, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 3, &sp, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 4, &sc, idle_cat_style);
             }
             SettingsCategory::P2PNetwork => {
-                buf.set_string(content_left + 1, content_y, "[ P2P Mesh & Soulseek Network ]", header_style);
-                let mesh = format!("Mesh Listener Port: {}", self.state.config.p2p.mesh_listen_port);
-                let slsk = format!("Soulseek Port: {}", self.state.config.p2p.soulseek_listen_port);
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ P2P Mesh & Soulseek Network ]",
+                    header_style,
+                );
+                let mesh = format!(
+                    "Mesh Listener Port: {}",
+                    self.state.config.p2p.mesh_listen_port
+                );
+                let slsk = format!(
+                    "Soulseek Port: {}",
+                    self.state.config.p2p.soulseek_listen_port
+                );
                 buf.set_string(content_left + 1, content_y + 2, &mesh, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 3, &slsk, idle_cat_style);
             }
             SettingsCategory::Appearance => {
-                buf.set_string(content_left + 1, content_y, "[ Appearance & Skins ]", header_style);
-                let fps = format!("Visualizer Target FPS: {}", self.state.config.ui.visualizer_fps);
-                let snap = format!("Magnetic Snap Distance: {} cells", self.state.config.ui.magnetic_snap_distance);
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ Appearance & Skins ]",
+                    header_style,
+                );
+                let fps = format!(
+                    "Visualizer Target FPS: {}",
+                    self.state.config.ui.visualizer_fps
+                );
+                let snap = format!(
+                    "Magnetic Snap Distance: {} cells",
+                    self.state.config.ui.magnetic_snap_distance
+                );
                 buf.set_string(content_left + 1, content_y + 2, &fps, idle_cat_style);
                 buf.set_string(content_left + 1, content_y + 3, &snap, idle_cat_style);
             }
             SettingsCategory::PluginOptions => {
-                buf.set_string(content_left + 1, content_y, "[ Installed Audio Plugins ]", header_style);
-                buf.set_string(content_left + 1, content_y + 2, "No external plugins configured.", idle_cat_style);
+                buf.set_string(
+                    content_left + 1,
+                    content_y,
+                    "[ Installed Audio Plugins ]",
+                    header_style,
+                );
+                buf.set_string(
+                    content_left + 1,
+                    content_y + 2,
+                    "No external plugins configured.",
+                    idle_cat_style,
+                );
             }
         }
     }

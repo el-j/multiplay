@@ -122,7 +122,9 @@ impl SmartQueueManager {
                 self.playback_order = indices.into();
             }
             ShuffleMode::SmartBalanced { artist_spacing } => {
-                self.playback_order = self.generate_balanced_indices(&indices, artist_spacing).into();
+                self.playback_order = self
+                    .generate_balanced_indices(&indices, artist_spacing)
+                    .into();
             }
         }
     }
@@ -131,28 +133,46 @@ impl SmartQueueManager {
         let mut pool = base_indices.to_vec();
         pool.shuffle(&mut self.rng);
 
-        let mut result = Vec::with_capacity(pool.len());
+        let mut result: Vec<usize> = Vec::with_capacity(pool.len());
         let mut artist_last_seen: HashMap<String, usize> = HashMap::new();
 
         while !pool.is_empty() {
-            let mut found_idx = None;
+            let current_pos = result.len();
+            let last_artist = result
+                .last()
+                .map(|&idx| self.pristine_queue[idx].metadata.artist.as_str());
+
+            let mut best_idx = None;
+            let mut best_score = i64::MIN;
 
             for (i, &track_idx) in pool.iter().enumerate() {
                 let artist = &self.pristine_queue[track_idx].metadata.artist;
-                let current_pos = result.len();
+                let is_immediate_repeat = last_artist == Some(artist);
+                let remaining_count = pool
+                    .iter()
+                    .filter(|&&t| &self.pristine_queue[t].metadata.artist == artist)
+                    .count() as i64;
 
-                if let Some(&last_pos) = artist_last_seen.get(artist) {
-                    if current_pos.saturating_sub(last_pos) >= spacing {
-                        found_idx = Some(i);
-                        break;
-                    }
+                let dist = match artist_last_seen.get(artist) {
+                    Some(&pos) => current_pos.saturating_sub(pos) as i64,
+                    None => 1000i64,
+                };
+
+                let score = if is_immediate_repeat {
+                    -10_000 + dist
+                } else if dist >= spacing as i64 {
+                    1000 + (remaining_count * 20) + dist
                 } else {
-                    found_idx = Some(i);
-                    break;
+                    (dist * 10) + remaining_count
+                };
+
+                if score > best_score {
+                    best_score = score;
+                    best_idx = Some(i);
                 }
             }
 
-            let idx_to_take = found_idx.unwrap_or(0);
+            let idx_to_take = best_idx.unwrap_or(0);
             let chosen = pool.remove(idx_to_take);
             let artist = self.pristine_queue[chosen].metadata.artist.clone();
 
@@ -171,7 +191,9 @@ mod tests {
 
     fn make_test_track(title: &str, artist: &str) -> Track {
         Track::new(
-            AudioSource::DirectHttp { url: format!("http://test/{title}") },
+            AudioSource::DirectHttp {
+                url: format!("http://test/{title}"),
+            },
             TrackMetadata::new(title, artist),
         )
     }

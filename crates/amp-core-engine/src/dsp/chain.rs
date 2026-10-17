@@ -3,12 +3,16 @@
 
 #![forbid(unsafe_code)]
 
-use super::{GraphicEqualizer, LoudnessConfig, PureResampler, PureVolumeNormalizer, SpectrumVisualizer};
+use super::{
+    CrossfeedProfile, GraphicEqualizer, HeadphoneCrossfeed, LoudnessConfig, PureResampler,
+    PureVolumeNormalizer, SpectrumVisualizer,
+};
 
 /// Unified real-time playback DSP pipeline for audio streaming workers.
 pub struct PlaybackDspChain {
     resampler: Option<PureResampler>,
     eq: GraphicEqualizer,
+    crossfeed: HeadphoneCrossfeed,
     limiter: PureVolumeNormalizer,
     visualizer: SpectrumVisualizer,
     sink_sample_rate: u32,
@@ -21,6 +25,7 @@ impl PlaybackDspChain {
         Self {
             resampler: None,
             eq: GraphicEqualizer::new(sink_sample_rate as f32),
+            crossfeed: HeadphoneCrossfeed::new(sink_sample_rate as f32),
             limiter: PureVolumeNormalizer::new(LoudnessConfig {
                 target_lufs: -14.0,
                 max_peak_dbfs: -0.5,
@@ -47,12 +52,22 @@ impl PlaybackDspChain {
         }
     }
 
+    /// Configures the headphone crossfeed binaural simulation profile.
+    pub fn set_crossfeed_profile(&mut self, profile: CrossfeedProfile) {
+        self.crossfeed.set_profile(profile);
+    }
+
+    /// Configures loudness normalization and peak limiter settings.
+    pub fn set_loudness_config(&mut self, config: LoudnessConfig) {
+        self.limiter.set_config(config);
+    }
+
     /// Returns whether the resampler is currently active.
     pub fn is_resampling(&self) -> bool {
         self.resampler.is_some()
     }
 
-    /// Processes interleaved stereo audio samples through resampling, volume, EQ, limiter, and visualizer.
+    /// Processes interleaved stereo audio samples through resampling, volume, EQ, crossfeed, limiter, and visualizer.
     pub fn process_interleaved(
         &mut self,
         input_pcm: &[f32],
@@ -60,6 +75,19 @@ impl PlaybackDspChain {
         preamp: f32,
         eq_gains: &[f32; 10],
         eq_enabled: bool,
+    ) -> (Vec<f32>, [f32; 16]) {
+        self.process_interleaved_with_lufs(input_pcm, volume, preamp, eq_gains, eq_enabled, None)
+    }
+
+    /// Processes audio samples with optional track integrated LUFS loudness normalization.
+    pub fn process_interleaved_with_lufs(
+        &mut self,
+        input_pcm: &[f32],
+        volume: f32,
+        preamp: f32,
+        eq_gains: &[f32; 10],
+        eq_enabled: bool,
+        track_lufs: Option<f32>,
     ) -> (Vec<f32>, [f32; 16]) {
         // 1. Resample to hardware rate if rates differ
         let mut samples = if let Some(ref mut resampler) = self.resampler {
@@ -84,10 +112,13 @@ impl PlaybackDspChain {
         }
         self.eq.process_interleaved(&mut samples);
 
-        // 4. Soft-knee true-peak limiter (guarantees <= -0.5 dBFS ceiling)
-        self.limiter.process_interleaved(&mut samples, None);
+        // 4. Apply binaural headphone crossfeed
+        self.crossfeed.process_interleaved(&mut samples);
 
-        // 5. Real-time 16-band FFT visualizer
+        // 5. Soft-knee true-peak limiter and loudness normalization
+        self.limiter.process_interleaved(&mut samples, track_lufs);
+
+        // 6. Real-time 16-band FFT visualizer
         self.visualizer.push_samples(&samples);
         let bands = self.visualizer.compute_spectrum_bands();
 
@@ -151,5 +182,21 @@ mod tests {
                 "Sample {sample} exceeded peak limiter target {max_allowed}"
             );
         }
+    }
+
+    #[test]
+    fn test_dsp_chain_with_lufs_normalization() {
+        let mut chain = PlaybackDspChain::new(48000, 512);
+        let input = vec![0.2f32; 1024];
+        // Track at -24 LUFS should be boosted towards -14 LUFS
+        let (output, _) = chain.process_interleaved_with_lufs(
+            &input,
+            1.0,
+            0.0,
+            &[0.0; 10],
+            false,
+            Some(-24.0),
+        );
+        assert!(output[500].abs() > input[500].abs());
     }
 }

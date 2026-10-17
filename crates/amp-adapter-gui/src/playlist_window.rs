@@ -11,10 +11,19 @@ pub fn render_playlist_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     ui.group(|ui| {
         // 1. Title Bar & Search
         ui.horizontal(|ui| {
-            ui.heading(RichText::new("WINAMP PLAYLIST EDITOR").size(14.0).strong().color(Color32::from_rgb(0, 230, 140)));
+            ui.heading(
+                RichText::new("WINAMP PLAYLIST EDITOR")
+                    .size(14.0)
+                    .strong()
+                    .color(Color32::from_rgb(0, 230, 140)),
+            );
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.add(egui::TextEdit::singleline(&mut app.search_query).hint_text("🔍 Search playlist...").desired_width(170.0));
+                ui.add(
+                    egui::TextEdit::singleline(&mut app.search_query)
+                        .hint_text("🔍 Search playlist...")
+                        .desired_width(170.0),
+                );
             });
         });
 
@@ -22,36 +31,68 @@ pub fn render_playlist_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
 
         // 2. Action Toolbar & Filter Pills
         ui.horizontal(|ui| {
-            if ui.button(RichText::new("📁 Add Files").size(11.0)).clicked() {
+            if ui
+                .button(RichText::new("📁 Add Files").size(11.0))
+                .clicked()
+            {
                 app.open_file_dialog();
             }
-            if ui.button(RichText::new("📂 Add Folder").size(11.0)).clicked() {
+            if ui
+                .button(RichText::new("📂 Add Folder").size(11.0))
+                .clicked()
+            {
                 app.open_folder_dialog();
             }
-            if ui.button(RichText::new("🎵 Scan ~/Music").size(11.0)).clicked() {
+            if ui
+                .button(RichText::new("🎵 Scan ~/Music").size(11.0))
+                .clicked()
+            {
                 app.scan_user_music_dir();
             }
-            if ui.button(RichText::new("🗑 Clear").size(11.0).color(Color32::from_rgb(255, 100, 100))).clicked() {
+            if ui
+                .button(
+                    RichText::new("🗑 Clear")
+                        .size(11.0)
+                        .color(Color32::from_rgb(255, 100, 100)),
+                )
+                .clicked()
+            {
                 app.playlist.clear();
                 app.selected_track_idx = 0;
                 app.audio_driver.stop();
+                app.save_session();
             }
 
             ui.separator();
 
-            if ui.selectable_label(app.filter_source.is_none(), "ALL").clicked() {
+            if ui
+                .selectable_label(app.filter_source.is_none(), "ALL")
+                .clicked()
+            {
                 app.filter_source = None;
             }
-            if ui.selectable_label(app.filter_source == Some(SourceKind::LocalFile), "LOCAL").clicked() {
+            if ui
+                .selectable_label(app.filter_source == Some(SourceKind::LocalFile), "LOCAL")
+                .clicked()
+            {
                 app.filter_source = Some(SourceKind::LocalFile);
             }
-            if ui.selectable_label(app.filter_source == Some(SourceKind::YouTube), "YOUTUBE").clicked() {
+            if ui
+                .selectable_label(app.filter_source == Some(SourceKind::YouTube), "YOUTUBE")
+                .clicked()
+            {
                 app.filter_source = Some(SourceKind::YouTube);
             }
-            if ui.selectable_label(app.filter_source == Some(SourceKind::Soulseek), "SOULSEEK").clicked() {
+            if ui
+                .selectable_label(app.filter_source == Some(SourceKind::Soulseek), "SOULSEEK")
+                .clicked()
+            {
                 app.filter_source = Some(SourceKind::Soulseek);
             }
-            if ui.selectable_label(app.filter_source == Some(SourceKind::P2PShared), "P2P").clicked() {
+            if ui
+                .selectable_label(app.filter_source == Some(SourceKind::P2PShared), "P2P")
+                .clicked()
+            {
                 app.filter_source = Some(SourceKind::P2PShared);
             }
         });
@@ -98,77 +139,136 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     let mut track_to_remove = None;
     let mut track_to_play = None;
 
-    egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
-        for (i, track) in app.playlist.iter().enumerate() {
-            let matches_query = app.search_query.is_empty()
-                || track.metadata.title.to_lowercase().contains(&app.search_query.to_lowercase())
-                || track.metadata.artist.to_lowercase().contains(&app.search_query.to_lowercase());
+    egui::ScrollArea::vertical()
+        .max_height(200.0)
+        .show(ui, |ui| {
+            for (i, track) in app.playlist.iter().enumerate() {
+                let matches_query = app.search_query.is_empty()
+                    || track
+                        .metadata
+                        .title
+                        .to_lowercase()
+                        .contains(&app.search_query.to_lowercase())
+                    || track
+                        .metadata
+                        .artist
+                        .to_lowercase()
+                        .contains(&app.search_query.to_lowercase());
 
-            let matches_filter = match app.filter_source {
-                None => true,
-                Some(SourceKind::LocalFile) => matches!(track.source, AudioSource::LocalFile { .. }),
-                Some(SourceKind::YouTube) => matches!(track.source, AudioSource::YouTube { .. }),
-                Some(SourceKind::Soulseek) => matches!(track.source, AudioSource::Soulseek { .. }),
-                Some(SourceKind::P2PShared) => matches!(track.source, AudioSource::P2PShared { .. }),
-                _ => true,
-            };
-
-            if !matches_query || !matches_filter {
-                continue;
-            }
-
-            let is_selected = i == app.selected_track_idx;
-            let row_bg = if is_selected {
-                Color32::from_rgb(0, 60, 110)
-            } else if i % 2 == 0 {
-                Color32::from_rgb(16, 22, 28)
-            } else {
-                Color32::from_rgb(12, 16, 22)
-            };
-
-            egui::Frame::none().fill(row_bg).inner_margin(4.0).show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    let cursor_mark = if is_selected { "▶" } else { " " };
-                    ui.label(RichText::new(cursor_mark).strong().color(Color32::from_rgb(0, 255, 140)));
-
-                    let track_num = format!("{}.", i + 1);
-                    ui.label(RichText::new(track_num).color(Color32::from_rgb(140, 160, 180)));
-
-                    let item_text = format!("{} - {}", track.metadata.artist, track.metadata.title);
-                    if ui.selectable_label(is_selected, RichText::new(item_text).strong()).clicked() {
-                        track_to_play = Some(i);
+                let matches_filter = match app.filter_source {
+                    None => true,
+                    Some(SourceKind::LocalFile) => {
+                        matches!(track.source, AudioSource::LocalFile { .. })
                     }
+                    Some(SourceKind::YouTube) => {
+                        matches!(track.source, AudioSource::YouTube { .. })
+                    }
+                    Some(SourceKind::Soulseek) => {
+                        matches!(track.source, AudioSource::Soulseek { .. })
+                    }
+                    Some(SourceKind::P2PShared) => {
+                        matches!(track.source, AudioSource::P2PShared { .. })
+                    }
+                    _ => true,
+                };
 
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.small_button(RichText::new("✕").size(10.0).color(Color32::from_rgb(220, 80, 80))).clicked() {
-                            track_to_remove = Some(i);
-                        }
+                if !matches_query || !matches_filter {
+                    continue;
+                }
 
-                        let dur_str = if let Some(d) = track.metadata.duration {
-                            let s = d.as_secs();
-                            format!("{:02}:{:02}", s / 60, s % 60)
-                        } else {
-                            "--:--".to_string()
-                        };
-                        ui.label(RichText::new(dur_str).monospace().color(Color32::from_rgb(120, 180, 240)));
+                let is_selected = i == app.selected_track_idx;
+                let row_bg = if is_selected {
+                    Color32::from_rgb(0, 60, 110)
+                } else if i % 2 == 0 {
+                    Color32::from_rgb(16, 22, 28)
+                } else {
+                    Color32::from_rgb(12, 16, 22)
+                };
 
-                        let (badge_txt, badge_color) = match track.source {
-                            AudioSource::LocalFile { .. } => ("LOCAL", Color32::from_rgb(0, 200, 120)),
-                            AudioSource::Soulseek { .. } => ("SOULSEEK", Color32::from_rgb(0, 180, 240)),
-                            AudioSource::YouTube { .. } => ("YOUTUBE", Color32::from_rgb(255, 80, 80)),
-                            AudioSource::P2PShared { .. } => ("P2P", Color32::from_rgb(255, 180, 40)),
-                            _ => ("STREAM", Color32::from_rgb(180, 180, 180)),
-                        };
-                        ui.label(RichText::new(format!("[{badge_txt}]")).size(10.0).color(badge_color));
+                egui::Frame::none()
+                    .fill(row_bg)
+                    .inner_margin(4.0)
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let cursor_mark = if is_selected { "▶" } else { " " };
+                            ui.label(
+                                RichText::new(cursor_mark)
+                                    .strong()
+                                    .color(Color32::from_rgb(0, 255, 140)),
+                            );
+
+                            let track_num = format!("{}.", i + 1);
+                            ui.label(
+                                RichText::new(track_num).color(Color32::from_rgb(140, 160, 180)),
+                            );
+
+                            let item_text =
+                                format!("{} - {}", track.metadata.artist, track.metadata.title);
+                            if ui
+                                .selectable_label(is_selected, RichText::new(item_text).strong())
+                                .clicked()
+                            {
+                                track_to_play = Some(i);
+                            }
+
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui
+                                        .small_button(
+                                            RichText::new("✕")
+                                                .size(10.0)
+                                                .color(Color32::from_rgb(220, 80, 80)),
+                                        )
+                                        .clicked()
+                                    {
+                                        track_to_remove = Some(i);
+                                    }
+
+                                    let dur_str = if let Some(d) = track.metadata.duration {
+                                        let s = d.as_secs();
+                                        format!("{:02}:{:02}", s / 60, s % 60)
+                                    } else {
+                                        "--:--".to_string()
+                                    };
+                                    ui.label(
+                                        RichText::new(dur_str)
+                                            .monospace()
+                                            .color(Color32::from_rgb(120, 180, 240)),
+                                    );
+
+                                    let (badge_txt, badge_color) = match track.source {
+                                        AudioSource::LocalFile { .. } => {
+                                            ("LOCAL", Color32::from_rgb(0, 200, 120))
+                                        }
+                                        AudioSource::Soulseek { .. } => {
+                                            ("SOULSEEK", Color32::from_rgb(0, 180, 240))
+                                        }
+                                        AudioSource::YouTube { .. } => {
+                                            ("YOUTUBE", Color32::from_rgb(255, 80, 80))
+                                        }
+                                        AudioSource::P2PShared { .. } => {
+                                            ("P2P", Color32::from_rgb(255, 180, 40))
+                                        }
+                                        _ => ("STREAM", Color32::from_rgb(180, 180, 180)),
+                                    };
+                                    ui.label(
+                                        RichText::new(format!("[{badge_txt}]"))
+                                            .size(10.0)
+                                            .color(badge_color),
+                                    );
+                                },
+                            );
+                        });
                     });
-                });
-            });
-        }
-    });
+            }
+        });
 
     if let Some(idx) = track_to_play {
         app.selected_track_idx = idx;
         app.audio_driver.play(app.playlist[idx].clone());
+        let upcoming = app.playlist.get(idx + 1).cloned();
+        app.audio_driver.set_next_track(upcoming);
     }
 
     if let Some(idx) = track_to_remove {
@@ -177,6 +277,7 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             if app.selected_track_idx >= app.playlist.len() && !app.playlist.is_empty() {
                 app.selected_track_idx = app.playlist.len() - 1;
             }
+            app.save_session();
         }
     }
 }

@@ -39,7 +39,9 @@ impl CpalAudioSink {
     }
 
     /// Spawns the audio actor thread for a specific device, or system default if None.
-    pub fn new_with_device(target_device_name: Option<&str>) -> Result<(Self, Producer<f32>), String> {
+    pub fn new_with_device(
+        target_device_name: Option<&str>,
+    ) -> Result<(Self, Producer<f32>), String> {
         let (device, config, resolved_name) = resolve_output_device(target_device_name)?;
 
         let initial_rate = config.sample_rate.0;
@@ -82,10 +84,18 @@ impl CpalAudioSink {
         thread::spawn(move || {
             while let Ok(msg) = cmd_rx.recv() {
                 match msg {
-                    SinkControlMsg::Configure { reply, .. } => { let _ = reply.send(Ok(())); }
-                    SinkControlMsg::Start { reply } => { let _ = reply.send(Ok(())); }
-                    SinkControlMsg::Pause { reply } => { let _ = reply.send(Ok(())); }
-                    SinkControlMsg::Stop { reply } => { let _ = reply.send(Ok(())); }
+                    SinkControlMsg::Configure { reply, .. } => {
+                        let _ = reply.send(Ok(()));
+                    }
+                    SinkControlMsg::Start { reply } => {
+                        let _ = reply.send(Ok(()));
+                    }
+                    SinkControlMsg::Pause { reply } => {
+                        let _ = reply.send(Ok(()));
+                    }
+                    SinkControlMsg::Stop { reply } => {
+                        let _ = reply.send(Ok(()));
+                    }
                     SinkControlMsg::Terminate => break,
                 }
             }
@@ -224,12 +234,16 @@ mod tests {
     #[test]
     fn test_device_enumeration_and_fallback() {
         let devices = CpalAudioSink::list_output_devices();
-        assert!(!devices.is_empty(), "Should detect at least one output device");
+        assert!(
+            !devices.is_empty(),
+            "Should detect at least one output device"
+        );
     }
 
     #[test]
     fn test_repeated_start_pause_stop_lifecycle() {
-        let (mut sink, mut producer) = CpalAudioSink::new().expect("Failed to initialize default sink");
+        let (mut sink, mut producer) =
+            CpalAudioSink::new().expect("Failed to initialize default sink");
 
         for _ in 0..1024 {
             let _ = producer.push(0.0);

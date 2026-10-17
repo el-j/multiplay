@@ -21,30 +21,30 @@ impl SourceKind {
     /// Distinct Unicode / ASCII indicator for terminal and GUI renderers.
     pub fn badge_icon(&self) -> &'static str {
         match self {
-            Self::LocalFile  => "󰉋 [LOC]",
+            Self::LocalFile => "󰉋 [LOC]",
             Self::NetworkSmb => "󰒍 [SMB]",
             Self::DirectHttp => "󰌹 [HTTP]",
-            Self::YouTube    => " [YT]",
-            Self::Spotify    => " [SPOT]",
-            Self::Bandcamp   => "󰓇 [BC]",
+            Self::YouTube => " [YT]",
+            Self::Spotify => " [SPOT]",
+            Self::Bandcamp => "󰓇 [BC]",
             Self::SoundCloud => " [SC]",
-            Self::Soulseek   => "󰛳 [SLSK]",
-            Self::P2PShared  => "󱘖 [P2P]",
+            Self::Soulseek => "󰛳 [SLSK]",
+            Self::P2PShared => "󱘖 [P2P]",
         }
     }
 
     /// Human-readable label for menus and tooltips.
     pub fn display_label(&self) -> &'static str {
         match self {
-            Self::LocalFile  => "Local Library",
+            Self::LocalFile => "Local Library",
             Self::NetworkSmb => "SMB / Network Share",
             Self::DirectHttp => "Direct HTTP Stream",
-            Self::YouTube    => "YouTube Audio",
-            Self::Spotify    => "Spotify Premium",
-            Self::Bandcamp   => "Bandcamp",
+            Self::YouTube => "YouTube Audio",
+            Self::Spotify => "Spotify Premium",
+            Self::Bandcamp => "Bandcamp",
             Self::SoundCloud => "SoundCloud",
-            Self::Soulseek   => "Soulseek Network",
-            Self::P2PShared  => "Direct P2P Mesh",
+            Self::Soulseek => "Soulseek Network",
+            Self::P2PShared => "Direct P2P Mesh",
         }
     }
 }
@@ -67,7 +67,9 @@ impl Default for SourceFilterMask {
         enabled.insert(SourceKind::SoundCloud);
         enabled.insert(SourceKind::Soulseek);
         enabled.insert(SourceKind::P2PShared);
-        Self { enabled_sources: enabled }
+        Self {
+            enabled_sources: enabled,
+        }
     }
 }
 

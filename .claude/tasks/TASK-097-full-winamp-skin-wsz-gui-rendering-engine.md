@@ -14,4 +14,4 @@
 `cargo test -p amp-adapter-gui -p amp-core-engine`
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

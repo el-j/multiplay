@@ -189,8 +189,26 @@
     {
       "id": "PLAN-030",
       "title": "Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine",
-      "status": "in_progress",
+      "status": "completed",
       "tasks": ["TASK-095", "TASK-096", "TASK-097", "TASK-098"]
+    },
+    {
+      "id": "PLAN-031",
+      "title": "Pro Live DJ Engine & Realtime Mixer",
+      "status": "completed",
+      "tasks": ["TASK-099", "TASK-100", "TASK-101", "TASK-102"]
+    },
+    {
+      "id": "PLAN-032",
+      "title": "Integrated Mobile Remote Daemon & Distributed Jam Session",
+      "status": "completed",
+      "tasks": ["TASK-103", "TASK-104", "TASK-105", "TASK-106"]
+    },
+    {
+      "id": "PLAN-033",
+      "title": "Audiophile Seamless Gapless Playback, Automix Crossfader & EBU R128 Normalization",
+      "status": "completed",
+      "tasks": ["TASK-107", "TASK-108", "TASK-109", "TASK-110", "TASK-111"]
     }
   ]
 }

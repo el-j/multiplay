@@ -54,8 +54,10 @@ impl AudioPlaybackDriver {
         let producer_arc = Arc::new(Mutex::new(producer));
         let audio_sink_arc = Arc::new(Mutex::new(audio_sink));
 
-        let yt = Arc::new(amp_adapter_youtube::PureYouTubeAdapter::default()) as Arc<dyn StreamResolverPort>;
-        let http = Arc::new(amp_adapter_http::HttpStreamResolver::default()) as Arc<dyn StreamResolverPort>;
+        let yt = Arc::new(amp_adapter_youtube::PureYouTubeAdapter::default())
+            as Arc<dyn StreamResolverPort>;
+        let http = Arc::new(amp_adapter_http::HttpStreamResolver::default())
+            as Arc<dyn StreamResolverPort>;
         let resolvers = Arc::new(Mutex::new(vec![yt, http]));
 
         let playing_flag = Arc::clone(&is_playing);
@@ -246,13 +248,8 @@ fn run_playback_loop(
         let vol = *volume.lock().unwrap();
         let gains = *eq_gains.lock().unwrap();
 
-        let (processed, bands) = dsp_chain.process_interleaved(
-            &pcm_buffer[..read_samples],
-            vol,
-            0.0,
-            &gains,
-            true,
-        );
+        let (processed, bands) =
+            dsp_chain.process_interleaved(&pcm_buffer[..read_samples], vol, 0.0, &gains, true);
 
         if let Ok(mut spec) = visualizer_spectrum.try_lock() {
             *spec = bands;

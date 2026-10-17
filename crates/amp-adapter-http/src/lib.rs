@@ -85,12 +85,10 @@ impl StreamResolverPort for HttpStreamResolver {
             _ => return Err(ProviderError::NotFound),
         };
 
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| ProviderError::Network(format!("HTTP request failed to {url}: {e}")))?;
+        let response =
+            self.client.get(url).send().await.map_err(|e| {
+                ProviderError::Network(format!("HTTP request failed to {url}: {e}"))
+            })?;
 
         if !response.status().is_success() {
             return Err(ProviderError::Network(format!(
@@ -122,7 +120,10 @@ impl StreamResolverPort for HttpStreamResolver {
         // Await initial probing threshold (~128KB) or early completion
         let probe_threshold = 128 * 1024;
         let mut attempts = 0;
-        while buffer.total_bytes_cached() < probe_threshold && !buffer.is_finished() && attempts < 100 {
+        while buffer.total_bytes_cached() < probe_threshold
+            && !buffer.is_finished()
+            && attempts < 100
+        {
             tokio::time::sleep(Duration::from_millis(15)).await;
             attempts += 1;
         }

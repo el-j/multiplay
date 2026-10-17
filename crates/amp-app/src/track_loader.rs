@@ -50,7 +50,9 @@ pub fn load_track_decoder(
                     return AudioStreamDecoder::open_stream(stream);
                 }
             }
-            Err(format!("No stream resolver registered for audio source: {source:?}"))
+            Err(format!(
+                "No stream resolver registered for audio source: {source:?}"
+            ))
         }
     }
 }
@@ -81,7 +83,12 @@ mod tests {
     #[test]
     fn test_track_loader_unsupported_source() {
         let meta = TrackMetadata::new("Unknown", "Artist");
-        let track = Track::new(AudioSource::Spotify { track_uri: "spotify:track:123".into() }, meta);
+        let track = Track::new(
+            AudioSource::Spotify {
+                track_uri: "spotify:track:123".into(),
+            },
+            meta,
+        );
         let resolvers: Vec<Arc<dyn StreamResolverPort>> = vec![Arc::new(DummyResolver)];
         let res = load_track_decoder(&track, &resolvers);
         match res {

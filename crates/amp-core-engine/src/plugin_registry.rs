@@ -44,7 +44,10 @@ impl PluginRegistry {
     }
 
     /// Queries all plugins providing a specific capability.
-    pub async fn list_by_capability(&self, capability: PluginCapability) -> Vec<Arc<dyn AmpAudioPlugin>> {
+    pub async fn list_by_capability(
+        &self,
+        capability: PluginCapability,
+    ) -> Vec<Arc<dyn AmpAudioPlugin>> {
         let map = self.plugins.read().await;
         map.values()
             .filter(|p| p.manifest().capabilities.contains(&capability))
@@ -115,15 +118,21 @@ mod tests {
         assert!(registry.register_plugin(duplicate).await.is_err());
 
         // Query by capability
-        let dsp_plugins = registry.list_by_capability(PluginCapability::DspProcessor).await;
+        let dsp_plugins = registry
+            .list_by_capability(PluginCapability::DspProcessor)
+            .await;
         assert_eq!(dsp_plugins.len(), 1);
         assert_eq!(dsp_plugins[0].manifest().name, "Studio Reverb");
 
-        let viz_plugins = registry.list_by_capability(PluginCapability::VisualizerEngine).await;
+        let viz_plugins = registry
+            .list_by_capability(PluginCapability::VisualizerEngine)
+            .await;
         assert_eq!(viz_plugins.len(), 1);
         assert_eq!(viz_plugins[0].manifest().name, "MilkDrop Mini");
 
-        let source_plugins = registry.list_by_capability(PluginCapability::AudioSourceProvider).await;
+        let source_plugins = registry
+            .list_by_capability(PluginCapability::AudioSourceProvider)
+            .await;
         assert_eq!(source_plugins.len(), 0);
 
         // Unregister

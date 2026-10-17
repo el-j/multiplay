@@ -95,7 +95,10 @@ impl ConfigStore {
     #[must_use]
     pub fn default_config_path() -> PathBuf {
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-        Path::new(&home).join(".config").join("multiplay").join("multiplay.toml")
+        Path::new(&home)
+            .join(".config")
+            .join("multiplay")
+            .join("multiplay.toml")
     }
 }
 

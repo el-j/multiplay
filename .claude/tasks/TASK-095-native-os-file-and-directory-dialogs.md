@@ -14,4 +14,4 @@
 `cargo test -p amp-adapter-gui && ./scripts/verify_pure_rust.sh`
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

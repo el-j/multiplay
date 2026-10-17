@@ -108,11 +108,24 @@ impl<'a> Widget for SearchViewModal<'a> {
         let y0 = area.y + (area.height.saturating_sub(dialog_height)) / 2;
 
         let frame_style = Style::default().bg(Color::Rgb(15, 23, 42)).fg(Color::White);
-        let border_style = Style::default().bg(Color::Rgb(15, 23, 42)).fg(Color::Rgb(56, 189, 248));
-        let input_style = Style::default().bg(Color::Rgb(30, 41, 59)).fg(Color::Yellow).add_modifier(Modifier::BOLD);
-        let pill_active = Style::default().bg(Color::Rgb(16, 185, 129)).fg(Color::Black).add_modifier(Modifier::BOLD);
-        let pill_inactive = Style::default().bg(Color::Rgb(51, 65, 85)).fg(Color::Rgb(148, 163, 184));
-        let selected_row_style = Style::default().bg(Color::Rgb(59, 130, 246)).fg(Color::White).add_modifier(Modifier::BOLD);
+        let border_style = Style::default()
+            .bg(Color::Rgb(15, 23, 42))
+            .fg(Color::Rgb(56, 189, 248));
+        let input_style = Style::default()
+            .bg(Color::Rgb(30, 41, 59))
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD);
+        let pill_active = Style::default()
+            .bg(Color::Rgb(16, 185, 129))
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD);
+        let pill_inactive = Style::default()
+            .bg(Color::Rgb(51, 65, 85))
+            .fg(Color::Rgb(148, 163, 184));
+        let selected_row_style = Style::default()
+            .bg(Color::Rgb(59, 130, 246))
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD);
 
         // Fill background
         for y in y0..(y0 + dialog_height) {
@@ -123,7 +136,10 @@ impl<'a> Widget for SearchViewModal<'a> {
 
         // Border top
         let fill_len = (dialog_width as usize).saturating_sub(44);
-        let top_title = format!("┌─ UNIVERSAL SEARCH & STREAM AGGREGATOR {}┐", "─".repeat(fill_len));
+        let top_title = format!(
+            "┌─ UNIVERSAL SEARCH & STREAM AGGREGATOR {}┐",
+            "─".repeat(fill_len)
+        );
         buf.set_string(x0, y0, &top_title, border_style);
 
         // Omnibar input line
@@ -163,7 +179,11 @@ impl<'a> Widget for SearchViewModal<'a> {
         for (idx, track) in self.state.results.iter().take(max_results).enumerate() {
             let row_y = y0 + 4 + idx as u16;
             let is_selected = idx == self.state.selected_result_idx;
-            let style = if is_selected { selected_row_style } else { frame_style };
+            let style = if is_selected {
+                selected_row_style
+            } else {
+                frame_style
+            };
 
             let badge = track.source.kind();
             let duration_str = match track.metadata.duration {
@@ -214,12 +234,17 @@ mod tests {
         let mut meta = TrackMetadata::new("Windowlicker", "Aphex Twin");
         meta.duration = Some(Duration::from_secs(367));
         state.results.push(Track::new(
-            AudioSource::YouTube { video_id: "yt_123".into() },
+            AudioSource::YouTube {
+                video_id: "yt_123".into(),
+            },
             meta,
         ));
 
         assert_eq!(state.results.len(), 1);
-        assert_eq!(state.selected_track().unwrap().metadata.title, "Windowlicker");
+        assert_eq!(
+            state.selected_track().unwrap().metadata.title,
+            "Windowlicker"
+        );
 
         // Render test into buffer
         let modal = SearchViewModal::new(&state);

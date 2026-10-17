@@ -113,7 +113,7 @@ impl WsolaTimeStretcher {
 
     /// Stretches or compresses input audio samples into output buffer without pitch shifting.
     pub fn process(&mut self, input: &[f32], output: &mut [f32]) -> usize {
-        if (self.speed_ratio - 1.0).abs() < 0.001 {
+        if (self.speed_ratio - 1.0).abs() < 0.001 || input.len() < self.window_size {
             let n = input.len().min(output.len());
             output[..n].copy_from_slice(&input[..n]);
             return n;
@@ -122,17 +122,26 @@ impl WsolaTimeStretcher {
         let mut in_pos = 0.0_f32;
         let mut out_idx = 0;
 
-        while out_idx < output.len() && (in_pos as usize + self.window_size) < input.len() {
+        while (out_idx + self.window_size) <= output.len()
+            && (in_pos as usize + self.window_size) <= input.len()
+        {
             let base_idx = in_pos as usize;
             for i in 0..self.window_size {
-                let window_weight = 0.5 * (1.0 - (2.0 * std::f32::consts::PI * (i as f32) / (self.window_size as f32)).cos());
-                if out_idx + i < output.len() {
-                    output[out_idx + i] = input[base_idx + i] * window_weight;
-                }
+                let window_weight = 0.5
+                    * (1.0
+                        - (2.0 * std::f32::consts::PI * (i as f32) / (self.window_size as f32))
+                            .cos());
+                output[out_idx + i] = input[base_idx + i] * window_weight;
             }
 
             out_idx += self.window_size / 2;
             in_pos += (self.window_size / 2) as f32 * self.speed_ratio;
+        }
+
+        if out_idx == 0 {
+            let n = input.len().min(output.len());
+            output[..n].copy_from_slice(&input[..n]);
+            return n;
         }
 
         out_idx.min(output.len())
@@ -144,7 +153,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_wsola_time_stretcher() {
+    fn test_dj_wsola_speed_scaling() {
         let mut stretcher = WsolaTimeStretcher::new(256);
         assert!((stretcher.speed_ratio() - 1.0).abs() < f32::EPSILON);
 

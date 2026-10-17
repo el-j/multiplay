@@ -65,7 +65,13 @@ mod tests {
         let evt1 = sub1.recv().await.expect("sub1 recv failed");
         let evt2 = sub2.recv().await.expect("sub2 recv failed");
 
-        assert!(matches!(evt1, PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)));
-        assert!(matches!(evt2, PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)));
+        assert!(matches!(
+            evt1,
+            PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)
+        ));
+        assert!(matches!(
+            evt2,
+            PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)
+        ));
     }
 }

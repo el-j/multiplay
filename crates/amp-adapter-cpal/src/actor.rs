@@ -54,10 +54,18 @@ pub(crate) fn run_cpal_actor(
             eprintln!("Failed to initialize audio output stream: {e}");
             while let Ok(msg) = cmd_rx.recv() {
                 match msg {
-                    SinkControlMsg::Configure { reply, .. } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Start { reply } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Pause { reply } => { let _ = reply.send(Err(e.to_string())); }
-                    SinkControlMsg::Stop { reply } => { let _ = reply.send(Err(e.to_string())); }
+                    SinkControlMsg::Configure { reply, .. } => {
+                        let _ = reply.send(Err(e.to_string()));
+                    }
+                    SinkControlMsg::Start { reply } => {
+                        let _ = reply.send(Err(e.to_string()));
+                    }
+                    SinkControlMsg::Pause { reply } => {
+                        let _ = reply.send(Err(e.to_string()));
+                    }
+                    SinkControlMsg::Stop { reply } => {
+                        let _ = reply.send(Err(e.to_string()));
+                    }
                     SinkControlMsg::Terminate => break,
                 }
             }
@@ -68,21 +76,31 @@ pub(crate) fn run_cpal_actor(
     // The stream is built in paused state. It is controlled via play() and pause()
     while let Ok(msg) = cmd_rx.recv() {
         match msg {
-            SinkControlMsg::Configure { sample_rate, channels, reply } => {
+            SinkControlMsg::Configure {
+                sample_rate,
+                channels,
+                reply,
+            } => {
                 current_sr.store(sample_rate, Ordering::Relaxed);
                 current_ch.store(channels, Ordering::Relaxed);
                 let _ = reply.send(Ok(()));
             }
             SinkControlMsg::Start { reply } => {
-                let res = stream.play().map_err(|e| format!("Stream play failed: {e}"));
+                let res = stream
+                    .play()
+                    .map_err(|e| format!("Stream play failed: {e}"));
                 let _ = reply.send(res);
             }
             SinkControlMsg::Pause { reply } => {
-                let res = stream.pause().map_err(|e| format!("Stream pause failed: {e}"));
+                let res = stream
+                    .pause()
+                    .map_err(|e| format!("Stream pause failed: {e}"));
                 let _ = reply.send(res);
             }
             SinkControlMsg::Stop { reply } => {
-                let res = stream.pause().map_err(|e| format!("Stream stop failed: {e}"));
+                let res = stream
+                    .pause()
+                    .map_err(|e| format!("Stream stop failed: {e}"));
                 let _ = reply.send(res);
             }
             SinkControlMsg::Terminate => break,

@@ -146,7 +146,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_download_and_tag() {
-        let temp_dir = std::env::temp_dir().join(format!("multiplay_test_{}", uuid::Uuid::new_v4()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("multiplay_test_{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&temp_dir).unwrap();
 
         let track = Track::new(
@@ -161,7 +162,11 @@ mod tests {
         };
 
         let result = OfflineTrackDownloader::download_and_tag(&resolver, &track, &temp_dir).await;
-        assert!(result.is_ok(), "Download and tag failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Download and tag failed: {:?}",
+            result.err()
+        );
 
         let file_path = result.unwrap();
         assert!(file_path.exists());
@@ -173,7 +178,10 @@ mod tests {
             .unwrap()
             .read()
             .unwrap();
-        let tag = probed.primary_tag().or_else(|| probed.first_tag()).expect("Tag missing");
+        let tag = probed
+            .primary_tag()
+            .or_else(|| probed.first_tag())
+            .expect("Tag missing");
         assert_eq!(tag.artist().as_deref(), Some("Test Artist"));
         assert_eq!(tag.title().as_deref(), Some("Test Song"));
 

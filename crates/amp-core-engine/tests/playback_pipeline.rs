@@ -4,7 +4,9 @@
 #![forbid(unsafe_code)]
 
 use amp_core_engine::dsp::{GraphicEqualizer, SpectrumVisualizer};
-use amp_core_engine::playback::gapless::{ComfortSilenceGenerator, GaplessConfig, GaplessTrackScheduler};
+use amp_core_engine::playback::gapless::{
+    ComfortSilenceGenerator, GaplessConfig, GaplessTrackScheduler,
+};
 use amp_domain::{AudioSource, Track, TrackMetadata};
 use amp_ports::driven::AudioSinkPort;
 use std::sync::{Arc, Mutex};
@@ -56,7 +58,12 @@ impl AudioSinkPort for CaptureAudioSink {
     }
 }
 
-fn generate_stereo_sine(sample_rate: u32, freq_hz: f32, num_frames: usize, amplitude: f32) -> Vec<f32> {
+fn generate_stereo_sine(
+    sample_rate: u32,
+    freq_hz: f32,
+    num_frames: usize,
+    amplitude: f32,
+) -> Vec<f32> {
     let mut buffer = Vec::with_capacity(num_frames * 2);
     for i in 0..num_frames {
         let t = i as f32 / sample_rate as f32;
@@ -98,8 +105,14 @@ fn test_e2e_playback_pipeline() {
 
     // Fundamental 440 Hz falls into Band 0 (0 to 1378 Hz in linear binning)
     let total_energy: f32 = bands.iter().sum();
-    assert!(total_energy > 0.05, "Visualizer should register energy for active audio tone");
-    assert!(bands[0] > 0.05, "Band 0 (0-1378 Hz) should register fundamental 440 Hz energy");
+    assert!(
+        total_energy > 0.05,
+        "Visualizer should register energy for active audio tone"
+    );
+    assert!(
+        bands[0] > 0.05,
+        "Band 0 (0-1378 Hz) should register fundamental 440 Hz energy"
+    );
 
     // 5. Push to CaptureAudioSink
     let pushed = sink.push_interleaved_samples(&samples);
@@ -108,7 +121,10 @@ fn test_e2e_playback_pipeline() {
     let captured = sink.captured_samples.lock().unwrap();
     assert_eq!(captured.len(), num_frames * 2);
     for &sample in captured.iter() {
-        assert!((-1.0..=1.0).contains(&sample), "All captured samples must be within [-1.0, 1.0]");
+        assert!(
+            (-1.0..=1.0).contains(&sample),
+            "All captured samples must be within [-1.0, 1.0]"
+        );
     }
 }
 
@@ -140,11 +156,15 @@ fn test_gapless_scheduler_and_comfort_silence() {
     let mut scheduler = GaplessTrackScheduler::new(GaplessConfig::default());
 
     let track_a = Track::new(
-        AudioSource::LocalFile { path: "/music/track_a.flac".to_string() },
+        AudioSource::LocalFile {
+            path: "/music/track_a.flac".to_string(),
+        },
         TrackMetadata::new("Track A", "Artist"),
     );
     let track_b = Track::new(
-        AudioSource::LocalFile { path: "/music/track_b.flac".to_string() },
+        AudioSource::LocalFile {
+            path: "/music/track_b.flac".to_string(),
+        },
         TrackMetadata::new("Track B", "Artist"),
     );
 
@@ -168,7 +188,10 @@ fn test_gapless_scheduler_and_comfort_silence() {
     let silence_gen = ComfortSilenceGenerator::new(64);
     let mut audio_buf = [0.5f32; 128];
     silence_gen.apply_fade_out(&mut audio_buf);
-    assert!(audio_buf[127] < 0.001, "Last sample after fade-out must be smoothly attenuated near 0.0");
+    assert!(
+        audio_buf[127] < 0.001,
+        "Last sample after fade-out must be smoothly attenuated near 0.0"
+    );
 
     let mut silence_buf = [0.5f32; 128];
     silence_gen.fill_silence(&mut silence_buf);

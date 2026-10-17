@@ -50,8 +50,13 @@ impl<'a> Widget for VideoWindowView<'a> {
             return;
         }
 
-        let border_style = Style::default().bg(Color::Rgb(15, 23, 42)).fg(Color::Rgb(56, 189, 248));
-        let title_style = Style::default().bg(Color::Rgb(15, 23, 42)).fg(Color::Yellow).add_modifier(Modifier::BOLD);
+        let border_style = Style::default()
+            .bg(Color::Rgb(15, 23, 42))
+            .fg(Color::Rgb(56, 189, 248));
+        let title_style = Style::default()
+            .bg(Color::Rgb(15, 23, 42))
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD);
         let placeholder_style = Style::default().bg(Color::Black).fg(Color::DarkGray);
 
         let x0 = area.x;
@@ -60,9 +65,18 @@ impl<'a> Widget for VideoWindowView<'a> {
         let h = area.height;
 
         // Top Border with Title & Detach status
-        let detach_indicator = if self.is_floating { "[DETACHED]" } else { "[DOCKED]" };
+        let detach_indicator = if self.is_floating {
+            "[DETACHED]"
+        } else {
+            "[DOCKED]"
+        };
         let fill_top = (w as usize).saturating_sub(40);
-        let title_line = format!("┌─ VIDEO CANVAS: {:<20} {} {}┐", self.title, detach_indicator, "─".repeat(fill_top));
+        let title_line = format!(
+            "┌─ VIDEO CANVAS: {:<20} {} {}┐",
+            self.title,
+            detach_indicator,
+            "─".repeat(fill_top)
+        );
         buf.set_string(x0, y0, &title_line, title_style);
 
         // Canvas Area (inside borders)
@@ -82,19 +96,29 @@ impl<'a> Widget for VideoWindowView<'a> {
                 for cell_x in 0..canvas_w {
                     let pixel_x = cell_x as usize;
 
-                    let (top_r, top_g, top_b) = if pixel_x < frame.width as usize && pixel_y_top < frame.height as usize {
-                        let idx = (pixel_y_top * frame.width as usize + pixel_x) * 3;
-                        (frame.rgb_data[idx], frame.rgb_data[idx + 1], frame.rgb_data[idx + 2])
-                    } else {
-                        (0, 0, 0)
-                    };
+                    let (top_r, top_g, top_b) =
+                        if pixel_x < frame.width as usize && pixel_y_top < frame.height as usize {
+                            let idx = (pixel_y_top * frame.width as usize + pixel_x) * 3;
+                            (
+                                frame.rgb_data[idx],
+                                frame.rgb_data[idx + 1],
+                                frame.rgb_data[idx + 2],
+                            )
+                        } else {
+                            (0, 0, 0)
+                        };
 
-                    let (bot_r, bot_g, bot_b) = if pixel_x < frame.width as usize && pixel_y_bot < frame.height as usize {
-                        let idx = (pixel_y_bot * frame.width as usize + pixel_x) * 3;
-                        (frame.rgb_data[idx], frame.rgb_data[idx + 1], frame.rgb_data[idx + 2])
-                    } else {
-                        (0, 0, 0)
-                    };
+                    let (bot_r, bot_g, bot_b) =
+                        if pixel_x < frame.width as usize && pixel_y_bot < frame.height as usize {
+                            let idx = (pixel_y_bot * frame.width as usize + pixel_x) * 3;
+                            (
+                                frame.rgb_data[idx],
+                                frame.rgb_data[idx + 1],
+                                frame.rgb_data[idx + 2],
+                            )
+                        } else {
+                            (0, 0, 0)
+                        };
 
                     let cell = &mut buf[(canvas_x + cell_x, canvas_y + cell_y)];
                     cell.set_char('▀');
@@ -152,8 +176,8 @@ mod tests {
         // (0,0) Red, (1,0) Green
         // (0,1) Blue, (1,1) White
         let pixels: [u8; 12] = [
-            255, 0, 0,    0, 255, 0,   // top row
-            0, 0, 255,    255, 255, 255, // bottom row
+            255, 0, 0, 0, 255, 0, // top row
+            0, 0, 255, 255, 255, 255, // bottom row
         ];
 
         let frame = VideoFrameBuffer {
@@ -162,7 +186,9 @@ mod tests {
             rgb_data: &pixels,
         };
 
-        let view = VideoWindowView::new("Live Video").frame(Some(frame)).floating(true);
+        let view = VideoWindowView::new("Live Video")
+            .frame(Some(frame))
+            .floating(true);
         let area = Rect::new(0, 0, 10, 5);
         let mut buf = Buffer::empty(area);
         view.render(area, &mut buf);

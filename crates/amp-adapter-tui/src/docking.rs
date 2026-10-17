@@ -156,7 +156,12 @@ impl DockingWindowManager {
     }
 
     /// Moves a window and applies magnetic snapping to neighboring window borders.
-    pub fn move_window_with_magnetic_snap(&mut self, target_id: WindowId, mut new_x: u16, mut new_y: u16) {
+    pub fn move_window_with_magnetic_snap(
+        &mut self,
+        target_id: WindowId,
+        mut new_x: u16,
+        mut new_y: u16,
+    ) {
         let (width, height) = match self.windows.get(&target_id) {
             Some(w) => (w.rect.width, w.rect.height),
             None => return,
@@ -276,14 +281,25 @@ mod tests {
     #[test]
     fn test_tear_off_and_re_dock() {
         let mut mgr = DockingWindowManager::new();
-        assert!(mgr.get_window(WindowId::Equalizer).unwrap().docked_to.is_some());
+        assert!(mgr
+            .get_window(WindowId::Equalizer)
+            .unwrap()
+            .docked_to
+            .is_some());
 
         // Tear off
         mgr.toggle_tear_off(WindowId::Equalizer);
-        assert!(mgr.get_window(WindowId::Equalizer).unwrap().docked_to.is_none());
+        assert!(mgr
+            .get_window(WindowId::Equalizer)
+            .unwrap()
+            .docked_to
+            .is_none());
 
         // Re-dock
         mgr.toggle_tear_off(WindowId::Equalizer);
-        assert_eq!(mgr.get_window(WindowId::Equalizer).unwrap().docked_to, Some(WindowId::MainConsole));
+        assert_eq!(
+            mgr.get_window(WindowId::Equalizer).unwrap().docked_to,
+            Some(WindowId::MainConsole)
+        );
     }
 }

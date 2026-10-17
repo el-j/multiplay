@@ -34,4 +34,4 @@ pub use playback::{
 };
 pub use plugin_registry::PluginRegistry;
 pub use precache::SharedPrecacheBuffer;
-pub use skin::{SkinLoader, WinampTheme};
+pub use skin::{SkinLoader, WinampSkin, WinampTheme};

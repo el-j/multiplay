@@ -128,8 +128,8 @@ mod tests {
     #[test]
     fn test_resampler_44100_to_48000() {
         let chunk_size = 1024;
-        let mut resampler = PureResampler::new(44100, 48000, 2, chunk_size)
-            .expect("resampler creation failed");
+        let mut resampler =
+            PureResampler::new(44100, 48000, 2, chunk_size).expect("resampler creation failed");
 
         // Generate 1024 frames of 440 Hz stereo sine wave
         let mut input_planar = vec![vec![0.0f32; chunk_size], vec![0.0f32; chunk_size]];
@@ -145,7 +145,9 @@ mod tests {
         assert!(!output[0].is_empty());
 
         let interleaved_in = vec![0.1f32; chunk_size * 2];
-        let interleaved_out = resampler.process_interleaved(&interleaved_in).expect("interleaved resample failed");
+        let interleaved_out = resampler
+            .process_interleaved(&interleaved_in)
+            .expect("interleaved resample failed");
         assert!(!interleaved_out.is_empty());
         assert_eq!(interleaved_out.len() % 2, 0); // Always balanced stereo pairs
     }
@@ -153,21 +155,25 @@ mod tests {
     #[test]
     fn test_resampler_arbitrary_lengths_and_rates() {
         let chunk_size = 512;
-        let mut resampler = PureResampler::new(44100, 48000, 2, chunk_size)
-            .expect("resampler creation failed");
+        let mut resampler =
+            PureResampler::new(44100, 48000, 2, chunk_size).expect("resampler creation failed");
 
         assert_eq!(resampler.source_rate(), 44100);
         assert_eq!(resampler.target_rate(), 48000);
 
         // Test with fewer samples than chunk_size (e.g. 100 frames = 200 samples)
         let small_input = vec![0.2f32; 200];
-        let small_out = resampler.process_interleaved(&small_input).expect("small resample failed");
+        let small_out = resampler
+            .process_interleaved(&small_input)
+            .expect("small resample failed");
         assert!(!small_out.is_empty());
         assert_eq!(small_out.len() % 2, 0);
 
         // Test with more samples than chunk_size (e.g. 1200 frames = 2400 samples)
         let large_input = vec![0.3f32; 2400];
-        let large_out = resampler.process_interleaved(&large_input).expect("large resample failed");
+        let large_out = resampler
+            .process_interleaved(&large_input)
+            .expect("large resample failed");
         assert!(!large_out.is_empty());
         assert_eq!(large_out.len() % 2, 0);
     }

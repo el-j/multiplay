@@ -121,7 +121,11 @@ mod tests {
 
         // Delete
         vault.delete_secret("spotify_client_secret").await.unwrap();
-        assert!(vault.get_secret("spotify_client_secret").await.unwrap().is_none());
+        assert!(vault
+            .get_secret("spotify_client_secret")
+            .await
+            .unwrap()
+            .is_none());
     }
 
     #[test]
@@ -132,6 +136,9 @@ mod tests {
 
         // Verify buffer is wiped on explicit manual drop / fill
         secret.inner.fill(0);
-        assert_eq!(secret.expose_secret(), "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
+        assert_eq!(
+            secret.expose_secret(),
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        );
     }
 }

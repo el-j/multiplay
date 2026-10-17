@@ -81,8 +81,14 @@ async fn test_full_audiophile_e2e_pipeline() {
     let db_path = temp_dir.join("test_e2e.redb");
     let storage = RedbStorageAdapter::new(&db_path).expect("Failed to create redb storage");
 
-    storage.store_track(&track).await.expect("Failed to store track");
-    let fetched = storage.fetch_all().await.expect("Failed to fetch all tracks");
+    storage
+        .store_track(&track)
+        .await
+        .expect("Failed to store track");
+    let fetched = storage
+        .fetch_all()
+        .await
+        .expect("Failed to fetch all tracks");
     assert_eq!(fetched.len(), 1);
     assert_eq!(fetched[0].metadata.title, "E2E Test Tone");
 
@@ -112,10 +118,13 @@ async fn test_full_audiophile_e2e_pipeline() {
     assert!(!decoded_samples.is_empty());
 
     // 6. Test Rubato Sinc Resampler (44.1kHz -> 48kHz)
-    let mut resampler = PureResampler::new(44100, 48000, 2, 1024).expect("Failed to create Sinc resampler");
+    let mut resampler =
+        PureResampler::new(44100, 48000, 2, 1024).expect("Failed to create Sinc resampler");
     // Resample a chunk of 1024 stereo frames (2048 samples)
     let chunk_samples = &decoded_samples[..1024 * 2];
-    let resampled = resampler.process_interleaved(chunk_samples).expect("Resampling failed");
+    let resampled = resampler
+        .process_interleaved(chunk_samples)
+        .expect("Resampling failed");
     assert!(!resampled.is_empty());
 
     // 7. Test 10-Band Graphic Equalizer
@@ -145,7 +154,10 @@ async fn test_full_audiophile_e2e_pipeline() {
 
     bus.emit_event(PlayerEvent::PlaybackStateChanged(PlaybackState::Playing));
     let received_evt = event_rx.recv().await.expect("Failed to receive event");
-    assert!(matches!(received_evt, PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)));
+    assert!(matches!(
+        received_evt,
+        PlayerEvent::PlaybackStateChanged(PlaybackState::Playing)
+    ));
 
     // Cleanup
     let _ = std::fs::remove_dir_all(&temp_dir);
@@ -156,18 +168,21 @@ async fn test_corrupt_stream_fail_fast_without_panic() {
     use amp_adapter_decoder::AudioStreamDecoder;
 
     let corrupt_payloads: Vec<Vec<u8>> = vec![
-        vec![], // Empty
-        vec![0x52, 0x49, 0x46, 0x46], // Incomplete "RIFF" header
-        vec![0xFF, 0xFB, 0x90, 0x44], // Truncated MP3 frame
+        vec![],                             // Empty
+        vec![0x52, 0x49, 0x46, 0x46],       // Incomplete "RIFF" header
+        vec![0xFF, 0xFB, 0x90, 0x44],       // Truncated MP3 frame
         vec![0x4F, 0x67, 0x67, 0x53, 0x00], // Truncated Ogg header
-        vec![0x66, 0x4C, 0x61, 0x43], // Truncated fLaC marker
-        vec![0xAA; 128], // Completely random garbage bytes
+        vec![0x66, 0x4C, 0x61, 0x43],       // Truncated fLaC marker
+        vec![0xAA; 128],                    // Completely random garbage bytes
     ];
 
     for (idx, payload) in corrupt_payloads.into_iter().enumerate() {
         let cursor = Cursor::new(payload);
         let res = AudioStreamDecoder::open_media_source(cursor);
-        assert!(res.is_err(), "Payload #{idx} should return Err rather than panicking");
+        assert!(
+            res.is_err(),
+            "Payload #{idx} should return Err rather than panicking"
+        );
     }
 }
 
@@ -235,4 +250,3 @@ async fn test_progressive_network_audio_streaming() {
         assert!(!driver.is_playing.load(std::sync::atomic::Ordering::Relaxed));
     }
 }
-

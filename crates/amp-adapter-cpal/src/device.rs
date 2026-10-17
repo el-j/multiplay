@@ -26,7 +26,10 @@ pub fn list_output_devices() -> Vec<AudioDeviceDescription> {
                     continue;
                 }
                 let is_default = default_name.as_ref() == Some(&name);
-                if !result.iter().any(|item: &AudioDeviceDescription| item.name == name) {
+                if !result
+                    .iter()
+                    .any(|item: &AudioDeviceDescription| item.name == name)
+                {
                     result.push(AudioDeviceDescription { name, is_default });
                 }
             }
@@ -36,11 +39,15 @@ pub fn list_output_devices() -> Vec<AudioDeviceDescription> {
 }
 
 /// Resolves a requested device by name (or default output device) and negotiates a working `StreamConfig`.
-pub fn resolve_output_device(target_name: Option<&str>) -> Result<(Device, StreamConfig, String), String> {
+pub fn resolve_output_device(
+    target_name: Option<&str>,
+) -> Result<(Device, StreamConfig, String), String> {
     let host = cpal::default_host();
 
     let (device, resolved_name) = if let Some(target) = target_name {
-        let all_devs = host.devices().map_err(|e| format!("Device enumeration failed: {e}"))?;
+        let all_devs = host
+            .devices()
+            .map_err(|e| format!("Device enumeration failed: {e}"))?;
         let mut found = None;
         for d in all_devs {
             if let Ok(name) = d.name() {
@@ -52,12 +59,20 @@ pub fn resolve_output_device(target_name: Option<&str>) -> Result<(Device, Strea
         }
         found.ok_or_else(|| format!("Target audio device '{target}' not found"))?
     } else if let Some(def) = host.default_output_device() {
-        let name = def.name().unwrap_or_else(|_| "Default Audio Device".to_string());
+        let name = def
+            .name()
+            .unwrap_or_else(|_| "Default Audio Device".to_string());
         (def, name)
     } else {
-        let mut out_devs = host.output_devices().map_err(|e| format!("Output device enumeration failed: {e}"))?;
-        let d = out_devs.next().ok_or_else(|| "No hardware audio output devices found".to_string())?;
-        let name = d.name().unwrap_or_else(|_| "Unknown Audio Device".to_string());
+        let mut out_devs = host
+            .output_devices()
+            .map_err(|e| format!("Output device enumeration failed: {e}"))?;
+        let d = out_devs
+            .next()
+            .ok_or_else(|| "No hardware audio output devices found".to_string())?;
+        let name = d
+            .name()
+            .unwrap_or_else(|_| "Unknown Audio Device".to_string());
         (d, name)
     };
 

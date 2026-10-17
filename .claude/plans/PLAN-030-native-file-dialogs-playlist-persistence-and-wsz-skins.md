@@ -4,7 +4,7 @@
 - **ID:** `PLAN-030`
 - **Title:** Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine
 - **Role:** `frontend_gui` & `storage_and_state`
-- **Status:** In Progress
+- **Status:** Completed
 - **Dependencies:** `PLAN-028`, `PLAN-029`
 
 ## Objectives
@@ -14,10 +14,10 @@
 4. **TASK-098**: Dual Oscilloscope & Spectrum Visualizer Mode — Add toggleable real-time phosphor oscilloscope and peak-decay spectrum analyzer.
 
 ## Tasks
-- [ ] [TASK-095: Native OS File & Directory Selection Dialogs](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-095-native-os-file-and-directory-dialogs.md)
-- [ ] [TASK-096: Session Playlist Persistence & M3U8 Export/Import](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-096-session-playlist-persistence-and-m3u8-support.md)
-- [ ] [TASK-097: Full Winamp Skin (.wsz) GUI Rendering Engine](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md)
-- [ ] [TASK-098: Dual Oscilloscope & Spectrum Visualizer Mode](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md)
+- [x] [TASK-095: Native OS File & Directory Selection Dialogs](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-095-native-os-file-and-directory-dialogs.md)
+- [x] [TASK-096: Session Playlist Persistence & M3U8 Export/Import](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-096-session-playlist-persistence-and-m3u8-support.md)
+- [x] [TASK-097: Full Winamp Skin (.wsz) GUI Rendering Engine](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md)
+- [x] [TASK-098: Dual Oscilloscope & Spectrum Visualizer Mode](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md)
 
 ## Verification
 `make all`

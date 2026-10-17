@@ -113,6 +113,7 @@ dependencies = [
  "amp-adapter-decoder",
  "amp-adapter-http",
  "amp-adapter-p2p",
+ "amp-adapter-remote",
  "amp-adapter-soulseek",
  "amp-adapter-storage",
  "amp-adapter-youtube",
@@ -120,6 +121,7 @@ dependencies = [
  "amp-domain",
  "amp-ports",
  "eframe",
+ "image",
  "rtrb",
  "serde",
  "serde_json",
@@ -201,8 +203,11 @@ dependencies = [
  "bincode",
  "lofty",
  "redb",
+ "serde",
+ "serde_json",
  "tempfile",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -237,6 +242,7 @@ dependencies = [
  "amp-adapter-decoder",
  "amp-adapter-http",
  "amp-adapter-p2p",
+ "amp-adapter-remote",
  "amp-adapter-soulseek",
  "amp-adapter-spotify",
  "amp-adapter-storage",
@@ -246,9 +252,12 @@ dependencies = [
  "amp-domain",
  "amp-ports",
  "crossterm",
+ "futures-util",
  "ratatui",
  "rtrb",
+ "serde_json",
  "tokio",
+ "tokio-tungstenite",
  "uuid",
 ]
 

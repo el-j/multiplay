@@ -237,7 +237,10 @@ mod tests {
         // Search for "canada"
         let res = adapter.query("canada").await.unwrap();
         assert_eq!(res.len(), 1);
-        assert_eq!(res[0].metadata.title, "Boards of Canada - Dayvan Cowboy.flac");
+        assert_eq!(
+            res[0].metadata.title,
+            "Boards of Canada - Dayvan Cowboy.flac"
+        );
 
         // Search for "airports eno"
         let res2 = adapter.query("airports eno").await.unwrap();

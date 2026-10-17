@@ -2,7 +2,9 @@
 
 #![forbid(unsafe_code)]
 
-use super::geometry::{DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD};
+use super::geometry::{
+    DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -23,10 +25,22 @@ impl Default for DockManager {
         let mut windows = HashMap::new();
         // Classic Winamp layout coordinates
         windows.insert(WindowId::Main, DockRect::new(120.0, 100.0, 480.0, 190.0));
-        windows.insert(WindowId::Equalizer, DockRect::new(120.0, 290.0, 480.0, 155.0));
-        windows.insert(WindowId::Playlist, DockRect::new(120.0, 445.0, 480.0, 260.0));
-        windows.insert(WindowId::Settings, DockRect::new(610.0, 100.0, 460.0, 400.0));
-        windows.insert(WindowId::DjConsole, DockRect::new(120.0, 710.0, 480.0, 180.0));
+        windows.insert(
+            WindowId::Equalizer,
+            DockRect::new(120.0, 290.0, 480.0, 155.0),
+        );
+        windows.insert(
+            WindowId::Playlist,
+            DockRect::new(120.0, 445.0, 480.0, 260.0),
+        );
+        windows.insert(
+            WindowId::Settings,
+            DockRect::new(610.0, 100.0, 460.0, 400.0),
+        );
+        windows.insert(
+            WindowId::DjConsole,
+            DockRect::new(120.0, 710.0, 480.0, 180.0),
+        );
 
         let mut visibility = HashMap::new();
         visibility.insert(WindowId::Main, true);
@@ -185,7 +199,10 @@ impl DockManager {
     }
 
     pub fn get_rect(&self, id: WindowId) -> DockRect {
-        self.windows.get(&id).copied().unwrap_or_else(|| DockRect::new(100.0, 100.0, 400.0, 200.0))
+        self.windows
+            .get(&id)
+            .copied()
+            .unwrap_or_else(|| DockRect::new(100.0, 100.0, 400.0, 200.0))
     }
 
     pub fn set_rect(&mut self, id: WindowId, rect: DockRect) {

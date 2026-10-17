@@ -130,12 +130,14 @@ impl MultiplayApp {
                 }
                 KeyCode::Enter => {
                     if let Some(track) = self.search_state.selected_track() {
-                        self.current_title = format!("{} - {}", track.metadata.artist, track.metadata.title);
+                        self.current_title =
+                            format!("{} - {}", track.metadata.artist, track.metadata.title);
                         self.playback_state = PlaybackState::Playing;
                         if let Some(ref driver) = self.audio_driver {
                             driver.play(track.clone());
                         }
-                        self.event_bus.send_command(PlayerCommand::PlayTrack(Box::new(track.clone())));
+                        self.event_bus
+                            .send_command(PlayerCommand::PlayTrack(Box::new(track.clone())));
                     }
                     self.search_state.close();
                 }
@@ -155,7 +157,8 @@ impl MultiplayApp {
             }
             KeyCode::Down => {
                 if !self.playlist.is_empty() {
-                    self.selected_playlist_idx = (self.selected_playlist_idx + 1).min(self.playlist.len() - 1);
+                    self.selected_playlist_idx =
+                        (self.selected_playlist_idx + 1).min(self.playlist.len() - 1);
                 }
             }
             KeyCode::Enter => {
@@ -171,7 +174,8 @@ impl MultiplayApp {
                     if let Some(ref driver) = self.audio_driver {
                         driver.play(track.clone());
                     }
-                    self.event_bus.send_command(PlayerCommand::PlayTrack(Box::new(track)));
+                    self.event_bus
+                        .send_command(PlayerCommand::PlayTrack(Box::new(track)));
                 }
             }
             KeyCode::Char('e') => {
@@ -204,14 +208,16 @@ impl MultiplayApp {
                 if let Some(ref driver) = self.audio_driver {
                     driver.set_volume(self.volume as f32 / 100.0);
                 }
-                self.event_bus.send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
+                self.event_bus
+                    .send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
             }
             KeyCode::Char('-') => {
                 self.volume = self.volume.saturating_sub(5);
                 if let Some(ref driver) = self.audio_driver {
                     driver.set_volume(self.volume as f32 / 100.0);
                 }
-                self.event_bus.send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
+                self.event_bus
+                    .send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
             }
             KeyCode::Char('w') if modifiers.contains(KeyModifiers::ALT) => {
                 self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
@@ -244,7 +250,8 @@ impl MultiplayApp {
         let area = frame.area();
 
         if let Some(main_win) = self.docking_mgr.get_window(WindowId::MainConsole) {
-            if main_win.visible && area.width >= FACEPLATE_WIDTH && area.height >= FACEPLATE_HEIGHT {
+            if main_win.visible && area.width >= FACEPLATE_WIDTH && area.height >= FACEPLATE_HEIGHT
+            {
                 let console = DenseWinampConsole::new(&self.spectrum)
                     .title(&self.current_title)
                     .elapsed(self.elapsed)
@@ -270,7 +277,8 @@ impl MultiplayApp {
                     .filter_map(|t| t.metadata.duration)
                     .map(|d| d.as_secs())
                     .sum();
-                let pl_widget = PlaylistWidget::new(&self.playlist, self.selected_playlist_idx, total_secs);
+                let pl_widget =
+                    PlaylistWidget::new(&self.playlist, self.selected_playlist_idx, total_secs);
                 frame.render_widget(pl_widget, pl_win.rect);
             }
         }

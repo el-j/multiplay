@@ -114,13 +114,14 @@ impl RealtimeBpmDetector {
                 self.ibi_count += 1;
 
                 let valid_count = self.ibi_count.min(self.ibi_history.len());
-                let avg_ibi: f32 = self.ibi_history.iter().take(valid_count).sum::<f32>()
-                    / (valid_count as f32);
+                let avg_ibi: f32 =
+                    self.ibi_history.iter().take(valid_count).sum::<f32>() / (valid_count as f32);
 
                 if avg_ibi > 0.0 {
                     let instant_bpm = 60.0 / avg_ibi;
                     // Low-pass smooth BPM
-                    self.estimated_bpm = (self.estimated_bpm * 0.7 + instant_bpm * 0.3).clamp(60.0, 200.0);
+                    self.estimated_bpm =
+                        (self.estimated_bpm * 0.7 + instant_bpm * 0.3).clamp(60.0, 200.0);
                 }
             }
 
@@ -163,7 +164,11 @@ mod tests {
             }
         }
 
-        assert!(beat_count >= 5, "Should have detected at least 5 pulses, found: {}", beat_count);
+        assert!(
+            beat_count >= 5,
+            "Should have detected at least 5 pulses, found: {}",
+            beat_count
+        );
         let bpm = detector.estimated_bpm();
         assert!(
             (bpm - 120.0).abs() < 15.0,
