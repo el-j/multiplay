@@ -4,13 +4,12 @@
 #![forbid(unsafe_code)]
 
 use amp_domain::{AudioSource, Track, TrackMetadata};
-use amp_ports::{AudioSourceStream, ProviderError, ProviderSearchPort, StreamResolverPort};
+use amp_ports::{AudioSourceStream, ProviderError, ProviderSearchPort, SharedPrecacheBuffer, StreamResolverPort};
 use async_trait::async_trait;
 use rusty_ytdl::{
     search::{SearchOptions, SearchResult, SearchType, YouTube},
     Video, VideoOptions, VideoQuality, VideoSearchOptions,
 };
-use std::io::Cursor;
 use std::time::Duration;
 
 pub struct PureYouTubeAdapter {
@@ -105,21 +104,29 @@ impl StreamResolverPort for PureYouTubeAdapter {
             .await
             .map_err(|e| ProviderError::Network(format!("Failed to stream YouTube audio: {e}")))?;
 
-        let mut bytes = Vec::new();
-        while let Some(chunk) = stream
-            .chunk()
-            .await
-            .map_err(|e| ProviderError::Network(format!("Stream error reading chunk: {e}")))?
-        {
-            bytes.extend_from_slice(&chunk);
+        let buffer = SharedPrecacheBuffer::new(4 * 1024 * 1024);
+        let buffer_writer = buffer.clone();
+
+        tokio::spawn(async move {
+            while let Ok(Some(chunk)) = stream.chunk().await {
+                buffer_writer.push_chunk(&chunk);
+            }
+            buffer_writer.mark_finished();
+        });
+
+        // Await initial probing threshold (~128KB) or stream end for instant start
+        let probe_threshold = 128 * 1024;
+        let mut attempts = 0;
+        while buffer.total_bytes_cached() < probe_threshold && !buffer.is_finished() && attempts < 100 {
+            tokio::time::sleep(Duration::from_millis(15)).await;
+            attempts += 1;
         }
 
-        if bytes.is_empty() {
+        if buffer.total_bytes_cached() == 0 && buffer.is_finished() {
             return Err(ProviderError::NotFound);
         }
 
-        let cursor: Cursor<Vec<u8>> = Cursor::new(bytes);
-        Ok(Box::new(cursor))
+        Ok(Box::new(buffer))
     }
 }
 
@@ -153,5 +160,36 @@ mod tests {
         };
         let result = adapter.resolve_stream(&local_source).await;
         assert!(matches!(result, Err(ProviderError::NotFound)));
+    }
+
+    #[tokio::test]
+    async fn test_progressive_precache_buffer_stream_contract() {
+        use std::io::Read;
+        let buffer = SharedPrecacheBuffer::new(1024);
+        let writer = buffer.clone();
+
+        tokio::spawn(async move {
+            writer.push_chunk(b"CHUNK_1_");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            writer.push_chunk(b"CHUNK_2");
+            writer.mark_finished();
+        });
+
+        while buffer.total_bytes_cached() == 0 {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+
+        let mut reader = buffer;
+        let mut out = [0u8; 8];
+        let n = reader.read(&mut out).unwrap();
+        assert_eq!(&out[..n], b"CHUNK_1_");
+
+        while !reader.is_finished() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+
+        let mut out2 = [0u8; 8];
+        let n2 = reader.read(&mut out2).unwrap();
+        assert_eq!(&out2[..n2], b"CHUNK_2");
     }
 }

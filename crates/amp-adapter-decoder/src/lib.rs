@@ -4,9 +4,11 @@
 #![forbid(unsafe_code)]
 
 pub mod engine;
+pub mod source;
 pub mod stream;
 
 pub use engine::{DecodedStreamSpec, PureDecoderEngine};
+pub use source::GenericMediaSource;
 pub use stream::AudioStreamDecoder;
 
 #[cfg(test)]
@@ -99,5 +101,20 @@ mod tests {
         // Test seek
         decoder.seek(Duration::from_millis(5)).expect("seek failed");
         assert!(decoder.elapsed() <= Duration::from_millis(10));
+    }
+
+    #[test]
+    fn test_audio_stream_decoder_open_stream() {
+        let wav_data = generate_test_wav_bytes(512, 44100);
+        let cursor = Cursor::new(wav_data);
+
+        // Test opening arbitrary Read + Seek + Send + Sync stream
+        let mut decoder = AudioStreamDecoder::open_stream(cursor)
+            .expect("Failed to open audio stream decoder via open_stream");
+
+        assert_eq!(decoder.sample_rate(), 44100);
+        let mut buffer = vec![0.0f32; 128];
+        let read = decoder.read_interleaved_samples(&mut buffer).expect("read failed");
+        assert_eq!(read, 128);
     }
 }

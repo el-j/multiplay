@@ -17,6 +17,7 @@ amp-adapter-storage = { path = "../amp-adapter-storage" }
 amp-adapter-youtube = { path = "../amp-adapter-youtube" }
 amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
 amp-adapter-p2p = { path = "../amp-adapter-p2p" }
+amp-adapter-http = { path = "../amp-adapter-http" }
 eframe = { version = "0.29", default-features = false, features = ["default_fonts", "wgpu"] }
 tokio = { workspace = true }
 rtrb = { workspace = true }

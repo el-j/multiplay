@@ -13,6 +13,7 @@ members = [
     "crates/amp-adapter-p2p",
     "crates/amp-adapter-gui",
     "crates/amp-adapter-remote",
+    "crates/amp-adapter-http",
     "crates/amp-app",
 ]
 resolver = "2"

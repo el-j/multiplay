@@ -1,14 +1,14 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": "PLAN-028",
-  "activeTask": "TASK-090",
-  "status": "completed",
+  "activePlan": "PLAN-029",
+  "activeTask": "TASK-091",
+  "status": "in_progress",
   "verificationCommand": "make all",
   "metrics": {
-    "totalPlans": 28,
+    "totalPlans": 29,
     "completedPlans": 28,
-    "totalTasks": 90,
+    "totalTasks": 94,
     "completedTasks": 90
   },
   "plans": [
@@ -179,6 +179,12 @@
       "title": "Bit-Perfect Audiophile Playback Pipeline & Hardware Sinc Resampling",
       "status": "completed",
       "tasks": ["TASK-087", "TASK-088", "TASK-089", "TASK-090"]
+    },
+    {
+      "id": "PLAN-029",
+      "title": "Progressive Network Streaming & Universal Resolvers (YouTube & HTTP)",
+      "status": "in_progress",
+      "tasks": ["TASK-091", "TASK-092", "TASK-093", "TASK-094"]
     }
   ]
 }

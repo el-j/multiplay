@@ -13,6 +13,7 @@ pub mod equalizer_widget;
 pub mod main_window;
 pub mod playlist_window;
 pub mod settings_panel;
+pub mod track_loader;
 pub mod visualizer_widget;
 
 pub use app::MultiplayGuiApp;

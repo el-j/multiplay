@@ -3,11 +3,12 @@
 
 #![forbid(unsafe_code)]
 
+use crate::track_loader::load_track_decoder;
 use amp_adapter_cpal::CpalAudioSink;
 use amp_adapter_decoder::AudioStreamDecoder;
 use amp_core_engine::PlaybackDspChain;
-use amp_domain::{AudioSource, PlaybackState, Track};
-use amp_ports::AudioSinkPort;
+use amp_domain::{PlaybackState, Track};
+use amp_ports::{AudioSinkPort, StreamResolverPort};
 use rtrb::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -24,6 +25,7 @@ pub struct AudioPlaybackDriver {
     pub total_duration: Arc<Mutex<Option<Duration>>>,
     pub seek_requested: Arc<Mutex<Option<Duration>>>,
     pub track_finished: Arc<AtomicBool>,
+    pub resolvers: Arc<Mutex<Vec<Arc<dyn StreamResolverPort>>>>,
     #[allow(dead_code)]
     audio_sink: Arc<Mutex<CpalAudioSink>>,
     #[allow(dead_code)]
@@ -52,6 +54,10 @@ impl AudioPlaybackDriver {
         let producer_arc = Arc::new(Mutex::new(producer));
         let audio_sink_arc = Arc::new(Mutex::new(audio_sink));
 
+        let yt = Arc::new(amp_adapter_youtube::PureYouTubeAdapter::default()) as Arc<dyn StreamResolverPort>;
+        let http = Arc::new(amp_adapter_http::HttpStreamResolver::default()) as Arc<dyn StreamResolverPort>;
+        let resolvers = Arc::new(Mutex::new(vec![yt, http]));
+
         let playing_flag = Arc::clone(&is_playing);
         let spec_out = Arc::clone(&visualizer_spectrum);
         let vol_ref = Arc::clone(&volume);
@@ -63,6 +69,7 @@ impl AudioPlaybackDriver {
         let finished_ref = Arc::clone(&track_finished);
         let change_ref = Arc::clone(&track_change_signal);
         let prod_ref = Arc::clone(&producer_arc);
+        let res_ref = Arc::clone(&resolvers);
 
         std::thread::Builder::new()
             .name("multiplay-tui-audio".to_string())
@@ -79,6 +86,7 @@ impl AudioPlaybackDriver {
                     seek_ref,
                     finished_ref,
                     change_ref,
+                    res_ref,
                     sample_rate,
                 );
             })
@@ -94,10 +102,16 @@ impl AudioPlaybackDriver {
             total_duration,
             seek_requested,
             track_finished,
+            resolvers,
             audio_sink: audio_sink_arc,
             producer: producer_arc,
             track_change_signal,
         })
+    }
+
+    /// Registers a custom or remote stream resolver for network audio playback.
+    pub fn register_resolver(&self, resolver: Arc<dyn StreamResolverPort>) {
+        self.resolvers.lock().unwrap().insert(0, resolver);
     }
 
     /// Begins playback of a specific track entity.
@@ -152,6 +166,7 @@ fn run_playback_loop(
     seek_requested: Arc<Mutex<Option<Duration>>>,
     track_finished: Arc<AtomicBool>,
     track_change_signal: Arc<AtomicBool>,
+    resolvers: Arc<Mutex<Vec<Arc<dyn StreamResolverPort>>>>,
     sample_rate: u32,
 ) {
     let chunk_frames = 512;
@@ -165,11 +180,23 @@ fn run_playback_loop(
             active_decoder = None;
 
             if let Some(track) = track_opt {
-                if let AudioSource::LocalFile { path } = &track.source {
-                    if let Ok(decoder) = AudioStreamDecoder::open_file(path) {
-                        *total_duration.lock().unwrap() = decoder.duration();
+                let current_resolvers = resolvers.lock().unwrap().clone();
+                match load_track_decoder(&track, &current_resolvers) {
+                    Ok(decoder) => {
+                        let probed_dur = decoder.duration().or(track.metadata.duration);
+                        *total_duration.lock().unwrap() = probed_dur;
+                        if let Some(cur) = current_track.lock().unwrap().as_mut() {
+                            if cur.metadata.duration.is_none() {
+                                cur.metadata.duration = probed_dur;
+                            }
+                        }
                         dsp_chain.set_source_sample_rate(decoder.sample_rate());
                         active_decoder = Some(decoder);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to load audio track: {e}");
+                        track_finished.store(true, Ordering::SeqCst);
+                        is_playing.store(false, Ordering::SeqCst);
                     }
                 }
             }
@@ -195,6 +222,11 @@ fn run_playback_loop(
                 Ok(n) if n > 0 => {
                     read_samples = n;
                     *elapsed.lock().unwrap() = dec.elapsed();
+                }
+                Err(ref e) if e.contains("WouldBlock") => {
+                    // Buffer underrun during network precaching: wait for incoming chunks
+                    std::thread::sleep(Duration::from_millis(10));
+                    continue;
                 }
                 _ => {
                     track_finished.store(true, Ordering::SeqCst);

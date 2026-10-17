@@ -171,3 +171,68 @@ async fn test_corrupt_stream_fail_fast_without_panic() {
     }
 }
 
+#[tokio::test]
+async fn test_progressive_network_audio_streaming() {
+    use amp_app::AudioPlaybackDriver;
+    use amp_ports::{async_trait, AudioSourceStream, ProviderError, StreamResolverPort};
+    use std::sync::Arc;
+
+    struct ProgressiveMockResolver {
+        wav_data: Vec<u8>,
+    }
+
+    #[async_trait]
+    impl StreamResolverPort for ProgressiveMockResolver {
+        fn handles_source(&self, source: &AudioSource) -> bool {
+            matches!(source, AudioSource::DirectHttp { url } if url.contains("progressive_test"))
+        }
+
+        async fn resolve_stream(
+            &self,
+            _source: &AudioSource,
+        ) -> Result<Box<dyn AudioSourceStream>, ProviderError> {
+            let buffer = SharedPrecacheBuffer::new(self.wav_data.len() + 1024);
+            let writer = buffer.clone();
+            let chunks: Vec<Vec<u8>> = self.wav_data.chunks(256).map(|c| c.to_vec()).collect();
+
+            tokio::spawn(async move {
+                for chunk in chunks {
+                    writer.push_chunk(&chunk);
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+                writer.mark_finished();
+            });
+
+            // Wait for initial probe chunk (~256 bytes)
+            while buffer.total_bytes_cached() < 256 {
+                tokio::time::sleep(Duration::from_millis(5)).await;
+            }
+
+            Ok(Box::new(buffer))
+        }
+    }
+
+    let wav_data = generate_pcm_wav_stream(0.5, 440.0);
+    let resolver = Arc::new(ProgressiveMockResolver { wav_data });
+
+    if let Ok(driver) = AudioPlaybackDriver::new() {
+        driver.register_resolver(resolver);
+
+        let meta = TrackMetadata::new("Stream Song", "Network Station");
+        let track = Track::new(
+            AudioSource::DirectHttp {
+                url: "http://example.com/progressive_test.wav".to_string(),
+            },
+            meta,
+        );
+
+        driver.play(track);
+        tokio::time::sleep(Duration::from_millis(80)).await;
+
+        // Verify driver is playing and track was loaded
+        assert!(driver.is_playing.load(std::sync::atomic::Ordering::Relaxed));
+        driver.stop();
+        assert!(!driver.is_playing.load(std::sync::atomic::Ordering::Relaxed));
+    }
+}
+

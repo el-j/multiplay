@@ -14,6 +14,7 @@ amp-adapter-youtube = { path = "../amp-adapter-youtube" }
 amp-adapter-spotify = { path = "../amp-adapter-spotify" }
 amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
 amp-adapter-p2p = { path = "../amp-adapter-p2p" }
+amp-adapter-http = { path = "../amp-adapter-http" }
 amp-adapter-tui = { path = "../amp-adapter-tui" }
 tokio = { workspace = true }
 ratatui = "0.28"

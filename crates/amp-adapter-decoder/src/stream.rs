@@ -10,6 +10,8 @@ use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
+use crate::source::GenericMediaSource;
+
 /// Stateful streaming audio decoder session for interactive track playback and seeking.
 pub struct AudioStreamDecoder {
     reader: Box<dyn symphonia::core::formats::FormatReader>,
@@ -30,6 +32,14 @@ impl AudioStreamDecoder {
         let file = std::fs::File::open(path)
             .map_err(|e| format!("Failed to open audio file {path}: {e}"))?;
         Self::open_media_source(file)
+    }
+
+    /// Opens an arbitrary `Read + Seek + Send + Sync + 'static` stream (e.g. PrecacheBuffer, network stream, Cursor).
+    pub fn open_stream<S>(stream: S) -> Result<Self, String>
+    where
+        S: std::io::Read + std::io::Seek + Send + Sync + 'static,
+    {
+        Self::open_media_source(GenericMediaSource::new(stream))
     }
 
     /// Opens an arbitrary MediaSource (File, Cursor, PrecacheBuffer).
@@ -98,15 +108,18 @@ impl AudioStreamDecoder {
             self.pending_idx = 0;
         }
 
+        let mut eof_reached = false;
+
         // 2. Decode next packets until buffer is filled or EOF
         while written < output.len() {
             let packet = match self.reader.next_packet() {
                 Ok(pkt) => pkt,
                 Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                    break; // EOF
+                    eof_reached = true;
+                    break; // Real EOF
                 }
                 Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    break;
+                    break; // Temporary network buffer underrun
                 }
                 Err(e) => return Err(format!("Packet read error: {e}")),
             };
@@ -146,6 +159,10 @@ impl AudioStreamDecoder {
                 Err(SymphoniaError::DecodeError(_)) => continue,
                 Err(e) => return Err(format!("Decode frame error: {e}")),
             }
+        }
+
+        if written == 0 && !eof_reached {
+            return Err("WouldBlock".to_string());
         }
 
         self.frames_played += (written / 2) as u64;

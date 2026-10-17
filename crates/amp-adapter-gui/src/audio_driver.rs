@@ -3,11 +3,12 @@
 
 #![forbid(unsafe_code)]
 
+use crate::track_loader::load_track_decoder;
 use amp_adapter_cpal::{AudioDeviceDescription, CpalAudioSink};
 use amp_adapter_decoder::AudioStreamDecoder;
 use amp_core_engine::PlaybackDspChain;
-use amp_domain::{AudioSource, PlaybackState, Track};
-use amp_ports::AudioSinkPort;
+use amp_domain::{PlaybackState, Track};
+use amp_ports::{AudioSinkPort, StreamResolverPort};
 use rtrb::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -28,6 +29,7 @@ pub struct AudioPlaybackDriver {
     pub track_finished: Arc<AtomicBool>,
     pub current_device_name: Arc<Mutex<String>>,
     pub available_devices: Vec<AudioDeviceDescription>,
+    pub resolvers: Arc<Mutex<Vec<Arc<dyn StreamResolverPort>>>>,
     audio_sink: Arc<Mutex<CpalAudioSink>>,
     producer: Arc<Mutex<Producer<f32>>>,
     track_change_signal: Arc<AtomicBool>,
@@ -42,40 +44,26 @@ impl AudioPlaybackDriver {
         let device_name = audio_sink.device_name().to_string();
         audio_sink.start()?;
 
-        let is_playing = Arc::new(AtomicBool::new(false));
-        let visualizer_spectrum = Arc::new(Mutex::new([0.0f32; 16]));
-        let volume = Arc::new(Mutex::new(0.85f32));
-        let eq_gains = Arc::new(Mutex::new([0.0f32; 10]));
-        let eq_preamp = Arc::new(Mutex::new(0.0f32));
-        let eq_enabled = Arc::new(AtomicBool::new(true));
-        let current_track = Arc::new(Mutex::new(None));
-        let elapsed = Arc::new(Mutex::new(Duration::ZERO));
-        let total_duration = Arc::new(Mutex::new(None));
-        let seek_requested = Arc::new(Mutex::new(None));
-        let track_finished = Arc::new(AtomicBool::new(false));
-        let track_change_signal = Arc::new(AtomicBool::new(false));
-        let current_device_name = Arc::new(Mutex::new(device_name));
-
-        let producer_arc = Arc::new(Mutex::new(producer));
-        let audio_sink_arc = Arc::new(Mutex::new(audio_sink));
-
+        let yt = Arc::new(amp_adapter_youtube::PureYouTubeAdapter::default()) as Arc<dyn StreamResolverPort>;
+        let http = Arc::new(amp_adapter_http::HttpStreamResolver::default()) as Arc<dyn StreamResolverPort>;
         let driver = Self {
-            is_playing,
-            visualizer_spectrum,
-            volume,
-            eq_gains,
-            eq_preamp,
-            eq_enabled,
-            current_track,
-            elapsed,
-            total_duration,
-            seek_requested,
-            track_finished,
-            current_device_name,
+            is_playing: Arc::new(AtomicBool::new(false)),
+            visualizer_spectrum: Arc::new(Mutex::new([0.0f32; 16])),
+            volume: Arc::new(Mutex::new(0.85f32)),
+            eq_gains: Arc::new(Mutex::new([0.0f32; 10])),
+            eq_preamp: Arc::new(Mutex::new(0.0f32)),
+            eq_enabled: Arc::new(AtomicBool::new(true)),
+            current_track: Arc::new(Mutex::new(None)),
+            elapsed: Arc::new(Mutex::new(Duration::ZERO)),
+            total_duration: Arc::new(Mutex::new(None)),
+            seek_requested: Arc::new(Mutex::new(None)),
+            track_finished: Arc::new(AtomicBool::new(false)),
+            current_device_name: Arc::new(Mutex::new(device_name)),
             available_devices,
-            audio_sink: audio_sink_arc,
-            producer: producer_arc,
-            track_change_signal,
+            resolvers: Arc::new(Mutex::new(vec![yt, http])),
+            audio_sink: Arc::new(Mutex::new(audio_sink)),
+            producer: Arc::new(Mutex::new(producer)),
+            track_change_signal: Arc::new(AtomicBool::new(false)),
         };
 
         let worker_driver = driver.clone();
@@ -153,6 +141,10 @@ impl AudioPlaybackDriver {
         self.eq_enabled.store(!cur, Ordering::SeqCst);
     }
 
+    pub fn register_resolver(&self, resolver: Arc<dyn StreamResolverPort>) {
+        self.resolvers.lock().unwrap().insert(0, resolver);
+    }
+
     #[allow(dead_code)]
     pub fn playback_state(&self) -> PlaybackState {
         if self.is_playing.load(Ordering::SeqCst) {
@@ -178,6 +170,7 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
         seek_requested,
         track_finished,
         track_change_signal,
+        resolvers,
         ..
     } = driver;
 
@@ -193,11 +186,23 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
             active_decoder = None;
 
             if let Some(track) = track_opt {
-                if let AudioSource::LocalFile { ref path } = track.source {
-                    if let Ok(dec) = AudioStreamDecoder::open_file(path) {
-                        *total_duration.lock().unwrap() = dec.duration().or(track.metadata.duration);
+                let current_resolvers = resolvers.lock().unwrap().clone();
+                match load_track_decoder(&track, &current_resolvers) {
+                    Ok(dec) => {
+                        let probed_dur = dec.duration().or(track.metadata.duration);
+                        *total_duration.lock().unwrap() = probed_dur;
+                        if let Some(cur) = current_track.lock().unwrap().as_mut() {
+                            if cur.metadata.duration.is_none() {
+                                cur.metadata.duration = probed_dur;
+                            }
+                        }
                         dsp_chain.set_source_sample_rate(dec.sample_rate());
                         active_decoder = Some(dec);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to load audio track: {e}");
+                        track_finished.store(true, Ordering::SeqCst);
+                        is_playing.store(false, Ordering::SeqCst);
                     }
                 }
             }
@@ -230,6 +235,11 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
                 Ok(n) if n > 0 => {
                     read_samples = n;
                     *elapsed.lock().unwrap() = dec.elapsed();
+                }
+                Err(ref e) if e.contains("WouldBlock") => {
+                    // Buffer underrun during network precaching: wait for incoming chunks
+                    std::thread::sleep(Duration::from_millis(10));
+                    continue;
                 }
                 Ok(_) => {
                     // EOF reached
