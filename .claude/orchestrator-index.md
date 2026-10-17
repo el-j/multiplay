@@ -3,6 +3,8 @@
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
 *Tracking: 29 Plans | 94 Tasks | 90 Completed | 4 In Progress/Pending | Status: IN PROGRESS (Implementing PLAN-029)*
 
+> **⚠ Release-readiness audit (2026-10-17):** a full code audit found that many tasks marked *Completed* below do not deliver their user-visible outcome (e.g. Soulseek/P2P/Spotify are in-memory mocks, search is unwired, CI is red). See [.claude/audits/README.md](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md). Status reconciliation of existing tasks is tracked in TASK-112 (to be done via the Nexus tools). The v1.0 roadmap (PLAN-034 … PLAN-052, TASK-112 … TASK-194) is listed under **Release Readiness Roadmap** below.
+
 
 
 
@@ -310,6 +312,180 @@
 | [TASK-109](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-109-ebu-r128-and-replaygain-loudness-engine.md) | EBU R128 & ReplayGain Loudness Normalization Engine | Completed | dsp_engineering | `cargo test -p amp-domain -p amp-adapter-storage -p amp-core-engine -p amp-adapter-gui` |
 | [TASK-110](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-110-audiophile-headphone-crossfeed-dsp.md) | Audiophile Headphone Crossfeed DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine -p amp-adapter-gui` |
 | [TASK-111](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-111-gapless-crossfade-and-dsp-verification-harness.md) | Gapless, Crossfade & DSP Pipeline Verification Harness | Completed | testing | `cargo test --test gapless_crossfade_pipeline && make all` |
+
+---
+
+## Release Readiness Roadmap — v1.0 (from AUDIT-2026-10-17)
+
+Freeze on new feature plans until M2 is complete. Milestones run in order. PLAN-051 and PLAN-052 can run alongside them.
+
+| Milestone | Outcome users feel | Plans |
+| :--- | :--- | :--- |
+| **M0 — Stop the bleeding** | Safe to run, honest docs, CI green | PLAN-034, PLAN-035, PLAN-036 |
+| **M1 — It plays, reliably** | Instant pause/seek, robust streaming, persistent library & settings | PLAN-037, PLAN-038, PLAN-039, PLAN-041 |
+| **M2 — Sounds right** | Bit-transparent by default, correct loudness, gapless | PLAN-040 |
+| **M3 — Finds everything** | One search across library, YouTube, Bandcamp, SoundCloud, Soulseek | PLAN-042, PLAN-043, PLAN-044, PLAN-045, PLAN-046 |
+| **M4 — Feels great** | Onboarding, library + artwork, media keys, full TUI, diagnostics | PLAN-047, PLAN-048 |
+| **M5 — Ship** | Signed installers, release QA, legal & privacy, clean architecture | PLAN-049, PLAN-050, PLAN-051, PLAN-052 |
+
+### PLAN-034: Release Truth Reset, Honest Status & Governance (Pending · P0 · M0 — Stop the bleeding)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-112](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-112-reconcile-orchestrator-state-with-verified-reality.md) | Reconcile Orchestrator State with Verified Reality | Pending | architecture | `Manual review against `.claude/audits/README.md` scorecard` |
+| [TASK-113](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-113-redefine-pure-rust-policy-and-sound-verifier.md) | Redefine the Pure-Rust Policy & Rewrite a Sound Verifier | Pending | architecture | `./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test` |
+| [TASK-114](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-114-readme-license-and-honest-feature-matrix.md) | README, LICENSE, CONTRIBUTING & Honest Feature Matrix | Pending | architecture | `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 \| grep -q '"license"'` |
+| [TASK-115](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-115-evidence-based-definition-of-done.md) | Evidence-Based Definition of Done v2 | Pending | qa_and_hardening | `test -f docs/definition-of-done.md` |
+
+### PLAN-035: Remote Control Daemon Security Hardening (Pending · P0 · M0 — Stop the bleeding)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-116](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-116-remote-daemon-off-by-default-and-loopback-bind.md) | Remote Daemon Off by Default, Loopback Bind, Explicit LAN Opt-In | Pending | security | `cargo test -p amp-adapter-gui remote && ./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-117](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-117-enforce-pairing-session-secrets-and-origin-checks.md) | Enforce Pairing, Session Secrets, Origin Allow-List & Rate Limits | Pending | security | `cargo test -p amp-adapter-remote && cargo test -p amp-app --test remote_daemon_pipeline` |
+| [TASK-118](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-118-constrain-remote-command-surface.md) | Constrain Remote Command Surface & Fix Transport Semantics | Pending | security | `cargo test -p amp-adapter-remote` |
+| [TASK-119](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-119-remote-daemon-security-test-suite.md) | Remote Daemon Security Test Suite | Pending | qa_and_hardening | `cargo test -p amp-adapter-remote --test security` |
+
+### PLAN-036: Green CI on macOS/Linux/Windows & Hermetic Test Suite (Pending · P0 · M0 — Stop the bleeding)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-120](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-120-fix-fmt-and-ci-system-dependencies.md) | Fix rustfmt Drift & Install Linux System Dependencies in CI | Pending | devops | `cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings` |
+| [TASK-121](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-121-hardware-free-null-audio-sink-test-mode.md) | Hardware-Free Test Mode with Null/Capture Audio Sink | Pending | qa_and_hardening | `cargo test --workspace` |
+| [TASK-122](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-122-hermetic-tests-no-home-no-network-no-public-bind.md) | Hermetic Tests: No $HOME Writes, No Network, No 0.0.0.0 Binds | Pending | qa_and_hardening | `HOME=$(mktemp -d) cargo test --workspace --offline` |
+| [TASK-123](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-123-repair-release-workflow.md) | Repair the Release Workflow (Missing Files, Silent Failures) | Pending | devops | `act -j build-release (or a dry-run tag on a fork)` |
+| [TASK-124](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-124-supply-chain-cargo-deny-audit-and-dependency-hygiene.md) | Supply Chain: cargo-deny, cargo-audit, Dependabot & Workspace Pinning | Pending | devops | `cargo deny check && cargo audit` |
+
+### PLAN-037: Unified Core Playback Engine (PlayerEngine) & Transport Correctness (Pending · P0 · M1 — It plays, reliably)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-125](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-125-player-engine-implementing-driving-ports.md) | PlayerEngine: State Machine Implementing PlayerControlPort & PlaylistManagementPort | Pending | audio_engine | `cargo test -p amp-core-engine player` |
+| [TASK-126](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-126-replace-duplicated-ui-audio-drivers-with-engine.md) | Replace Both UI Audio Drivers with PlayerEngine; Delete Duplicates | Pending | architecture | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-127](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-127-transport-flush-pause-stop-seek.md) | Transport Correctness: Epoch-Flushed Ring, Real Pause, No Lost Chunks | Pending | audio_engine | `cargo test -p amp-core-engine transport` |
+| [TASK-128](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-128-output-clock-position-and-aligned-meters.md) | Output-Clock Playback Position & Output-Aligned Visualizer Tap | Pending | audio_engine | `cargo test -p amp-core-engine position` |
+| [TASK-129](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-129-async-resolution-and-preloading-off-audio-thread.md) | Async Stream Resolution & Preloading Off the Audio Worker | Pending | audio_engine | `cargo test -p amp-core-engine preload` |
+| [TASK-130](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-130-typed-errors-and-error-events.md) | Typed Port Errors & User-Visible Error Events | Pending | architecture | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-131](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-131-queue-semantics-next-prev-repeat-shuffle.md) | Queue Semantics: Next/Previous/Repeat/Shuffle Owned by the Engine | Pending | audio_engine | `cargo test -p amp-core-engine queue` |
+
+### PLAN-038: Audio Output Device Robustness (Pending · P1 · M1 — It plays, reliably)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-132](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-132-sample-format-and-channel-negotiation.md) | Sample-Format & Channel-Count Negotiation (f32/i16/u16/i32, N channels) | Pending | audio_engine | `cargo test -p amp-adapter-cpal format` |
+| [TASK-133](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-133-device-hotplug-and-stream-error-recovery.md) | Device Hot-Plug, Default-Device Change & Stream Error Recovery | Pending | audio_engine | `manual: plug/unplug test + cargo test -p amp-adapter-cpal recovery` |
+| [TASK-134](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-134-honest-audio-sink-port.md) | Honest AudioSinkPort: Remove Dead push API, Real configure, Correct Latency | Pending | architecture | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-039: Decoder & Progressive Streaming Correctness (Pending · P0 · M1 — It plays, reliably)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-135](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-135-blocking-precache-reader-with-timeouts-and-cancellation.md) | Blocking Precache Reader (Condvar) with Timeouts & Cancellation | Pending | audio_engine | `cargo test -p amp-ports precache && cargo test -p amp-adapter-http slow_server` |
+| [TASK-136](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-136-bounded-memory-streaming-and-disk-cache.md) | Bounded-Memory Streaming: Live Ring Buffer & Disk Spill Cache | Pending | audio_engine | `cargo test -p amp-core-engine bounded_buffer` |
+| [TASK-137](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-137-icy-metadata-and-radio-playlist-resolution.md) | ICY Metadata Demux & PLS/M3U/XSPF Radio Playlist Resolution | Pending | integrations | `cargo test -p amp-adapter-http` |
+| [TASK-138](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-138-http-range-seeking.md) | HTTP Range Requests for Seekable Remote Files | Pending | integrations | `cargo test -p amp-adapter-http range` |
+| [TASK-139](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-139-decoder-hardening-hints-reset-seek-opus.md) | Decoder Hardening: Probe Hints, ResetRequired, Accurate Seek, Opus/WebM | Pending | audio_engine | `cargo test -p amp-adapter-decoder` |
+
+### PLAN-040: Audiophile DSP Transparency & Correctness (Pending · P1 · M2 — Sounds right)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-140](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-140-bit-transparent-default-path-and-null-test.md) | Bit-Transparent Default Path & CI Null Test | Pending | dsp_engineering | `cargo test -p amp-core-engine null_test` |
+| [TASK-141](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-141-lookahead-oversampled-true-peak-limiter.md) | Lookahead, Oversampled True-Peak Limiter | Pending | dsp_engineering | `cargo test -p amp-core-engine limiter` |
+| [TASK-142](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-142-streaming-correct-resampler.md) | Streaming-Correct Resampler (No Mid-Stream Padding, Per-Stream Instances) | Pending | dsp_engineering | `cargo test -p amp-core-engine resampler` |
+| [TASK-143](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-143-correct-replaygain-and-r128-normalization.md) | Correct ReplayGain/R128 Normalization (+ Optional BS.1770 Analysis) | Pending | dsp_engineering | `cargo test -p amp-core-engine loudness && cargo test -p amp-adapter-storage` |
+| [TASK-144](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-144-correct-log-spaced-mono-visualizer.md) | Visualizer: Mono Downmix, Log-Spaced Bands, dB Scaling | Pending | dsp_engineering | `cargo test -p amp-core-engine visualizer` |
+| [TASK-145](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-145-gapless-first-crossfade-policy.md) | Gapless-First Crossfade Policy (Off by Default, Album-Aware, Rate-Matched) | Pending | dsp_engineering | `cargo test -p amp-core-engine gapless` |
+| [TASK-146](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-146-perceptual-volume-taper-and-dither.md) | Perceptual Volume Taper & TPDF Dither | Pending | dsp_engineering | `cargo test -p amp-core-engine volume` |
+
+### PLAN-041: Persistent Library, Configuration & Secrets (Pending · P0 · M1 — It plays, reliably)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-147](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-147-platform-app-paths-service-and-migration.md) | Platform AppPaths Service (config/data/cache/log) & Migration | Pending | storage_and_state | `cargo test -p amp-adapter-storage paths` |
+| [TASK-148](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-148-durable-versioned-library-db-with-stable-ids.md) | Durable, Versioned Library DB with Stable Track IDs | Pending | storage_and_state | `cargo test -p amp-adapter-storage` |
+| [TASK-149](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-149-background-incremental-scanner-and-watcher.md) | Background Incremental Scanner, Symlink-Safe, with File Watcher | Pending | storage_and_state | `cargo test -p amp-adapter-storage scanner` |
+| [TASK-150](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-150-wire-config-store-and-apply-every-setting.md) | Wire ConfigStore: Persist Settings & Apply (or Remove) Every Option | Pending | storage_and_state | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-151](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-151-os-keychain-credential-vault.md) | OS Keychain Credential Vault (with Encrypted-File Fallback) | Pending | security | `cargo test -p amp-adapter-storage keyring` |
+| [TASK-152](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-152-lossless-playlist-io-m3u-pls-xspf.md) | Lossless Playlist I/O: M3U/M3U8 (relative paths), PLS, XSPF | Pending | storage_and_state | `cargo test -p amp-adapter-storage playlist` |
+
+### PLAN-042: Universal Search Wired End-to-End (Pending · P0 · M3 — Finds everything)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-153](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-153-async-omnibox-search-in-gui-and-tui.md) | Async Omnibox Search in GUI & TUI with Streaming Results | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-154](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-154-per-provider-status-and-error-surfacing.md) | Per-Provider Status, Timeouts & Error Surfacing | Pending | integrations | `cargo test -p amp-core-engine search` |
+| [TASK-155](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-155-cross-source-ranking-and-dedupe.md) | Cross-Source Ranking & Deduplication | Pending | integrations | `cargo test -p amp-core-engine rank` |
+
+### PLAN-043: YouTube Resolver & Offline Downloader Hardening (Pending · P1 · M3 — Finds everything)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-156](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-156-youtube-url-and-id-normalization.md) | YouTube URL/ID Normalization (watch, youtu.be, shorts, music, playlists) | Pending | integrations | `cargo test -p amp-domain source_url` |
+| [TASK-157](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-157-youtube-format-selection-retry-and-canary.md) | YouTube Format Selection, URL Refresh, Retry & Daily Canary | Pending | integrations | `cargo test -p amp-adapter-youtube && gh workflow run canary` |
+| [TASK-158](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-158-working-offline-downloader.md) | Working Offline Downloader (Async, Correct Containers, Safe Names, Progress) | Pending | integrations | `cargo test -p amp-core-engine downloader` |
+
+### PLAN-044: Bandcamp & SoundCloud Resolvers (Pending · P1 · M3 — Finds everything)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-159](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-159-bandcamp-adapter.md) | New `amp-adapter-bandcamp`: Search, Album/Track Parsing, Streams, Purchase Links | Pending | integrations | `cargo test -p amp-adapter-bandcamp` |
+| [TASK-160](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-160-soundcloud-adapter.md) | New `amp-adapter-soundcloud`: client_id Discovery, Search, Progressive/HLS Streams | Pending | integrations | `cargo test -p amp-adapter-soundcloud` |
+| [TASK-161](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-161-scraper-contract-tests-and-canaries.md) | Recorded-Fixture Contract Tests & Live Canaries for Scraping Adapters | Pending | qa_and_hardening | `cargo test --workspace provider_contract` |
+
+### PLAN-045: Real Soulseek Client: Session, Search, Transfers & Sharing (Pending · P1 · M3 — Finds everything)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-162](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-162-soulseek-server-session.md) | Soulseek Server Session: Login, Keepalive, Reconnect, Correct Message Namespaces | Pending | integrations | `cargo test -p amp-adapter-soulseek` |
+| [TASK-163](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-163-soulseek-search-and-peer-connections.md) | Soulseek Search & Peer Connections (Direct + Firewalled) | Pending | integrations | `cargo test -p amp-adapter-soulseek search` |
+| [TASK-164](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-164-soulseek-transfers-and-progressive-play.md) | Soulseek Transfers: Queue, F-Connection, Resume & Progressive Play | Pending | integrations | `cargo test -p amp-adapter-soulseek transfer` |
+| [TASK-165](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-165-soulseek-sharing-and-uploads.md) | Soulseek Sharing: Share Index, Browse/Search Responses, Upload Slots & Limits | Pending | distributed_systems | `cargo test -p amp-adapter-soulseek share` |
+| [TASK-166](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-166-soulseek-ui.md) | Soulseek UI: Account Settings, Transfer Manager, User Browse | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-046: P2P Mesh & Spotify Scope Decisions; Remove Facades (Pending · P1 · M3 — Finds everything)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-167](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-167-adr-p2p-mesh-build-or-cut.md) | ADR: P2P Mesh — Implement with libp2p or Cut from v1 | Pending | architecture | `test -f docs/adr/ADR-002-p2p-mesh.md` |
+| [TASK-168](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-168-adr-spotify-scope.md) | ADR: Spotify — Drop Playback, Offer Web-API Playlist Import & Cross-Source Matching | Pending | architecture | `test -f docs/adr/ADR-003-spotify.md` |
+| [TASK-169](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-169-remove-facade-providers-from-production.md) | Remove/Feature-Gate Facade Providers from Production Builds | Pending | integrations | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-047: UX: From First Run to Daily Driver (Pending · P1 · M4 — Feels great)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-170](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-170-remove-demo-data-show-real-track-info.md) | Remove Demo Data & Show Real Stream Info | Pending | frontend_tui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-171](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-171-first-run-onboarding.md) | First-Run Onboarding Wizard | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-172](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-172-library-browser-and-artwork.md) | Library Browser (Artists/Albums/Tracks) & Artwork | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-173](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-173-os-media-keys-and-now-playing.md) | OS Media Keys & Now Playing (MPRIS / macOS / SMTC) | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-174](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-174-tui-complete-player.md) | TUI as a Complete Player | Pending | frontend_tui | `cargo test -p amp-adapter-tui -p amp-app` |
+| [TASK-175](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-175-gui-feedback-shortcuts-accessibility.md) | GUI Feedback, Shortcuts, Seek-on-Release & Accessibility | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-176](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-176-dj-mode-stabilization-or-experimental-flag.md) | DJ Mode: Experimental Flag, Own Engine Thread, Per-Deck Resampling | Pending | audio_engine | `cargo test -p amp-core-engine dj` |
+
+### PLAN-048: Observability, Diagnostics & Measured Resource Budgets (Pending · P1 · M4 — Feels great)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-177](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-177-structured-logging-with-tracing.md) | Structured Logging with `tracing` to Rolling Log Files | Pending | qa_and_hardening | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-178](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-178-panic-hook-and-diagnostics-bundle.md) | Panic Hook, Crash Reports & 'Copy Diagnostics' | Pending | qa_and_hardening | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-179](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-179-measured-resource-budgets-benchmark-harness.md) | Measured Resource Budgets: Benchmark Harness & CI Tracking | Pending | qa_and_hardening | `cargo bench -p amp-core-engine` |
+
+### PLAN-049: Release Engineering & Distribution (Pending · P1 · M5 — Ship)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-180](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-180-single-binary-versioning-and-changelog.md) | Single `multiplay` Binary, Versioning & CHANGELOG | Pending | devops | `cargo run -p amp-app -- --version` |
+| [TASK-181](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-181-signed-installers-all-platforms.md) | Signed Installers: macOS DMG (notarized), Windows MSI, Linux AppImage/.deb/Flatpak | Pending | devops | `Release dry-run on tag in a fork` |
+| [TASK-182](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-182-third-party-license-bundle.md) | Third-Party License Bundle & About Dialog | Pending | devops | `cargo about generate about.hbs > /dev/null` |
+| [TASK-183](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-183-opt-in-update-checker-and-hotfix-channel.md) | Opt-In Update Checker & Provider Hotfix Channel | Pending | devops | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-050: Release-Grade Quality Assurance (Pending · P1 · M5 — Ship)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-184](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-184-real-audio-fixture-corpus-and-golden-tests.md) | Real-Audio Fixture Corpus & Golden Decode Tests | Pending | qa_and_hardening | `cargo test --workspace golden` |
+| [TASK-185](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-185-fuzz-untrusted-parsers.md) | Fuzz All Untrusted-Input Parsers & Add Size Limits | Pending | security | `cargo +nightly fuzz run wsz -- -max_total_time=60` |
+| [TASK-186](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-186-soak-stress-and-failure-injection.md) | Soak, Stress & Failure-Injection Tests | Pending | qa_and_hardening | `cargo test --release -p amp-core-engine --test soak -- --ignored` |
+| [TASK-187](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-187-contract-tests-real-mutation-runs-and-crdt-convergence.md) | Port Contract Tests, Real Mutation Runs & CRDT Convergence Fixes | Pending | qa_and_hardening | `cargo mutants --in-place -p amp-core-engine --file 'src/dsp/**'` |
+| [TASK-188](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-188-manual-release-checklist-and-beta-program.md) | Manual Release Checklist & Beta Program | Pending | qa_and_hardening | `Manual` |
+
+### PLAN-051: Codebase Consolidation & Architecture Integrity (Pending · P2 · M5 — Ship (parallelizable from M1))
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-189](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-189-wire-or-delete-dead-engine-modules.md) | Wire or Delete Dead Engine Modules (with ADR) | Pending | architecture | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-190](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-190-restore-hexagonal-boundaries-single-composition-root.md) | Restore Hexagonal Boundaries & Single Composition Root | Pending | architecture | `./scripts/check_architecture.sh` |
+| [TASK-191](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-191-message-passing-and-lock-free-parameters.md) | Replace Arc<Mutex> State Soup with Commands, Atomics & Triple Buffers | Pending | architecture | `cargo test -p amp-core-engine && cargo bench -p amp-core-engine` |
+
+### PLAN-052: Legal, Privacy & Provider Compliance (Pending · P1 · M5 — Ship (start in M0))
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-192](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-192-provider-tos-review-and-opt-in-disclosures.md) | Provider ToS Review, Opt-In Disclosures & Download Policy | Pending | product | `cargo build -p amp-app --no-default-features` |
+| [TASK-193](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-193-privacy-statement-and-network-inventory.md) | Privacy Statement & Network Activity Inventory | Pending | security | `test -f docs/privacy.md` |
+| [TASK-194](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-194-trademark-safe-branding.md) | Trademark-Safe Branding (Remove 'WINAMP' from UI Titles) | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
 
 ---
 
