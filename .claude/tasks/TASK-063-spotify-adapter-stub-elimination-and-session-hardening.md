@@ -2,8 +2,10 @@
 id: TASK-063
 title: Pure-Rust Spotify Adapter Stub Elimination & Session Hardening
 planId: PLAN-021
-status: completed
+status: re-opened
 role: integrations
+auditFindings: ["ORC-01", "SRC-01"]
+mappedTo: ["PLAN-046", "TASK-168"]
 verificationCommand: cargo test -p amp-adapter-spotify
 ---
 

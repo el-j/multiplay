@@ -1,0 +1,46 @@
+# ==============================================================================
+# Multiplay Pure-Rust Dependency Allowlist
+# ==============================================================================
+# Policy:
+# Multiplay strictly forbids vendored or bundled third-party C/C++ libraries
+# (such as OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake-driven builds).
+# All audio decoding (symphonia), database storage (redb), cryptography & TLS
+# (rustls/ring), and DSP (rubato, biquad, realfft) are pure Rust.
+#
+# Only thin FFI bindings to host OS platform APIs (audio hardware, windowing,
+# system calls) are permitted, and each must be explicitly documented below.
+# ==============================================================================
+
+# Linux Platform Audio & Display Bindings
+alsa-sys: OS ALSA platform audio output binding for cpal on Linux
+wayland-sys: OS Wayland display compositor protocol binding for winit on Linux
+linux-raw-sys: Raw Linux system call definitions for rustix (pure-Rust POSIX)
+
+# macOS Platform Audio, Foundation & Windowing Bindings
+coreaudio-sys: OS CoreAudio hardware audio output binding for cpal on macOS
+core-foundation-sys: OS CoreFoundation platform runtime binding on macOS
+objc-sys: OS Objective-C runtime binding for winit/eframe on macOS
+clang-sys: Build-time libclang binding used by bindgen for coreaudio-sys on macOS
+
+# Windows Platform Audio & Windowing Bindings
+windows-sys: OS Win32 / WASAPI platform API bindings for Windows
+
+# WebAssembly & Web Platform Bindings (Cross-Compilation / WASM)
+js-sys: WebAssembly JavaScript engine bindings for browser/wasm
+web-sys: WebAssembly browser DOM and Web API bindings
+
+# Android Platform Bindings (Transitive via winit/cpal cross-compilation)
+jni-sys: Java Native Interface platform bindings for Android
+jni-sys-macros: Proc macro companion for jni-sys
+ndk-sys: Android NDK OS platform bindings for cpal and winit
+oboe-sys: Android AAudio/Oboe platform audio binding for cpal
+
+# Graphics Debugging Hook (Transitive via wgpu)
+renderdoc-sys: In-tree graphics debugger FFI hook in wgpu (disabled at runtime)
+
+# Core Rustls Cryptography & Build Tools
+ring: Pure-Rust TLS crypto backend used by rustls (contains constant-time asm/C primitives)
+cc: Build-dependency tool used by ring, wayland-backend, and platform shims
+
+# Dynamic Linker Interface for OS Graphics & Audio Drivers (Transitive via wgpu / wayland)
+libloading: Dynamic linking shim used by wgpu-hal (Vulkan loader), wayland-sys, and bindgen

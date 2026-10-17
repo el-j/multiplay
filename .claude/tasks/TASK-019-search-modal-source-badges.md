@@ -2,8 +2,10 @@
 id: TASK-019
 title: Omnibar Search Modal with Filter Pills & Source Badges
 planId: PLAN-006
-status: completed
+status: re-opened
 role: frontend_tui
+auditFindings: ["ORC-01", "UX-01"]
+mappedTo: ["PLAN-042", "TASK-153"]
 verificationCommand: cargo test -p amp-adapter-tui test_search_view
 ---
 

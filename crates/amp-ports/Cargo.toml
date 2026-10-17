@@ -2,6 +2,7 @@
 name = "amp-ports"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 description = "Driving and driven port contracts for multiplay audio player"
 
 [dependencies]

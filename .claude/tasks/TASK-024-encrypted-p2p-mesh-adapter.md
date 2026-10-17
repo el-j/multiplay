@@ -2,8 +2,10 @@
 id: TASK-024
 title: Encrypted Private P2P Mesh Adapter
 planId: PLAN-008
-status: completed
+status: re-opened
 role: system_composition
+auditFindings: ["ORC-01", "SRC-01", "SRC-16"]
+mappedTo: ["PLAN-046", "TASK-167"]
 verificationCommand: cargo test -p amp-adapter-p2p
 ---
 

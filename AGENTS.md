@@ -1,7 +1,7 @@
 # Agent Working Rules for multiplay
 
 ## Non-Negotiables
-1. **Pure Rust (`#![forbid(unsafe_code)]`):** Zero C/C++ dynamic or static linkage. No OpenSSL, SQLite, FFmpeg, libpulse, or libasound.
+1. **Pure Rust (`#![forbid(unsafe_code)]` in domain & core engine):** Zero bundled or vendored third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake builds). Audio decoding, storage, TLS, and DSP are pure Rust. Thin host OS platform `-sys` bindings are governed strictly by `scripts/pure_rust_allowlist.txt`.
 2. **Hexagonal Modularity:** Domain Core (`amp-domain`) and Core Engine (`amp-core-engine`) must never import concrete adapters. All boundary crossings go through Ports (`amp-ports`).
 3. **Audio Thread Real-Time Safety:** The CPAL audio callback must NEVER allocate, wait on locks, make system calls, or access the file system.
 4. **Nexus Orchestrator Tracking:**

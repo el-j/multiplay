@@ -1,7 +1,7 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 29 Plans | 94 Tasks | 90 Completed | 4 In Progress/Pending | Status: IN PROGRESS (Implementing PLAN-029)*
+*Tracking: 52 Plans | 194 Tasks | 84 Verified Completed | Status: IN PROGRESS (Implementing PLAN-035: Remote Control Security Hardening)*
 
 > **⚠ Release-readiness audit (2026-10-17):** a full code audit found that many tasks marked *Completed* below do not deliver their user-visible outcome (e.g. Soulseek/P2P/Spotify are in-memory mocks, search is unwired, CI is red). See [.claude/audits/README.md](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md). Status reconciliation of existing tasks is tracked in TASK-112 (to be done via the Nexus tools). The v1.0 roadmap (PLAN-034 … PLAN-052, TASK-112 … TASK-194) is listed under **Release Readiness Roadmap** below.
 
@@ -102,15 +102,15 @@
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-013](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-013-filtered-search-coordinator.md) | Parallel Multi-Source Search Coordinator with Filter Mask | Completed | integrations | `cargo test -p amp-core-engine test_search_coordinator` |
 | [TASK-014](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-014-youtube-stream-resolver.md) | YouTube Pure-Rust Stream Resolver & Search Adapter (`rusty-ytdl`) | Completed | integrations | `cargo test -p amp-adapter-youtube` |
-| [TASK-015](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-015-spotify-librespot-adapter.md) | Spotify Pure-Rust Stream Adapter (`librespot-core`) | Completed | integrations | `cargo test -p amp-adapter-spotify` |
+| [TASK-015](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-015-spotify-librespot-adapter.md) | Spotify Pure-Rust Stream Adapter (`librespot-core`) | Re-opened (Audit: ORC-01, SRC-01 -> PLAN-046/TASK-168) | integrations | `cargo test -p amp-adapter-spotify` |
 | [TASK-016](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-016-offline-downloader-tagger.md) | Offline Stream Downloader Pipeline with Pure-Rust Lofty Tagging | Completed | integrations | `cargo test -p amp-core-engine test_downloader` |
 
-### PLAN-006: Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI (Completed)
+### PLAN-006: Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-017](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-017-dense-winamp-faceplate.md) | Dense Winamp 1.x Faceplate Terminal Widget (`ratatui`) | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_dense_console` |
 | [TASK-018](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-018-magnetic-docking-window-manager.md) | Magnetic Multi-Window Docking & Snapping Window Manager | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_docking` |
-| [TASK-019](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-019-search-modal-source-badges.md) | Omnibar Search Modal with Filter Pills & Source Badges | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_search_view` |
+| [TASK-019](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-019-search-modal-source-badges.md) | Omnibar Search Modal with Filter Pills & Source Badges | Re-opened (Audit: ORC-01, UX-01 -> PLAN-042/TASK-153) | frontend_tui | `cargo test -p amp-adapter-tui test_search_view` |
 | [TASK-020](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-020-detachable-video-window.md) | Detachable Video Stream Canvas View | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_video_view` |
 
 ### PLAN-007: Classic Winamp Skin (.wsz) Loader & Pure-Rust Plugin System (Completed)
@@ -119,11 +119,11 @@
 | [TASK-021](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-021-winamp-wsz-skin-loader.md) | Winamp Classic Skin (.wsz) Decompressor & Palette Extractor | Completed | extensibility | `cargo test -p amp-core-engine test_skin_loader` |
 | [TASK-022](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-022-pure-rust-plugin-host.md) | Safe Pure-Rust Plugin Host & Capability Registry | Completed | extensibility | `cargo test -p amp-core-engine test_plugin_registry` |
 
-### PLAN-008: P2P Mesh, Soulseek Protocol & Runtime Composition Root (Completed)
+### PLAN-008: P2P Mesh, Soulseek Protocol & Runtime Composition Root (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-023](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-023-soulseek-protocol-adapter.md) | Pure-Rust Soulseek Protocol Search & Transfer Adapter | Completed | system_composition | `cargo test -p amp-adapter-soulseek` |
-| [TASK-024](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-024-encrypted-p2p-mesh-adapter.md) | Encrypted Private P2P Mesh Adapter (`libp2p`) | Completed | system_composition | `cargo test -p amp-adapter-p2p` |
+| [TASK-023](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-023-soulseek-protocol-adapter.md) | Pure-Rust Soulseek Protocol Search & Transfer Adapter | Re-opened (Audit: ORC-01, SRC-01, SRC-09 -> PLAN-045/TASK-162..166) | system_composition | `cargo test -p amp-adapter-soulseek` |
+| [TASK-024](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-024-encrypted-p2p-mesh-adapter.md) | Encrypted Private P2P Mesh Adapter (`libp2p`) | Re-opened (Audit: ORC-01, SRC-01, SRC-16 -> PLAN-046/TASK-167) | system_composition | `cargo test -p amp-adapter-p2p` |
 | [TASK-025](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-025-runtime-composition-root.md) | Main Runtime Composition Root (`amp-app`) & System Integration | Completed | system_composition | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
 
 ### PLAN-009: Native OS Desktop Windowing, Equalizer & Playlist Widgets, and Standalone Launcher (Completed)
@@ -133,30 +133,30 @@
 | [TASK-027](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-027-docked-equalizer-and-playlist-editor-widgets.md) | Classic Winamp Equalizer & Playlist Editor Docked Widgets | Completed | frontend_tui | `cargo test -p amp-adapter-tui test_equalizer_widget_rendering` |
 | [TASK-028](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-028-pure-rust-gui-desktop-node-adapter.md) | Pure-Rust GUI Desktop Node Adapter (`amp-adapter-gui`) Architecture | Completed | frontend_gui | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
 
-### PLAN-010: Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing (Completed)
+### PLAN-010: Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-029](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-029-runtime-audio-playback-streaming-worker.md) | Dynamic Background Audio Playback Streamer in Runtime Composition Root | Completed | audio_engine | `cargo test -p amp-app --test e2e_pipeline` |
-| [TASK-030](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-030-live-protocol-stream-resolvers.md) | Live Protocol Stream Handlers for Spotify, Soulseek TCP, and Encrypted P2P | Completed | integrations | `cargo test -p amp-adapter-spotify -p amp-adapter-soulseek` |
+| [TASK-030](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-030-live-protocol-stream-resolvers.md) | Live Protocol Stream Handlers for Spotify, Soulseek TCP, and Encrypted P2P | Re-opened (Audit: ORC-01, SRC-01 -> PLAN-039, PLAN-043, PLAN-045) | integrations | `cargo test -p amp-adapter-spotify -p amp-adapter-soulseek` |
 | [TASK-031](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-031-property-testing-and-mutation-suite.md) | Comprehensive Property-Based Testing (`proptest`) & Mutation Test Suite | Completed | qa_and_hardening | `cargo test --workspace` |
 | [TASK-032](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-032-complete-incode-docstrings-and-audit-closure.md) | 100% In-Code Documentation & Architecture Reference Alignment Audit | Completed | architecture | `cargo doc --workspace --no-deps` |
 
 
-### PLAN-011: Advanced Audio Playback Intelligence (Smart Shuffle, Gapless Crossfading & EBU R128 Normalization) (Completed)
+### PLAN-011: Advanced Audio Playback Intelligence (Smart Shuffle, Gapless Crossfading & EBU R128 Normalization) (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-033](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-033-smart-balanced-shuffle-engine.md) | Smart Balanced Shuffle Engine & Constraint-Based Queue Manager | Completed | audio_engine | `cargo test -p amp-core-engine test_smart_shuffle` |
 | [TASK-034](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-034-dual-pipeline-gapless-crossfader.md) | Dual-Pipeline Gapless Decoder Mixer & Real-Time Crossfader DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine test_crossfade` |
-| [TASK-035](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-035-pure-rust-ebu-r128-loudness-normalizer.md) | Pure-Rust EBU R128 Loudness Normalizer & Peak Limiter | Completed | dsp_engineering | `cargo test -p amp-core-engine test_loudness` |
+| [TASK-035](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-035-pure-rust-ebu-r128-loudness-normalizer.md) | Pure-Rust EBU R128 Loudness Normalizer & Peak Limiter | Re-opened (Audit: ORC-01, DSP-05 -> PLAN-040/TASK-143) | dsp_engineering | `cargo test -p amp-core-engine test_loudness` |
 
-### PLAN-012: Distributed Mesh Jam Session & Authenticated Mobile Remote Control (Completed)
+### PLAN-012: Distributed Mesh Jam Session & Authenticated Mobile Remote Control (Experimental)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-036](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-036-collaborative-crdt-queue-state-machine.md) | Collaborative CRDT Queue & Lamport State Machine | Completed | distributed_systems | `cargo test -p amp-domain test_crdt_queue` |
-| [TASK-037](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-037-embedded-websocket-remote-daemon.md) | Pure-Rust Embedded WebSocket Remote Daemon (`amp-adapter-remote`) | Completed | integrations | `cargo test -p amp-adapter-remote` |
-| [TASK-038](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-038-terminal-and-gui-qr-code-pairing.md) | Terminal & GUI QR Code Pairing System with Ephemeral Tokens | Completed | frontend_ui | `cargo test -p amp-adapter-remote test_pairing` |
+| [TASK-036](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-036-collaborative-crdt-queue-state-machine.md) | Collaborative CRDT Queue & Lamport State Machine | Re-opened (Audit: ORC-01, UX-07 -> PLAN-050/TASK-187) | distributed_systems | `cargo test -p amp-domain test_crdt_queue` |
+| [TASK-037](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-037-embedded-websocket-remote-daemon.md) | Pure-Rust Embedded WebSocket Remote Daemon (`amp-adapter-remote`) | Re-opened (Audit: ORC-01, SEC-01 -> PLAN-035/TASK-116..119) | integrations | `cargo test -p amp-adapter-remote` |
+| [TASK-038](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-038-terminal-and-gui-qr-code-pairing.md) | Terminal & GUI QR Code Pairing System with Ephemeral Tokens | Re-opened (Audit: ORC-01, SEC-02 -> PLAN-035/TASK-117) | frontend_ui | `cargo test -p amp-adapter-remote test_pairing` |
 
-### PLAN-013: Multi-Deck Professional DJ Engine & Universal Source Mixer (Completed)
+### PLAN-013: Multi-Deck Professional DJ Engine & Universal Source Mixer (Experimental)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-039](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-039-multi-deck-channel-architecture-and-kill-eqs.md) | Multi-Deck Channel Architecture & 3-Band Kill Isolator EQs | Completed | audio_engine | `cargo test -p amp-core-engine test_dj_deck` |
@@ -164,11 +164,11 @@
 | [TASK-041](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-041-safe-wsola-time-stretcher-and-crossfader-mixer.md) | Safe WSOLA Time-Stretcher & Crossfader Transform Mixer | Completed | dsp_engineering | `cargo test -p amp-core-engine test_wsola_time_stretcher` |
 | [TASK-042](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-042-multi-deck-dj-console-tui-and-gui-interface.md) | Multi-Deck Hardware-Style DJ Console Interface for TUI and GUI | Completed | frontend_ui | `cargo test -p amp-adapter-tui test_dj_console && cargo test -p amp-adapter-gui` |
 
-### PLAN-014: Unified Configuration Management, Secure Credential Vault & Settings UI (Completed)
+### PLAN-014: Unified Configuration Management, Secure Credential Vault & Settings UI (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-043](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-043-hierarchical-toml-configuration-domain-schema.md) | Hierarchical TOML Configuration Domain Schema | Completed | architecture | `cargo test -p amp-domain test_config_schema` |
-| [TASK-044](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-044-credential-vault-port-and-secure-keyring-adapter.md) | Driven Credential Vault Port & Secure Keyring Adapter | Completed | storage_and_state | `cargo test -p amp-adapter-storage test_keyring` |
+| [TASK-044](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-044-credential-vault-port-and-secure-keyring-adapter.md) | Driven Credential Vault Port & Secure Keyring Adapter | Re-opened (Audit: ORC-01, DAT-06 -> PLAN-041/TASK-151) | storage_and_state | `cargo test -p amp-adapter-storage test_keyring` |
 | [TASK-045](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-045-atomic-config-storage-and-hot-reload-engine.md) | Atomic Config Storage Engine & Hot-Reload Dispatcher | Completed | storage_and_state | `cargo test -p amp-core-engine test_config_store` |
 | [TASK-046](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-046-interactive-preferences-settings-modal.md) | Interactive Preferences Settings Modal Interface for TUI and GUI | Completed | frontend_ui | `cargo test -p amp-adapter-tui test_settings_view && cargo test -p amp-adapter-gui` |
 
@@ -212,12 +212,12 @@
 | [TASK-061](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-061-orchestration-audit-remediation.md) | Re-baseline the orchestration status and close the completion claim gap | Completed | architecture | `./scripts/verify_pure_rust.sh && cargo check --workspace` |
 | [TASK-062](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-062-domain-contract-alignment-and-error-standardization.md) | Domain Contract Alignment & Error Standardization | Completed | architecture | `cargo test -p amp-domain -p amp-ports` |
 
-### PLAN-021: Elimination of Synthetic Stubs & Production Provider Hardening (Completed)
+### PLAN-021: Elimination of Synthetic Stubs & Production Provider Hardening (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-063](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-063-spotify-adapter-stub-elimination-and-session-hardening.md) | Pure-Rust Spotify Adapter Stub Elimination & Session Hardening | Completed | integrations | `cargo test -p amp-adapter-spotify` |
-| [TASK-064](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-064-soulseek-protocol-real-search-and-frame-state-machine.md) | Pure-Rust Soulseek Protocol Search & Message Frame State Machine | Completed | integrations | `cargo test -p amp-adapter-soulseek` |
-| [TASK-065](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-065-p2p-mesh-cryptographic-handshake-and-block-transfer.md) | Pure-Rust P2P Mesh Cryptographic Handshake & Block Transfer | Completed | integrations | `cargo test -p amp-adapter-p2p` |
+| [TASK-063](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-063-spotify-adapter-stub-elimination-and-session-hardening.md) | Pure-Rust Spotify Adapter Stub Elimination & Session Hardening | Re-opened (Audit: ORC-01, SRC-01 -> PLAN-046/TASK-168) | integrations | `cargo test -p amp-adapter-spotify` |
+| [TASK-064](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-064-soulseek-protocol-real-search-and-frame-state-machine.md) | Pure-Rust Soulseek Protocol Search & Message Frame State Machine | Re-opened (Audit: ORC-01, SRC-09 -> PLAN-045) | integrations | `cargo test -p amp-adapter-soulseek` |
+| [TASK-065](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-065-p2p-mesh-cryptographic-handshake-and-block-transfer.md) | Pure-Rust P2P Mesh Cryptographic Handshake & Block Transfer | Re-opened (Audit: ORC-01, SRC-16 -> PLAN-046/TASK-167) | integrations | `cargo test -p amp-adapter-p2p` |
 | [TASK-066](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-066-youtube-stream-resolver-live-buffering-hardening.md) | Pure-Rust YouTube Stream Resolver Live Buffering Hardening | Completed | integrations | `cargo test -p amp-adapter-youtube` |
 
 ### PLAN-022: End-to-End Audio Pipeline Integration & Cross-Platform Runtime Wiring (Completed)
@@ -288,7 +288,7 @@
 | [TASK-097](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-097-full-winamp-skin-wsz-gui-rendering-engine.md) | Full Winamp Skin (.wsz) GUI Rendering Engine | Completed | frontend_gui | `cargo test -p amp-adapter-gui -p amp-core-engine` |
 | [TASK-098](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-098-dual-oscilloscope-and-spectrum-visualizer-mode.md) | Dual Oscilloscope & Spectrum Visualizer Mode | Completed | dsp_engineering | `make all` |
 
-### PLAN-031: Pro Live DJ Engine & Realtime Mixer (Completed)
+### PLAN-031: Pro Live DJ Engine & Realtime Mixer (Experimental)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-099](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-099-dual-deck-live-playback-mixer-and-feeder.md) | Dual-Deck Live Playback Mixer & Feeder | Completed | audio_engine | `cargo test -p amp-core-engine -p amp-adapter-gui` |
@@ -296,7 +296,7 @@
 | [TASK-101](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-101-auto-bpm-detection-and-beatmatching-sync.md) | Auto-BPM Detection & Beatmatching Sync | Completed | audio_engine | `cargo test -p amp-core-engine -p amp-adapter-gui test_bpm` |
 | [TASK-102](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-102-comprehensive-dj-engine-verification-harness.md) | Comprehensive DJ Engine Verification Harness | Completed | testing | `make all` |
 
-### PLAN-032: Integrated Mobile Remote Daemon & Distributed Jam Session (Completed)
+### PLAN-032: Integrated Mobile Remote Daemon & Distributed Jam Session (Experimental)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-103](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-103-embedded-remote-daemon-autostart-and-qr-pairing.md) | Embedded Remote Daemon Auto-Start & QR Code Pairing in GUI | Completed | distributed_systems | `cargo test -p amp-adapter-remote -p amp-adapter-gui` |
@@ -304,12 +304,12 @@
 | [TASK-105](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-105-collaborative-jam-queue-and-mobile-sync.md) | Collaborative Jam Queue & Mobile Real-Time Sync | Completed | audio_engine | `cargo test -p amp-adapter-remote -p amp-adapter-gui test_remote` |
 | [TASK-106](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-106-remote-daemon-and-web-client-verification-harness.md) | Remote Daemon & Web Client Verification Harness | Completed | testing | `make all` |
 
-### PLAN-033: Audiophile Seamless Gapless Playback, Automix Crossfader & EBU R128 Normalization (Completed)
+### PLAN-033: Audiophile Seamless Gapless Playback, Automix Crossfader & EBU R128 Normalization (In Progress)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-107](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-107-lookahead-track-preloader-and-gapless-feeder.md) | Lookahead Track Preloader & Sample-Accurate Gapless Transition Feeder | Completed | audio_engine | `cargo test -p amp-adapter-gui -p amp-core-engine` |
 | [TASK-108](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-108-configurable-equal-power-automix-crossfader.md) | Configurable Equal-Power Automix Crossfader | Completed | dsp_engineering | `cargo test -p amp-core-engine -p amp-adapter-gui` |
-| [TASK-109](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-109-ebu-r128-and-replaygain-loudness-engine.md) | EBU R128 & ReplayGain Loudness Normalization Engine | Completed | dsp_engineering | `cargo test -p amp-domain -p amp-adapter-storage -p amp-core-engine -p amp-adapter-gui` |
+| [TASK-109](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-109-ebu-r128-and-replaygain-loudness-engine.md) | EBU R128 & ReplayGain Loudness Normalization Engine | Re-opened (Audit: ORC-01, DSP-05 -> PLAN-040/TASK-143) | dsp_engineering | `cargo test -p amp-domain -p amp-adapter-storage -p amp-core-engine -p amp-adapter-gui` |
 | [TASK-110](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-110-audiophile-headphone-crossfeed-dsp.md) | Audiophile Headphone Crossfeed DSP | Completed | dsp_engineering | `cargo test -p amp-core-engine -p amp-adapter-gui` |
 | [TASK-111](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-111-gapless-crossfade-and-dsp-verification-harness.md) | Gapless, Crossfade & DSP Pipeline Verification Harness | Completed | testing | `cargo test --test gapless_crossfade_pipeline && make all` |
 
@@ -328,15 +328,15 @@ Freeze on new feature plans until M2 is complete. Milestones run in order. PLAN-
 | **M4 — Feels great** | Onboarding, library + artwork, media keys, full TUI, diagnostics | PLAN-047, PLAN-048 |
 | **M5 — Ship** | Signed installers, release QA, legal & privacy, clean architecture | PLAN-049, PLAN-050, PLAN-051, PLAN-052 |
 
-### PLAN-034: Release Truth Reset, Honest Status & Governance (Pending · P0 · M0 — Stop the bleeding)
+### PLAN-034: Release Truth Reset, Honest Status & Governance (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-112](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-112-reconcile-orchestrator-state-with-verified-reality.md) | Reconcile Orchestrator State with Verified Reality | Pending | architecture | `Manual review against `.claude/audits/README.md` scorecard` |
-| [TASK-113](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-113-redefine-pure-rust-policy-and-sound-verifier.md) | Redefine the Pure-Rust Policy & Rewrite a Sound Verifier | Pending | architecture | `./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test` |
-| [TASK-114](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-114-readme-license-and-honest-feature-matrix.md) | README, LICENSE, CONTRIBUTING & Honest Feature Matrix | Pending | architecture | `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 \| grep -q '"license"'` |
-| [TASK-115](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-115-evidence-based-definition-of-done.md) | Evidence-Based Definition of Done v2 | Pending | qa_and_hardening | `test -f docs/definition-of-done.md` |
+| [TASK-112](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-112-reconcile-orchestrator-state-with-verified-reality.md) | Reconcile Orchestrator State with Verified Reality | Completed | architecture | `Manual review against `.claude/audits/README.md` scorecard` |
+| [TASK-113](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-113-redefine-pure-rust-policy-and-sound-verifier.md) | Redefine the Pure-Rust Policy & Rewrite a Sound Verifier | Completed | architecture | `./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test` |
+| [TASK-114](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-114-readme-license-and-honest-feature-matrix.md) | README, LICENSE, CONTRIBUTING & Honest Feature Matrix | Completed | architecture | `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 \| grep -q '"license"'` |
+| [TASK-115](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-115-evidence-based-definition-of-done.md) | Evidence-Based Definition of Done v2 | Completed | qa_and_hardening | `test -f docs/definition-of-done.md` |
 
-### PLAN-035: Remote Control Daemon Security Hardening (Pending · P0 · M0 — Stop the bleeding)
+### PLAN-035: Remote Control Daemon Security Hardening (In Progress · P0 · M0 — Stop the bleeding)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
 | [TASK-116](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-116-remote-daemon-off-by-default-and-loopback-bind.md) | Remote Daemon Off by Default, Loopback Bind, Explicit LAN Opt-In | Pending | security | `cargo test -p amp-adapter-gui remote && ./scripts/verify_pure_rust.sh && cargo test --workspace` |

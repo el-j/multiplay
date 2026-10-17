@@ -1,12 +1,12 @@
 # multiplay — Pure-Rust Universal Audiophile Audio Player
 
-Universal, ultra-lightweight, audiophile-grade, multi-source audio player written **100% in pure Rust**. Zero C/C++ dynamic or static linkage (no OpenSSL, SQLite, FFmpeg, libpulse, or libasound). Features a modular Winamp 1.x dense console, magnetic multi-window docking, audiophile DSP (rubato Sinc resampler, 10-band IIR biquad EQ, zero-alloc FFT spectrum visualizer), RAM precaching, pure-Rust embedded storage (`redb`), multi-source search, and stream resolvers (YouTube, Spotify, Bandcamp, SoundCloud, Soulseek, P2P mesh).
+Universal, ultra-lightweight, audiophile-grade, multi-source audio player written **in pure Rust**. Zero bundled or vendored third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake builds). Audio decoding, storage, TLS, and DSP are pure Rust; host OS platform bindings are strictly governed by `scripts/pure_rust_allowlist.txt`. Features a modular Winamp 1.x dense console, magnetic multi-window docking, audiophile DSP (rubato Sinc resampler, 10-band IIR biquad EQ, zero-alloc FFT spectrum visualizer), RAM precaching, pure-Rust embedded storage (`redb`), multi-source search, and stream resolvers.
 
 ## Commands
 
 ```bash
-# Verify pure-Rust toolchain compliance (Zero C build tools / libraries)
-./scripts/verify_pure_rust.sh
+# Verify pure-Rust toolchain compliance & self-tests
+./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test
 
 # Build entire workspace
 cargo build --workspace

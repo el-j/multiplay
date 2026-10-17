@@ -6,7 +6,7 @@
 - **Role:** `architecture, qa_and_hardening`
 - **Milestone:** M0 — Stop the bleeding
 - **Priority:** P0
-- **Status:** Pending
+- **Status:** Completed
 - **Dependencies:** —
 - **Source audit:** [AUDIT-2026-10-17](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md)
 
@@ -20,10 +20,10 @@ Re-baseline the orchestration system on verified reality, fix the unsound pure-R
 4. **TASK-115** (P1): Evidence-Based Definition of Done v2
 
 ## Tasks
-- [ ] [TASK-112: Reconcile Orchestrator State with Verified Reality](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-112-reconcile-orchestrator-state-with-verified-reality.md)
-- [ ] [TASK-113: Redefine the Pure-Rust Policy & Rewrite a Sound Verifier](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-113-redefine-pure-rust-policy-and-sound-verifier.md)
-- [ ] [TASK-114: README, LICENSE, CONTRIBUTING & Honest Feature Matrix](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-114-readme-license-and-honest-feature-matrix.md)
-- [ ] [TASK-115: Evidence-Based Definition of Done v2](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-115-evidence-based-definition-of-done.md)
+- [x] [TASK-112: Reconcile Orchestrator State with Verified Reality](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-112-reconcile-orchestrator-state-with-verified-reality.md)
+- [x] [TASK-113: Redefine the Pure-Rust Policy & Rewrite a Sound Verifier](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-113-redefine-pure-rust-policy-and-sound-verifier.md)
+- [x] [TASK-114: README, LICENSE, CONTRIBUTING & Honest Feature Matrix](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-114-readme-license-and-honest-feature-matrix.md)
+- [x] [TASK-115: Evidence-Based Definition of Done v2](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-115-evidence-based-definition-of-done.md)
 
 ## Verification
 `./scripts/verify_pure_rust.sh && cargo test --workspace` plus each task's verification command and manual acceptance evidence (see `docs/definition-of-done.md`, TASK-115).

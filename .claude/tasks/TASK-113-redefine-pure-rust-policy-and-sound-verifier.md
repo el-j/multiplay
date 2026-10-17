@@ -28,7 +28,11 @@
 `./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `./scripts/verify_pure_rust.sh` and `./scripts/verify_pure_rust.sh --self-test` executed and verified green.
+- `scripts/pure_rust_allowlist.txt` created with justifications for all platform `-sys` bindings.
+- Sound check inspects `--target all --edges normal,build` without false negatives or hidden build-dependencies.
+- Self-test confirmed rejection of `openssl-sys`, `libsqlite3-sys`, `ffmpeg-sys`, and unapproved `-sys` crates.
+- Policy updated across `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `.nexus/policy.json`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

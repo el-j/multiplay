@@ -28,7 +28,11 @@
 `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 | grep -q '"license"'`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Project licensed under MPL-2.0 (`LICENSE` file created).
+- `Cargo.toml` root updated with `[workspace.package] license = "MPL-2.0"`, and all 15 crates inherit `license.workspace = true`.
+- `README.md` created with honest feature matrix distinguishing Stable, In Progress, Planned, and Experimental features.
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` created.
+- Automated verification command passed: `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 | grep -q '"license"'`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

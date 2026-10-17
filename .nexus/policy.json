@@ -10,7 +10,7 @@
     "discover": true
   },
   "rules": [
-    "Pure Rust: #![forbid(unsafe_code)] in domain & adapters. Zero C/C++ dynamic or static linkage (no OpenSSL, SQLite, FFmpeg, libpulse, or libasound).",
+    "Pure Rust: #![forbid(unsafe_code)] in domain & core engine. Zero bundled or vendored third-party C libraries (no OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake builds). Audio decoding, storage, TLS, and DSP are pure Rust. Thin host OS platform -sys bindings are governed strictly by scripts/pure_rust_allowlist.txt.",
     "Hexagonal architecture: domain and core engine never import concrete adapters; adapters implement ports.",
     "Audio thread isolation: the real-time CPAL audio output callback must NEVER allocate memory, perform system calls, access the file system, or wait on locks.",
     "Deterministic resource bounds: steady-state idle CPU < 0.2%, active playback CPU < 1.0%, base memory footprint <= 35 MB.",

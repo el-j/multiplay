@@ -2,8 +2,10 @@
 id: TASK-015
 title: Spotify Pure-Rust Stream Adapter
 planId: PLAN-005
-status: completed
+status: re-opened
 role: integrations
+auditFindings: ["ORC-01", "SRC-01", "SRC-17", "LEG-03"]
+mappedTo: ["PLAN-046", "TASK-168"]
 verificationCommand: cargo test -p amp-adapter-spotify
 ---
 

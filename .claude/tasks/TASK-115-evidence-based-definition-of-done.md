@@ -26,7 +26,9 @@
 `test -f docs/definition-of-done.md`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `docs/definition-of-done.md` created with 5 concrete gates: Pure-Rust sound verification, Tests-First with mock exclusion rule, Hexagonal boundary & lock-free audio thread invariants, Code quality & 300-line limit, and Release-build manual acceptance.
+- `.claude/tasks/_TEMPLATE.md` created incorporating audit tracing, user-visible acceptance criteria, and evidence sections.
+- Verification command passed: `test -f docs/definition-of-done.md && test -f .claude/tasks/_TEMPLATE.md`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

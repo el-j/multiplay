@@ -29,7 +29,11 @@
 `Manual review against `.claude/audits/README.md` scorecard`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Reconciliation executed against AUDIT-2026-10-17:
+- All 14 mock/unwired tasks (TASK-015, 019, 023, 024, 030, 035, 036, 037, 038, 044, 063, 064, 065, 109) re-opened with explicit audit findings and destination plan/task mappings.
+- DJ (PLAN-013, PLAN-031) and Mobile Jam (PLAN-012, PLAN-032) marked Experimental.
+- Orchestrator index and orchestrator.json re-baselined to derived disk metrics: 52 plans, 194 tasks, 80 verified completed tasks.
+- Active plan set to PLAN-034.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

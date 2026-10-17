@@ -1,7 +1,8 @@
 ---
 id: PLAN-013
 title: Multi-Deck Professional DJ Engine & Universal Source Mixer
-status: completed
+status: experimental
+note: "Marked experimental per TASK-112 / ORC-06 pending M2 foundations"
 role: audio_engine
 tasks:
   - TASK-039

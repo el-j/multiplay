@@ -4,7 +4,7 @@
 - **ID:** `PLAN-031`
 - **Title:** Pro Live DJ Engine & Realtime Mixer
 - **Role:** `audio_engine` & `dsp_engineering`
-- **Status:** Completed
+- **Status:** Experimental (per TASK-112 / ORC-06 pending M2 foundations)
 - **Dependencies:** `PLAN-028`, `PLAN-029`, `PLAN-030`
 
 ## Objectives

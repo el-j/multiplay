@@ -1,7 +1,8 @@
 ---
 id: PLAN-012
 title: Distributed Mesh Jam Session & Authenticated Mobile Remote Control
-status: completed
+status: experimental
+note: "Marked experimental per TASK-112 / ORC-06 pending M2 foundations"
 role: integrations
 tasks:
   - TASK-036

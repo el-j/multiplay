@@ -1,214 +1,596 @@
 {
   "project": "multiplay",
   "version": "0.1.0",
-  "activePlan": "PLAN-030",
-  "activeTask": "TASK-095",
+  "activePlan": "PLAN-035",
+  "activeTask": "TASK-116",
   "status": "in_progress",
-  "verificationCommand": "make all",
+  "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 30,
-    "completedPlans": 29,
-    "totalTasks": 98,
-    "completedTasks": 94
+    "totalPlans": 52,
+    "completedPlans": 22,
+    "totalTasks": 194,
+    "completedTasks": 84
   },
   "plans": [
     {
       "id": "PLAN-001",
       "title": "Pure-Rust Toolchain, Domain Models & Hexagonal Port Contracts",
       "status": "completed",
-      "tasks": ["TASK-001", "TASK-002", "TASK-003"]
+      "tasks": [
+        "TASK-001",
+        "TASK-002",
+        "TASK-003"
+      ]
     },
     {
       "id": "PLAN-002",
       "title": "Real-Time Audio Engine, Precaching Buffer & Hardware Output",
       "status": "completed",
-      "tasks": ["TASK-004", "TASK-005", "TASK-006"]
+      "tasks": [
+        "TASK-004",
+        "TASK-005",
+        "TASK-006"
+      ]
     },
     {
       "id": "PLAN-003",
       "title": "Audiophile DSP Pipeline, Sinc Resampling & FFT Visualizer",
       "status": "completed",
-      "tasks": ["TASK-007", "TASK-008", "TASK-009"]
+      "tasks": [
+        "TASK-007",
+        "TASK-008",
+        "TASK-009"
+      ]
     },
     {
       "id": "PLAN-004",
       "title": "Embedded Storage (redb), CQRS Event Bus & Library Indexer",
       "status": "completed",
-      "tasks": ["TASK-010", "TASK-011", "TASK-012"]
+      "tasks": [
+        "TASK-010",
+        "TASK-011",
+        "TASK-012"
+      ]
     },
     {
       "id": "PLAN-005",
       "title": "Multi-Source Search Aggregator, Stream Resolvers & Downloader",
-      "status": "completed",
-      "tasks": ["TASK-013", "TASK-014", "TASK-015", "TASK-016"]
+      "status": "re-opened",
+      "tasks": [
+        "TASK-013",
+        "TASK-014",
+        "TASK-015",
+        "TASK-016"
+      ]
     },
     {
       "id": "PLAN-006",
       "title": "Dense Winamp 1.x Faceplate & Multi-Window Magnetic Docking TUI",
-      "status": "completed",
-      "tasks": ["TASK-017", "TASK-018", "TASK-019", "TASK-020"]
+      "status": "re-opened",
+      "tasks": [
+        "TASK-017",
+        "TASK-018",
+        "TASK-019",
+        "TASK-020"
+      ]
     },
     {
       "id": "PLAN-007",
       "title": "Classic Winamp Skin (.wsz) Loader & Pure-Rust Plugin System",
       "status": "completed",
-      "tasks": ["TASK-021", "TASK-022"]
+      "tasks": [
+        "TASK-021",
+        "TASK-022"
+      ]
     },
     {
       "id": "PLAN-008",
       "title": "P2P Mesh, Soulseek Protocol & Runtime Composition Root",
-      "status": "completed",
-      "tasks": ["TASK-023", "TASK-024", "TASK-025"]
+      "status": "re-opened",
+      "tasks": [
+        "TASK-023",
+        "TASK-024",
+        "TASK-025"
+      ]
     },
     {
       "id": "PLAN-009",
-      "title": "Native Desktop Window Launcher, Bundling & Modular Widget GUI",
+      "title": "Native OS Desktop Windowing, Equalizer & Playlist Widgets, and Standalone Launcher",
       "status": "completed",
-      "tasks": ["TASK-026", "TASK-027", "TASK-028"]
+      "tasks": [
+        "TASK-026",
+        "TASK-027",
+        "TASK-028"
+      ]
     },
     {
       "id": "PLAN-010",
-      "title": "Zero-Gaps Audio Streaming Runtime & Protocol Resolvers",
-      "status": "completed",
-      "tasks": ["TASK-029", "TASK-030", "TASK-031", "TASK-032"]
+      "title": "Zero-Gaps Closure, Live Playback Streaming & 100% Mutation Testing",
+      "status": "re-opened",
+      "tasks": [
+        "TASK-029",
+        "TASK-030",
+        "TASK-031",
+        "TASK-032"
+      ]
     },
     {
       "id": "PLAN-011",
-      "title": "Advanced Playback Intelligence: Shuffle, Gapless Crossfade & Loudness",
-      "status": "completed",
-      "tasks": ["TASK-033", "TASK-034", "TASK-035"]
+      "title": "Advanced Audio Playback Intelligence (Smart Shuffle, Gapless Crossfading & EBU R128 Normalization)",
+      "status": "re-opened",
+      "tasks": [
+        "TASK-033",
+        "TASK-034",
+        "TASK-035"
+      ]
     },
     {
       "id": "PLAN-012",
-      "title": "Distributed Mesh Jam & Mobile Remote Control Daemon",
-      "status": "completed",
-      "tasks": ["TASK-036", "TASK-037", "TASK-038"]
+      "title": "Distributed Mesh Jam Session & Authenticated Mobile Remote Control",
+      "status": "experimental",
+      "tasks": [
+        "TASK-112",
+        "TASK-036",
+        "TASK-037",
+        "TASK-038"
+      ]
     },
     {
       "id": "PLAN-013",
-      "title": "Multi-Deck Professional DJ Engine & Dual-Console Mixer",
-      "status": "completed",
-      "tasks": ["TASK-039", "TASK-040", "TASK-041", "TASK-042"]
+      "title": "Multi-Deck Professional DJ Engine & Universal Source Mixer",
+      "status": "experimental",
+      "tasks": [
+        "TASK-112",
+        "TASK-039",
+        "TASK-040",
+        "TASK-041",
+        "TASK-042"
+      ]
     },
     {
       "id": "PLAN-014",
-      "title": "Unified Settings, Hierarchical TOML Configuration & Keyring Vault",
-      "status": "completed",
-      "tasks": ["TASK-043", "TASK-044", "TASK-045", "TASK-046"]
+      "title": "Unified Configuration Management, Secure Credential Vault & Settings UI",
+      "status": "re-opened",
+      "tasks": [
+        "TASK-043",
+        "TASK-044",
+        "TASK-045",
+        "TASK-046"
+      ]
     },
     {
       "id": "PLAN-015",
-      "title": "Comprehensive Production Makefile & GitHub Actions CI/CD Pipeline",
+      "title": "Build Automation, CI/CD Pipeline & Cross-Platform Release Packaging",
       "status": "completed",
-      "tasks": ["TASK-047", "TASK-048", "TASK-049", "TASK-050"]
+      "tasks": [
+        "TASK-047",
+        "TASK-048",
+        "TASK-049",
+        "TASK-050"
+      ]
     },
     {
       "id": "PLAN-016",
       "title": "Modular Detachable & Magnetically Dockable Window System",
       "status": "completed",
-      "tasks": ["TASK-051", "TASK-052", "TASK-053"]
+      "tasks": [
+        "TASK-051",
+        "TASK-052",
+        "TASK-053"
+      ]
     },
     {
       "id": "PLAN-017",
-      "title": "Playlist Drag-and-Drop Ingestion & Local Media Scanner",
+      "title": "Playlist Drag-and-Drop Ingestion & Multi-Format Local Media Scanner",
       "status": "completed",
-      "tasks": ["TASK-054", "TASK-055", "TASK-056"]
+      "tasks": [
+        "TASK-054",
+        "TASK-055",
+        "TASK-056"
+      ]
     },
     {
       "id": "PLAN-018",
-      "title": "Real Symphonia Audio Playback Engine & Gapless Advancement",
+      "title": "Real Symphonia Audio Playback Engine & Gapless Decoder Integration",
       "status": "completed",
-      "tasks": ["TASK-057", "TASK-058"]
+      "tasks": [
+        "TASK-057",
+        "TASK-058"
+      ]
     },
     {
       "id": "PLAN-019",
       "title": "Audiophile Equalizer DSP Overhaul & Clipping Safeguard Engine",
       "status": "completed",
-      "tasks": ["TASK-057", "TASK-058"]
+      "tasks": [
+        "TASK-059",
+        "TASK-060"
+      ]
     },
     {
       "id": "PLAN-020",
       "title": "Orchestration Audit Remediation & Completion Re-baseline",
       "status": "completed",
-      "tasks": ["TASK-061", "TASK-062"]
+      "tasks": [
+        "TASK-061",
+        "TASK-062"
+      ]
     },
     {
       "id": "PLAN-021",
       "title": "Elimination of Synthetic Stubs & Production Provider Hardening",
-      "status": "completed",
-      "tasks": ["TASK-063", "TASK-064", "TASK-065", "TASK-066"]
+      "status": "re-opened",
+      "tasks": [
+        "TASK-063",
+        "TASK-064",
+        "TASK-065",
+        "TASK-066"
+      ]
     },
     {
       "id": "PLAN-022",
       "title": "End-to-End Audio Pipeline Integration & Cross-Platform Runtime Wiring",
       "status": "completed",
-      "tasks": ["TASK-067", "TASK-068", "TASK-069"]
+      "tasks": [
+        "TASK-067",
+        "TASK-068",
+        "TASK-069"
+      ]
     },
     {
       "id": "PLAN-023",
       "title": "Boss-File Refactoring & Modular Architectural Decomposition",
       "status": "completed",
-      "tasks": ["TASK-070", "TASK-071", "TASK-072"]
+      "tasks": [
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ]
     },
     {
       "id": "PLAN-024",
       "title": "End-to-End Verification, Test Suite Hardening & CI Test Resilience",
       "status": "completed",
-      "tasks": ["TASK-073", "TASK-074", "TASK-075"]
+      "tasks": [
+        "TASK-073",
+        "TASK-074",
+        "TASK-075"
+      ]
     },
     {
       "id": "PLAN-025",
       "title": "100% In-Code Documentation, Complete Rustdoc Coverage & Zero-Warning Gate",
       "status": "completed",
-      "tasks": ["TASK-076", "TASK-077", "TASK-078"]
+      "tasks": [
+        "TASK-076",
+        "TASK-077",
+        "TASK-078"
+      ]
     },
     {
       "id": "PLAN-026",
       "title": "Multi-Viewport Native Desktop Architecture (True Independent OS Windows)",
       "status": "completed",
-      "tasks": ["TASK-079", "TASK-080", "TASK-081", "TASK-082"]
+      "tasks": [
+        "TASK-079",
+        "TASK-080",
+        "TASK-081",
+        "TASK-082"
+      ]
     },
     {
       "id": "PLAN-027",
       "title": "Window Stability, Scaler Smoothness & Multi-Viewport Polish (Flicker-Free Industry-Grade Architecture)",
       "status": "completed",
-      "tasks": ["TASK-083", "TASK-084", "TASK-085", "TASK-086"]
+      "tasks": [
+        "TASK-083",
+        "TASK-084",
+        "TASK-085",
+        "TASK-086"
+      ]
     },
     {
       "id": "PLAN-028",
       "title": "Bit-Perfect Audiophile Playback Pipeline & Hardware Sinc Resampling",
       "status": "completed",
-      "tasks": ["TASK-087", "TASK-088", "TASK-089", "TASK-090"]
+      "tasks": [
+        "TASK-087",
+        "TASK-088",
+        "TASK-089",
+        "TASK-090"
+      ]
     },
     {
       "id": "PLAN-029",
       "title": "Progressive Network Streaming & Universal Resolvers (YouTube & HTTP)",
       "status": "completed",
-      "tasks": ["TASK-091", "TASK-092", "TASK-093", "TASK-094"]
+      "tasks": [
+        "TASK-091",
+        "TASK-092",
+        "TASK-093",
+        "TASK-094"
+      ]
     },
     {
       "id": "PLAN-030",
       "title": "Native File Dialogs, Playlist Persistence & Classic Winamp Skin (.wsz) Engine",
       "status": "completed",
-      "tasks": ["TASK-095", "TASK-096", "TASK-097", "TASK-098"]
+      "tasks": [
+        "TASK-095",
+        "TASK-096",
+        "TASK-097",
+        "TASK-098"
+      ]
     },
     {
       "id": "PLAN-031",
       "title": "Pro Live DJ Engine & Realtime Mixer",
-      "status": "completed",
-      "tasks": ["TASK-099", "TASK-100", "TASK-101", "TASK-102"]
+      "status": "experimental",
+      "tasks": [
+        "TASK-112",
+        "TASK-099",
+        "TASK-100",
+        "TASK-101",
+        "TASK-102"
+      ]
     },
     {
       "id": "PLAN-032",
       "title": "Integrated Mobile Remote Daemon & Distributed Jam Session",
-      "status": "completed",
-      "tasks": ["TASK-103", "TASK-104", "TASK-105", "TASK-106"]
+      "status": "experimental",
+      "tasks": [
+        "TASK-112",
+        "TASK-103",
+        "TASK-104",
+        "TASK-105",
+        "TASK-106"
+      ]
     },
     {
       "id": "PLAN-033",
       "title": "Audiophile Seamless Gapless Playback, Automix Crossfader & EBU R128 Normalization",
+      "status": "re-opened",
+      "tasks": [
+        "TASK-107",
+        "TASK-108",
+        "TASK-109",
+        "TASK-110",
+        "TASK-111"
+      ]
+    },
+    {
+      "id": "PLAN-034",
+      "title": "Release Truth Reset, Honest Status & Governance",
       "status": "completed",
-      "tasks": ["TASK-107", "TASK-108", "TASK-109", "TASK-110", "TASK-111"]
+      "tasks": [
+        "TASK-112",
+        "TASK-113",
+        "TASK-114",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-035",
+      "title": "Remote Control Daemon Security Hardening",
+      "status": "in_progress",
+      "tasks": [
+        "TASK-116",
+        "TASK-117",
+        "TASK-118",
+        "TASK-119",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-036",
+      "title": "Green CI on macOS/Linux/Windows & Hermetic Test Suite",
+      "status": "pending",
+      "tasks": [
+        "TASK-120",
+        "TASK-121",
+        "TASK-122",
+        "TASK-123",
+        "TASK-124",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-037",
+      "title": "Unified Core Playback Engine (PlayerEngine) & Transport Correctness",
+      "status": "pending",
+      "tasks": [
+        "TASK-125",
+        "TASK-126",
+        "TASK-127",
+        "TASK-128",
+        "TASK-129",
+        "TASK-130",
+        "TASK-131",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-038",
+      "title": "Audio Output Device Robustness",
+      "status": "pending",
+      "tasks": [
+        "TASK-132",
+        "TASK-133",
+        "TASK-134",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-039",
+      "title": "Decoder & Progressive Streaming Correctness",
+      "status": "pending",
+      "tasks": [
+        "TASK-135",
+        "TASK-136",
+        "TASK-137",
+        "TASK-138",
+        "TASK-139",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-040",
+      "title": "Audiophile DSP Transparency & Correctness",
+      "status": "pending",
+      "tasks": [
+        "TASK-140",
+        "TASK-141",
+        "TASK-142",
+        "TASK-143",
+        "TASK-144",
+        "TASK-145",
+        "TASK-146",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-041",
+      "title": "Persistent Library, Configuration & Secrets",
+      "status": "pending",
+      "tasks": [
+        "TASK-147",
+        "TASK-148",
+        "TASK-149",
+        "TASK-150",
+        "TASK-151",
+        "TASK-152",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-042",
+      "title": "Universal Search Wired End-to-End",
+      "status": "pending",
+      "tasks": [
+        "TASK-153",
+        "TASK-154",
+        "TASK-155",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-043",
+      "title": "YouTube Resolver & Offline Downloader Hardening",
+      "status": "pending",
+      "tasks": [
+        "TASK-156",
+        "TASK-157",
+        "TASK-158",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-044",
+      "title": "Bandcamp & SoundCloud Resolvers",
+      "status": "pending",
+      "tasks": [
+        "TASK-159",
+        "TASK-160",
+        "TASK-161",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-045",
+      "title": "Real Soulseek Client: Session, Search, Transfers & Sharing",
+      "status": "pending",
+      "tasks": [
+        "TASK-162",
+        "TASK-163",
+        "TASK-164",
+        "TASK-165",
+        "TASK-166",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-046",
+      "title": "P2P Mesh & Spotify Scope Decisions; Remove Facades",
+      "status": "pending",
+      "tasks": [
+        "TASK-167",
+        "TASK-168",
+        "TASK-169",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-047",
+      "title": "UX: From First Run to Daily Driver",
+      "status": "pending",
+      "tasks": [
+        "TASK-170",
+        "TASK-171",
+        "TASK-172",
+        "TASK-173",
+        "TASK-174",
+        "TASK-175",
+        "TASK-176",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-048",
+      "title": "Observability, Diagnostics & Measured Resource Budgets",
+      "status": "pending",
+      "tasks": [
+        "TASK-177",
+        "TASK-178",
+        "TASK-179",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-049",
+      "title": "Release Engineering & Distribution",
+      "status": "pending",
+      "tasks": [
+        "TASK-180",
+        "TASK-181",
+        "TASK-182",
+        "TASK-183",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-050",
+      "title": "Release-Grade Quality Assurance",
+      "status": "pending",
+      "tasks": [
+        "TASK-184",
+        "TASK-185",
+        "TASK-186",
+        "TASK-187",
+        "TASK-188",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-051",
+      "title": "Codebase Consolidation & Architecture Integrity",
+      "status": "pending",
+      "tasks": [
+        "TASK-189",
+        "TASK-190",
+        "TASK-191",
+        "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-052",
+      "title": "Legal, Privacy & Provider Compliance",
+      "status": "pending",
+      "tasks": [
+        "TASK-192",
+        "TASK-193",
+        "TASK-194",
+        "TASK-115"
+      ]
     }
   ]
 }

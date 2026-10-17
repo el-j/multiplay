@@ -4,7 +4,7 @@
 - **ID:** `PLAN-032`
 - **Title:** Integrated Mobile Remote Daemon & Distributed Jam Session
 - **Role:** `distributed_systems` & `frontend_gui`
-- **Status:** Completed
+- **Status:** Experimental (per TASK-112 / ORC-06 pending M2 foundations)
 - **Dependencies:** `PLAN-030`, `PLAN-031`
 
 ## Objectives

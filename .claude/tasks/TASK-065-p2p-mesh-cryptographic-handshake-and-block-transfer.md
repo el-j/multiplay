@@ -2,8 +2,10 @@
 id: TASK-065
 title: Pure-Rust P2P Mesh Cryptographic Handshake & Block Transfer
 planId: PLAN-021
-status: completed
+status: re-opened
 role: integrations
+auditFindings: ["ORC-01", "SRC-16"]
+mappedTo: ["PLAN-046", "TASK-167"]
 verificationCommand: cargo test -p amp-adapter-p2p
 ---
 

@@ -2,8 +2,10 @@
 id: TASK-036
 title: Collaborative CRDT Queue & Lamport State Machine
 planId: PLAN-012
-status: completed
+status: re-opened
 role: distributed_systems
+auditFindings: ["ORC-01", "UX-07", "ARC-06"]
+mappedTo: ["PLAN-050", "TASK-187"]
 verificationCommand: cargo test -p amp-domain test_crdt_queue
 ---
 

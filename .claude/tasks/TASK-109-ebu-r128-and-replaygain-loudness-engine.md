@@ -14,4 +14,4 @@
 `cargo test -p amp-domain -p amp-adapter-storage -p amp-core-engine -p amp-adapter-gui`
 
 ## Status
-- **Status:** Completed
+- **Status:** re-opened (audit: ORC-01, DSP-05 -> mapped to PLAN-040 / TASK-143)
