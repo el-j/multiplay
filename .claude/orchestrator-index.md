@@ -1,7 +1,9 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 27 Plans | 86 Tasks | 86 Completed | 0 In Progress/Pending | Status: AUDITED (PLAN-027 Complete, Next Milestone Planning Ready)*
+*Tracking: 28 Plans | 90 Tasks | 90 Completed | 0 In Progress/Pending | Status: READY FOR NEXT MILESTONE (PLAN-028 Complete)*
+
+
 
 
 ---
@@ -258,6 +260,14 @@
 | [TASK-084](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-084-drag-release-magnetic-snap-stabilization.md) | Drag-Release Magnetic Snap Stabilization and WindowServer Decoupling | Completed | gui_engineering | `cargo test -p amp-adapter-gui test_docking` |
 | [TASK-085](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-085-conditional-repaint-scheduling-and-vsync-hardware-tuning.md) | Conditional Repaint Scheduling & VSync Hardware Tuning | Completed | gui_engineering | `cargo check -p amp-adapter-gui && cargo test -p amp-adapter-gui` |
 | [TASK-086](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-086-comprehensive-verification-and-quality-gate.md) | Comprehensive Testing, Verification, Zero Clippy Warnings, and Build Packaging | Completed | qa_and_hardening | `make all` |
+
+### PLAN-028: Bit-Perfect Audiophile Playback Pipeline & Hardware Sinc Resampling (Completed)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-087](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-087-live-polyphase-sinc-resampling-engine.md) | Live Polyphase Sinc Resampling Engine | Completed | dsp_engineering | `cargo test -p amp-adapter-gui -p amp-app` |
+| [TASK-088](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-088-soft-knee-limiter-and-headroom-safeguard.md) | Soft-Knee Limiter & Headroom Safeguard | Completed | dsp_engineering | `cargo test -p amp-adapter-gui -p amp-core-engine` |
+| [TASK-089](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-089-channel-matrix-and-downmixer.md) | ITU-R BS.775 Channel Matrix & Downmixer | Completed | audio_engine | `cargo test -p amp-adapter-decoder` |
+| [TASK-090](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-090-lock-free-buffer-backpressure.md) | Adaptive Lock-Free Buffer Backpressure & Audio Thread Hardening | Completed | qa_and_hardening | `make all` |
 
 ---
 

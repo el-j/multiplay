@@ -5,7 +5,7 @@
 
 use amp_adapter_cpal::{AudioDeviceDescription, CpalAudioSink};
 use amp_adapter_decoder::AudioStreamDecoder;
-use amp_core_engine::{GraphicEqualizer, SpectrumVisualizer};
+use amp_core_engine::PlaybackDspChain;
 use amp_domain::{AudioSource, PlaybackState, Track};
 use amp_ports::AudioSinkPort;
 use rtrb::Producer;
@@ -181,9 +181,8 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
         ..
     } = driver;
 
-    let mut eq = GraphicEqualizer::new(sample_rate as f32);
-    let mut vis = SpectrumVisualizer::new();
     let chunk_frames = 512;
+    let mut dsp_chain = PlaybackDspChain::new(sample_rate, chunk_frames);
     let mut pcm_buffer = vec![0.0f32; chunk_frames * 2];
     let mut active_decoder: Option<AudioStreamDecoder> = None;
 
@@ -197,6 +196,7 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
                 if let AudioSource::LocalFile { ref path } = track.source {
                     if let Ok(dec) = AudioStreamDecoder::open_file(path) {
                         *total_duration.lock().unwrap() = dec.duration().or(track.metadata.duration);
+                        dsp_chain.set_source_sample_rate(dec.sample_rate());
                         active_decoder = Some(dec);
                     }
                 }
@@ -218,21 +218,12 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
             }
         }
 
-        // 4. Update EQ settings (only updates when changed)
         let eq_on = eq_enabled.load(Ordering::Relaxed);
-        eq.set_enabled(eq_on);
         let preamp = *eq_preamp.lock().unwrap();
-        eq.set_preamp_gain(preamp);
-        {
-            let gains = *eq_gains.lock().unwrap();
-            for (idx, &g) in gains.iter().enumerate() {
-                eq.set_band_gain(idx, g);
-            }
-        }
-
+        let gains = *eq_gains.lock().unwrap();
         let vol = *volume.lock().unwrap();
 
-        // 5. Decode audio frames from real decoder
+        // 4. Decode audio frames from real decoder
         let mut read_samples = 0;
         if let Some(ref mut dec) = active_decoder {
             match dec.read_interleaved_samples(&mut pcm_buffer) {
@@ -263,29 +254,34 @@ fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
             continue;
         }
 
-        // 6. Apply master volume
-        for s in &mut pcm_buffer[..read_samples] {
-            *s *= vol;
-        }
+        // 5. Unified DSP processing: Sinc resampling, master volume, 10-band EQ, soft-knee limiter, FFT visualizer
+        let (processed, bands) = dsp_chain.process_interleaved(
+            &pcm_buffer[..read_samples],
+            vol,
+            preamp,
+            &gains,
+            eq_on,
+        );
 
-        // 7. Apply 10-band equalizer
-        eq.process_interleaved(&mut pcm_buffer[..read_samples]);
-
-        // 8. Update FFT spectrum visualizer
-        vis.push_samples(&pcm_buffer[..read_samples]);
-        let bands = vis.compute_spectrum_bands();
         if let Ok(mut spec) = visualizer_spectrum.try_lock() {
             *spec = bands;
         }
 
-        // 9. Push samples to CPAL lock-free ring buffer
+        // 6. Push samples to CPAL lock-free ring buffer with adaptive backpressure
         if let Ok(mut prod) = producer.try_lock() {
-            for &s in &pcm_buffer[..read_samples] {
-                while prod.push(s).is_err() {
-                    if !is_playing.load(Ordering::Relaxed) {
-                        break;
+            let mut pushed = 0;
+            while pushed < processed.len() {
+                if !is_playing.load(Ordering::Relaxed) {
+                    break;
+                }
+                match prod.push(processed[pushed]) {
+                    Ok(()) => {
+                        pushed += 1;
                     }
-                    std::thread::yield_now();
+                    Err(_) => {
+                        // Buffer full: sleep 2ms rather than burning CPU in a busy yield loop
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
                 }
             }
         }

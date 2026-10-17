@@ -5,7 +5,7 @@
 
 use amp_adapter_cpal::CpalAudioSink;
 use amp_adapter_decoder::AudioStreamDecoder;
-use amp_core_engine::{GraphicEqualizer, SpectrumVisualizer};
+use amp_core_engine::PlaybackDspChain;
 use amp_domain::{AudioSource, PlaybackState, Track};
 use amp_ports::AudioSinkPort;
 use rtrb::Producer;
@@ -154,9 +154,8 @@ fn run_playback_loop(
     track_change_signal: Arc<AtomicBool>,
     sample_rate: u32,
 ) {
-    let mut eq = GraphicEqualizer::new(sample_rate as f32);
-    let mut vis = SpectrumVisualizer::new();
     let chunk_frames = 512;
+    let mut dsp_chain = PlaybackDspChain::new(sample_rate, chunk_frames);
     let mut pcm_buffer = vec![0.0f32; chunk_frames * 2];
     let mut active_decoder: Option<AudioStreamDecoder> = None;
 
@@ -169,6 +168,7 @@ fn run_playback_loop(
                 if let AudioSource::LocalFile { path } = &track.source {
                     if let Ok(decoder) = AudioStreamDecoder::open_file(path) {
                         *total_duration.lock().unwrap() = decoder.duration();
+                        dsp_chain.set_source_sample_rate(decoder.sample_rate());
                         active_decoder = Some(decoder);
                     }
                 }
@@ -212,29 +212,33 @@ fn run_playback_loop(
         }
 
         let vol = *volume.lock().unwrap();
-        for s in &mut pcm_buffer[..read_samples] {
-            *s *= vol;
-        }
-
         let gains = *eq_gains.lock().unwrap();
-        for (i, &g) in gains.iter().enumerate() {
-            eq.set_band_gain(i, g);
-        }
-        eq.process_interleaved(&mut pcm_buffer[..read_samples]);
 
-        vis.push_samples(&pcm_buffer[..read_samples]);
-        let bands = vis.compute_spectrum_bands();
+        let (processed, bands) = dsp_chain.process_interleaved(
+            &pcm_buffer[..read_samples],
+            vol,
+            0.0,
+            &gains,
+            true,
+        );
+
         if let Ok(mut spec) = visualizer_spectrum.try_lock() {
             *spec = bands;
         }
 
         if let Ok(mut prod) = producer.try_lock() {
-            for &s in &pcm_buffer[..read_samples] {
-                while prod.push(s).is_err() {
-                    if !is_playing.load(Ordering::Relaxed) {
-                        break;
+            let mut pushed = 0;
+            while pushed < processed.len() {
+                if !is_playing.load(Ordering::Relaxed) {
+                    break;
+                }
+                match prod.push(processed[pushed]) {
+                    Ok(()) => {
+                        pushed += 1;
                     }
-                    std::thread::yield_now();
+                    Err(_) => {
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
                 }
             }
         }

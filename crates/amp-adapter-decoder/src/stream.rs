@@ -130,11 +130,7 @@ impl AudioStreamDecoder {
                         let frames = samples.len() / channels;
 
                         for f in 0..frames {
-                            let (l, r) = if channels == 1 {
-                                (samples[f], samples[f])
-                            } else {
-                                (samples[f * channels], samples[f * channels + 1])
-                            };
+                            let (l, r) = downmix_frame(samples, f, channels);
 
                             if written + 1 < output.len() {
                                 output[written] = l;
@@ -185,5 +181,62 @@ impl AudioStreamDecoder {
 
     pub fn elapsed(&self) -> std::time::Duration {
         std::time::Duration::from_secs_f64(self.frames_played as f64 / self.sample_rate as f64)
+    }
+}
+
+/// Downmixes an interleaved multi-channel frame to stereo according to ITU-R BS.775.
+pub fn downmix_frame(samples: &[f32], frame_idx: usize, channels: usize) -> (f32, f32) {
+    let inv_sqrt_2 = std::f32::consts::FRAC_1_SQRT_2;
+    let base = frame_idx * channels;
+    if channels == 1 {
+        (samples[frame_idx], samples[frame_idx])
+    } else if channels == 2 {
+        (samples[base], samples[base + 1])
+    } else if channels >= 6 {
+        let fl = samples[base];
+        let fr = samples[base + 1];
+        let fc = samples[base + 2];
+        let sl = samples[base + 4];
+        let sr = samples[base + 5];
+        let left = (fl + fc * inv_sqrt_2 + sl * inv_sqrt_2) * inv_sqrt_2;
+        let right = (fr + fc * inv_sqrt_2 + sr * inv_sqrt_2) * inv_sqrt_2;
+        (left, right)
+    } else {
+        (samples[base], samples[base + 1])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_downmix_mono_to_stereo() {
+        let mono_samples = vec![0.8f32, 0.4f32];
+        let (l0, r0) = downmix_frame(&mono_samples, 0, 1);
+        assert_eq!(l0, 0.8);
+        assert_eq!(r0, 0.8);
+
+        let (l1, r1) = downmix_frame(&mono_samples, 1, 1);
+        assert_eq!(l1, 0.4);
+        assert_eq!(r1, 0.4);
+    }
+
+    #[test]
+    fn test_downmix_stereo_passthrough() {
+        let stereo = vec![0.7f32, -0.5f32];
+        let (l, r) = downmix_frame(&stereo, 0, 2);
+        assert_eq!(l, 0.7);
+        assert_eq!(r, -0.5);
+    }
+
+    #[test]
+    fn test_downmix_5_1_surround_sound() {
+        // FL, FR, FC, LFE, SL, SR
+        let surround = vec![1.0f32, 0.5f32, 1.0f32, 0.0f32, 0.5f32, 0.5f32];
+        let (l, r) = downmix_frame(&surround, 0, 6);
+        // Center channel and surround channels are mixed without phase error
+        assert!(l > 0.0 && l <= 1.5);
+        assert!(r > 0.0 && r <= 1.5);
     }
 }

@@ -23,8 +23,8 @@ pub use dj::{
 };
 pub use downloader::OfflineTrackDownloader;
 pub use dsp::{
-    BiquadFilter, CrossfadeCurve, Crossfader, GraphicEqualizer, LoudnessConfig, PureResampler,
-    PureVolumeNormalizer, SpectrumVisualizer, EQ_FREQUENCIES,
+    BiquadFilter, CrossfadeCurve, Crossfader, GraphicEqualizer, LoudnessConfig, PlaybackDspChain,
+    PureResampler, PureVolumeNormalizer, SpectrumVisualizer, EQ_FREQUENCIES,
 };
 pub use events::{PlayerCommand, PlayerEvent};
 pub use filtered_search::FilteredSearchCoordinator;
