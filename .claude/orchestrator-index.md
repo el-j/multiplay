@@ -270,13 +270,13 @@
 | [TASK-089](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-089-channel-matrix-and-downmixer.md) | ITU-R BS.775 Channel Matrix & Downmixer | Completed | audio_engine | `cargo test -p amp-adapter-decoder` |
 | [TASK-090](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-090-lock-free-buffer-backpressure.md) | Adaptive Lock-Free Buffer Backpressure & Audio Thread Hardening | Completed | qa_and_hardening | `make all` |
 
-### PLAN-029: Progressive Network Streaming & Universal Resolvers (YouTube & HTTP) (In Progress)
+### PLAN-029: Progressive Network Streaming & Universal Resolvers (YouTube & HTTP) (Completed)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-091](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-091-universal-multi-source-playback-dispatcher.md) | Universal Multi-Source Dispatcher in AudioPlaybackDriver | Pending | audio_engine | `cargo test -p amp-adapter-decoder -p amp-adapter-gui -p amp-app` |
-| [TASK-092](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-092-progressive-async-stream-buffer.md) | Progressive Asynchronous Stream Buffer & YouTube Streaming Overhaul | Pending | integrations | `cargo test -p amp-adapter-youtube` |
-| [TASK-093](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-093-direct-http-and-radio-resolver.md) | Pure-Rust Direct HTTP & Internet Radio Resolver | Pending | integrations | `cargo check --workspace && ./scripts/verify_pure_rust.sh` |
-| [TASK-094](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-094-streaming-verification-harness.md) | Real Network Streaming Verification Harness | Pending | testing | `make all` |
+| [TASK-091](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-091-universal-multi-source-playback-dispatcher.md) | Universal Multi-Source Dispatcher in AudioPlaybackDriver | Completed | audio_engine | `cargo test -p amp-adapter-decoder -p amp-adapter-gui -p amp-app` |
+| [TASK-092](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-092-progressive-async-stream-buffer.md) | Progressive Asynchronous Stream Buffer & YouTube Streaming Overhaul | Completed | integrations | `cargo test -p amp-adapter-youtube` |
+| [TASK-093](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-093-direct-http-and-radio-resolver.md) | Pure-Rust Direct HTTP & Internet Radio Resolver | Completed | integrations | `cargo check --workspace && ./scripts/verify_pure_rust.sh` |
+| [TASK-094](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-094-streaming-verification-harness.md) | Real Network Streaming Verification Harness | Completed | testing | `make all` |
 
 ---
 
