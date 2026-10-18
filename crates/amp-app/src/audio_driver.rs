@@ -4,7 +4,7 @@
 #![forbid(unsafe_code)]
 
 use crate::track_loader::load_track_decoder;
-use amp_adapter_cpal::CpalAudioSink;
+use amp_adapter_cpal::{CapturedOutput, CpalAudioSink};
 use amp_adapter_decoder::AudioStreamDecoder;
 use amp_core_engine::PlaybackDspChain;
 use amp_domain::{PlaybackState, Track};
@@ -44,6 +44,12 @@ impl AudioPlaybackDriver {
     pub fn new_headless() -> Result<Self, String> {
         let (audio_sink, producer) = CpalAudioSink::new_null(48_000, 2);
         Self::with_sink(audio_sink, producer)
+    }
+
+    /// Plays into a capture sink that records the rendered samples (tests).
+    pub fn new_capture() -> Result<(Self, CapturedOutput), String> {
+        let (audio_sink, producer, captured) = CpalAudioSink::new_capture(48_000, 2);
+        Ok((Self::with_sink(audio_sink, producer)?, captured))
     }
 
     fn with_sink(mut audio_sink: CpalAudioSink, producer: Producer<f32>) -> Result<Self, String> {

@@ -27,7 +27,7 @@
 ## Manual Verification
 - `CpalAudioSink::new_null(rate, channels)`: drains the ring buffer at real-time pace on a background thread, no device opened. `AudioPlaybackDriver::new_headless()` in GUI and TUI; `MultiplayGuiApp::headless(root)` and `MultiplayApp::new_headless()` used by all app tests. The streaming e2e test previously skipped itself silently without a device; it now always runs.
 - The 3 hardware tests in `amp-adapter-cpal` are `#[ignore = "needs audio hardware"]`; `make test-hw` runs them.
-- Deviation: the null sink lives in `amp-adapter-cpal` (also needed for a headless mode, BLD-07) instead of a separate `amp-test-support` crate; a `CaptureAudioSink` for asserting output samples is still open.
+- Deviation: the null sink lives in `amp-adapter-cpal` (also needed for a headless mode, BLD-07) instead of a separate `amp-test-support` crate. `CpalAudioSink::new_capture()` / `AudioPlaybackDriver::new_capture()` record the drained samples (`CapturedOutput::{samples, len, peak}`); the progressive streaming e2e test now asserts the decoded tone reaches the output (peak in 0.1..=1.0) instead of only checking `is_playing`.
 
 ## Status
 - **Status:** Pending

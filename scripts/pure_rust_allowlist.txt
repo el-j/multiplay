@@ -20,6 +20,7 @@ alsa-sys: Links the OS libasound for cpal audio output on Linux (located via pkg
 wayland-sys: Binds the OS libwayland-client for winit on Linux (located via pkg-config)
 wayland-backend: Wayland protocol backend for winit; build script uses cc for OS libwayland glue
 khronos-egl: Binds the OS libEGL for wgpu's GL backend on Linux (located via pkg-config)
+x11-dl: Loads the OS libX11 family at runtime (dlopen) for winit on Linux; build script only queries pkg-config, no C is compiled
 linux-raw-sys: Pure-Rust Linux syscall definitions for rustix (no C code)
 
 # --- macOS -------------------------------------------------------------------

@@ -13,7 +13,7 @@ use amp_ports::driven::AudioSinkPort;
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 use std::sync::mpsc::{self, Sender};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -115,22 +115,20 @@ impl CpalAudioSink {
     /// A background thread drains the ring buffer at real-time pace and discards the samples,
     /// so producers see the same back-pressure as with a real device.
     pub fn new_null(sample_rate: u32, channels: u16) -> (Self, Producer<f32>) {
-        let (mut sink, producer, mut consumer) = Self::new_mock(sample_rate, channels);
+        let (mut sink, producer, consumer) = Self::new_mock(sample_rate, channels);
         sink.device_name = "Null Output (no audio device)".to_string();
-        let per_tick = (sample_rate as usize * channels.max(1) as usize) / 100;
-        thread::Builder::new()
-            .name("amp-null-sink".to_string())
-            .spawn(move || {
-                while !consumer.is_abandoned() {
-                    let n = consumer.slots().min(per_tick);
-                    if let Ok(chunk) = consumer.read_chunk(n) {
-                        chunk.commit_all();
-                    }
-                    thread::sleep(Duration::from_millis(10));
-                }
-            })
-            .ok();
+        spawn_realtime_drain(consumer, sample_rate, channels, None);
         (sink, producer)
+    }
+
+    /// Like [`Self::new_null`], but records every drained sample so tests can assert on
+    /// what the pipeline actually rendered.
+    pub fn new_capture(sample_rate: u32, channels: u16) -> (Self, Producer<f32>, CapturedOutput) {
+        let (mut sink, producer, consumer) = Self::new_mock(sample_rate, channels);
+        sink.device_name = "Capture Output (no audio device)".to_string();
+        let captured = CapturedOutput::default();
+        spawn_realtime_drain(consumer, sample_rate, channels, Some(captured.clone()));
+        (sink, producer, captured)
     }
 
     pub fn device_name(&self) -> &str {
@@ -144,6 +142,63 @@ impl CpalAudioSink {
     pub fn channels(&self) -> u16 {
         self.channels.load(Ordering::Relaxed)
     }
+}
+
+/// Samples recorded by a capture sink (see [`CpalAudioSink::new_capture`]).
+#[derive(Clone, Default)]
+pub struct CapturedOutput(Arc<Mutex<Vec<f32>>>);
+
+impl CapturedOutput {
+    /// Copy of every sample drained so far, interleaved.
+    pub fn samples(&self) -> Vec<f32> {
+        self.0.lock().map(|s| s.clone()).unwrap_or_default()
+    }
+
+    /// Number of samples drained so far.
+    pub fn len(&self) -> usize {
+        self.0.lock().map(|s| s.len()).unwrap_or(0)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Largest absolute sample value drained so far (0.0 for silence).
+    pub fn peak(&self) -> f32 {
+        self.0
+            .lock()
+            .map(|s| s.iter().fold(0.0f32, |m, x| m.max(x.abs())))
+            .unwrap_or(0.0)
+    }
+}
+
+/// Drains `consumer` at real-time pace on a background thread until the producer is dropped.
+fn spawn_realtime_drain(
+    mut consumer: Consumer<f32>,
+    sample_rate: u32,
+    channels: u16,
+    capture: Option<CapturedOutput>,
+) {
+    let per_tick = (sample_rate as usize * channels.max(1) as usize) / 100;
+    thread::Builder::new()
+        .name("amp-null-sink".to_string())
+        .spawn(move || {
+            while !consumer.is_abandoned() {
+                let n = consumer.slots().min(per_tick);
+                if let Ok(chunk) = consumer.read_chunk(n) {
+                    if let Some(capture) = &capture {
+                        let (a, b) = chunk.as_slices();
+                        if let Ok(mut buf) = capture.0.lock() {
+                            buf.extend_from_slice(a);
+                            buf.extend_from_slice(b);
+                        }
+                    }
+                    chunk.commit_all();
+                }
+                thread::sleep(Duration::from_millis(10));
+            }
+        })
+        .ok();
 }
 
 impl Drop for CpalAudioSink {
@@ -266,6 +321,23 @@ mod tests {
             "samples must be drained"
         );
         sink.stop().expect("null sink stop");
+    }
+
+    #[test]
+    fn capture_sink_records_drained_samples_in_order() {
+        let (mut sink, mut producer, captured) = CpalAudioSink::new_capture(48_000, 2);
+        sink.start().expect("capture sink start");
+        for i in 0..2048 {
+            producer.push(i as f32).unwrap();
+        }
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while captured.len() < 2048 && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let samples = captured.samples();
+        assert_eq!(samples.len(), 2048);
+        assert!(samples.iter().enumerate().all(|(i, s)| *s == i as f32));
+        assert!(captured.peak() >= 2047.0);
     }
 
     #[test]

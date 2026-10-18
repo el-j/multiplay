@@ -230,9 +230,9 @@ async fn test_progressive_network_audio_streaming() {
     let wav_data = generate_pcm_wav_stream(0.5, 440.0);
     let resolver = Arc::new(ProgressiveMockResolver { wav_data });
 
-    // Null sink: runs on CI machines without audio devices instead of silently skipping.
+    // Capture sink: runs on CI machines without audio devices and records the rendered output.
     {
-        let driver = AudioPlaybackDriver::new_headless().expect("headless driver");
+        let (driver, output) = AudioPlaybackDriver::new_capture().expect("capture driver");
         driver.register_resolver(resolver);
 
         let meta = TrackMetadata::new("Stream Song", "Network Station");
@@ -248,6 +248,15 @@ async fn test_progressive_network_audio_streaming() {
 
         // Verify driver is playing and track was loaded
         assert!(driver.is_playing.load(std::sync::atomic::Ordering::Relaxed));
+
+        // The decoded tone must actually reach the output, not just flip a flag.
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while output.peak() < 0.1 && std::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let peak = output.peak();
+        assert!(peak >= 0.1, "rendered output is silent (peak {peak})");
+        assert!(peak <= 1.0, "rendered output clips (peak {peak})");
         driver.stop();
         assert!(!driver.is_playing.load(std::sync::atomic::Ordering::Relaxed));
     }
