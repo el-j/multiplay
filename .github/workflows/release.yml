@@ -37,7 +37,7 @@ jobs:
             artifact_name: multiplay-windows-x86_64.zip
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
