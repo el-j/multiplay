@@ -28,6 +28,6 @@ rtrb = { workspace = true }
 tokio = { workspace = true, features = ["net", "rt", "macros", "time"] }
 rtrb = { workspace = true }
 amp-adapter-remote = { path = "../amp-adapter-remote" }
-tokio-tungstenite = { version = "0.24", default-features = false, features = ["handshake", "connect"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake", "connect"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 serde_json = { workspace = true }
