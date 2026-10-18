@@ -116,13 +116,8 @@ pub fn process_dj_tick(
     let gains = *driver.eq_gains.lock().unwrap();
     let vol = *driver.volume.lock().unwrap();
 
-    let (processed, bands) = dsp_chain.process_interleaved(
-        &pcm_mixed[..mixed_samples],
-        vol,
-        preamp,
-        &gains,
-        eq_on,
-    );
+    let (processed, bands) =
+        dsp_chain.process_interleaved(&pcm_mixed[..mixed_samples], vol, preamp, &gains, eq_on);
 
     update_visualizer_and_push(driver, &processed, bands);
 }

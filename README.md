@@ -1,108 +1,104 @@
 # multiplay
 
-[![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-blue.svg)](https://opensource.org/licenses/MPL-2.0)
-[![Pure Rust](https://img.shields.io/badge/Pure%20Rust-100%25-orange.svg)](#pure-rust-policy)
+[![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/el-j/multiplay/actions/workflows/ci.yml/badge.svg)](https://github.com/el-j/multiplay/actions/workflows/ci.yml)
 
-**multiplay** is a lightweight, audiophile-grade, multi-source audio player written in **pure Rust**.
-It combines a modular, retro Winamp 1.x inspired dense faceplate with an audio engine built on strict hexagonal architecture, lock-free real-time audio threads, and pure-Rust audio decoding.
+**multiplay** is a multi-source audio player written in Rust: local files, internet radio and web
+sources today, with YouTube, Bandcamp, SoundCloud and Soulseek sharing on the roadmap. It has a
+desktop GUI with a classic dense faceplate, dockable windows and `.wsz` skin support, plus a
+terminal (TUI) front end.
 
----
-
-## Architecture & Principles
-
-1. **Pure Rust:** Zero bundled third-party C/C++ libraries. Audio decoding (`symphonia`), embedded database (`redb`), cryptography & TLS (`rustls`), and DSP (`rubato`, `biquad`, `realfft`) are 100% pure Rust. Thin host OS platform bindings (CoreAudio, ALSA, WASAPI) are strictly audited in `scripts/pure_rust_allowlist.txt`.
-2. **Hexagonal Modularity:** Domain core (`amp-domain`) and core engine (`amp-core-engine`) never import concrete adapters. All boundary crossings use strongly typed ports (`amp-ports`).
-3. **Audio Thread Real-Time Safety:** The CPAL audio callback uses a lock-free single-producer single-consumer ring buffer (`rtrb`). It never allocates memory, waits on locks, makes system calls, or touches the filesystem.
+> **Status: pre-release (0.1).** Not yet ready for everyday use. A release-readiness audit
+> ([`.claude/audits/README.md`](.claude/audits/README.md)) drives the v1.0 roadmap; the matrix
+> below reflects what actually works today, not what is planned.
 
 ---
 
-## Honest Feature Matrix
+## Feature Matrix
 
-Per the release readiness audit, this matrix represents verified capability:
+**Stable** = works end to end on a release build. **Beta** = works with known defects.
+**Experimental** = incomplete, may be removed. **Planned** = not implemented.
 
-| Feature / Subsystem | Status | Description |
+| Feature | Status | Notes |
 | :--- | :--- | :--- |
-| **Local Audio Playback** | **Stable** | FLAC, MP3, WAV, AAC, Vorbis, Opus via pure-Rust `symphonia` |
-| **Hardware Output Sink** | **Stable** | Lock-free CPAL output on macOS (CoreAudio), Linux (ALSA), Windows (WASAPI) |
-| **Audiophile Equalizer** | **Stable** | 10-band IIR peaking biquad filterbank with coefficient smoothing |
-| **Sinc Resampling** | **Stable** | Polyphase bit-perfect sinc resampler via `rubato` |
-| **Spectrum Analyzer** | **Stable** | Real-time 16-band FFT visualizer via `realfft` |
-| **Embedded Database** | **Stable** | ACID key-value metadata & playlist persistence via pure-Rust `redb` |
-| **Winamp Faceplate TUI** | **Stable** | Modular multi-window terminal interface (`ratatui`) with magnetic snapping |
-| **Native Desktop GUI** | **Stable** | Multi-window desktop UI (`egui`/`eframe`) with dockable widgets |
-| **HTTP Stream Resolver** | **Stable** | Range-reader HTTP/HTTPS stream resolving with icy-metadata |
-| **YouTube Resolver** | **In Progress** | Format selection, stream buffering, and retry resilience (M3) |
-| **Omnibar Search** | **In Progress** | UI overlay exists; async pipeline wiring to backends in progress (M3) |
-| **Loudness Normalization**| **In Progress** | EBU R128 / ReplayGain tag extraction and true-peak limiter (M2) |
-| **Soulseek P2P Search** | **Planned** | Binary protocol search, direct peer transfer, and share indexing (M3) |
-| **Bandcamp & SoundCloud**| **Planned** | Track search, preview streams, and artist purchase page links (M3) |
-| **DJ Engine & Mixer** | **Experimental** | Dual-deck playback, WSOLA pitch-shift, and auto-BPM detector |
-| **Mobile Remote Control**| **Experimental** | Local WebSocket daemon with QR pairing (under security hardening) |
+| Local playback in the GUI (FLAC, MP3, WAV, AAC/M4A, Ogg Vorbis) | **Beta** | Pure-Rust decoding via `symphonia`. Opus is **not** supported yet. Output is f32 stereo only. |
+| Desktop GUI (`egui`/`eframe`) | **Beta** | Docking windows, playlist, EQ, `.wsz` skins. Errors are not yet shown in the UI. |
+| Terminal UI (`ratatui`) | **Experimental** | Cannot add files, seek or skip; library is not persisted between launches. |
+| 10-band graphic EQ | **Beta** | Applies soft clipping even when flat (audit DSP-01); not transparent yet. |
+| Sample-rate conversion (`rubato` sinc) | **Beta** | Partial blocks are zero-padded, which can click at track ends. |
+| Spectrum visualizer | **Beta** | Analyses interleaved samples (inaccurate bands). |
+| HTTP streams & internet radio | **Beta** | ICY metadata is not stripped from the audio; buffering is unbounded. |
+| Playlist/session persistence (GUI) | **Beta** | Session file in `~/.multiplay`. Settings are not saved. |
+| Loudness normalization (ReplayGain / R128) | **Planned** | Tags are not applied yet. |
+| Universal search across sources | **Planned** | Search UI exists but no search is executed. |
+| YouTube | **Experimental** | Resolver exists; playback of the selected stream format is unverified. |
+| Bandcamp, SoundCloud | **Planned** | Not implemented. |
+| Soulseek search, download & sharing | **Planned** | Current crate is an in-memory placeholder with no networking. |
+| Spotify | **Planned** | Current crate is a placeholder; scope under review. |
+| Private P2P mesh | **Planned** | Current crate is a placeholder; scope under review. |
+| DJ mode (two decks, BPM, pitch) | **Experimental** | Not integrated with the main engine. |
+| Phone remote control (Wi-Fi, QR pairing) | **Experimental** | Off by default; see [Security](#security). |
 
 ---
 
 ## Quickstart
 
-### Prerequisites
-
-- Rust 1.80+ (stable toolchain)
-- Cargo
-
-### Building
+Requires a recent stable Rust toolchain. On Linux you also need the ALSA development package
+(`libasound2-dev` on Debian/Ubuntu) and the usual X11/Wayland development headers for `eframe`.
 
 ```bash
-# Clone the repository
-git clone https://github.com/rex-fab-alt/multiplay.git
+git clone https://github.com/el-j/multiplay.git
 cd multiplay
 
-# Verify pure-Rust policy compliance & detection soundness
+# Desktop GUI
+cargo run --release -p amp-adapter-gui --bin multiplay-gui
+
+# Terminal UI (experimental)
+cargo run --release -p amp-app
+```
+
+### Development checks
+
+```bash
 ./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test
-
-# Build the entire workspace
-cargo build --workspace
-
-# Run the test suite
 cargo test --workspace
-```
-
-### Running
-
-```bash
-# Launch the Terminal (TUI) interface:
-cargo run -p amp-app
-
-# Launch the Desktop (GUI) interface:
-cargo run -p amp-app -- --gui
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ---
 
-## Pure-Rust Policy & Toolchain Verification
+## Native-Code Policy
 
-We verify that no vendored C/C++ libraries (such as OpenSSL, SQLite, or FFmpeg) enter the dependency tree across any target architecture:
+multiplay does not bundle or vendor third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg or
+aws-lc). Decoding (`symphonia`), storage (`redb`) and DSP (`rubato`, `realfft`) are pure Rust.
+It does link the audio, windowing and graphics libraries your operating system provides
+(CoreAudio, ALSA, WASAPI, Wayland, …). TLS uses `rustls`, whose `ring` crypto provider compiles
+C/assembly primitives: that is the one documented exception.
 
-```bash
-./scripts/verify_pure_rust.sh
-./scripts/verify_pure_rust.sh --self-test
-```
-
-All allowed OS-level platform `-sys` bindings are documented with explicit rationale in [`scripts/pure_rust_allowlist.txt`](scripts/pure_rust_allowlist.txt).
-
----
-
-## Security & Disclosures
-
-- **Remote Daemon:** By default, remote network control is disabled. Hardening and local loopback bind are tracked under `PLAN-035`.
-- **Vulnerability Reporting:** See [`SECURITY.md`](SECURITY.md) for private vulnerability disclosure guidelines.
+Every crate that links or builds native code must be justified in
+[`scripts/pure_rust_allowlist.txt`](scripts/pure_rust_allowlist.txt);
+[`scripts/verify_pure_rust.sh`](scripts/verify_pure_rust.sh) enforces this for all targets.
 
 ---
 
-## Contributing & Governance
+## Security
 
-Contributions are welcome! Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before submitting pull requests. All changes must adhere to `#![forbid(unsafe_code)]` and the Definition of Done in [`docs/definition-of-done.md`](docs/definition-of-done.md).
+The phone remote is **off by default**. When enabled in Settings → Remote it listens on
+`127.0.0.1` only, unless you also allow devices on your network. Phones pair by scanning a
+single-use QR code; cross-site and DNS-rebinding requests are refused, failed attempts are
+throttled, and remotes can never make the player open a file path or URL. Builds before
+this change started an unauthenticated server on `0.0.0.0:9002`. Please update.
+Report vulnerabilities privately as described in [`SECURITY.md`](SECURITY.md).
 
 ---
+
+## Contributing
+
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and the
+[Definition of Done](docs/definition-of-done.md) before opening a pull request.
 
 ## License
 
-This project is licensed under the **Mozilla Public License Version 2.0 (MPL-2.0)**. See [`LICENSE`](LICENSE) for details.
+[Mozilla Public License 2.0](LICENSE). "Winamp" is a trademark of its respective owner;
+multiplay is not affiliated with it and only reads classic `.wsz` skin files.

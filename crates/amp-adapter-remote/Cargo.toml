@@ -3,6 +3,7 @@ name = "amp-adapter-remote"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Pure-Rust embedded WebSocket remote daemon and QR pairing for multiplay"
 
 [dependencies]
@@ -10,13 +11,16 @@ amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 amp-core-engine = { path = "../amp-core-engine" }
 
-tokio = { workspace = true, features = ["net"] }
+tokio = { workspace = true, features = ["net", "time", "sync", "macros", "io-util"] }
 tokio-tungstenite = { version = "0.24", default-features = false, features = ["handshake"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 qrcode = { version = "0.14", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+getrandom = "0.2"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }
+uuid = { workspace = true }

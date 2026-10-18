@@ -26,7 +26,11 @@
 `cargo test -p amp-adapter-remote`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Protocol v1 envelope `{"v":1,"type":...}`; missing/unknown versions get an `Error` reply and are not dispatched. Non-finite volume rejected.
+- `EnqueueTrack(Box<Track>)` removed; remotes can only send `EnqueueById(TrackId)` → `PlayerCommand::EnqueueExisting`, which the GUI resolves only against its own playlist.
+- New `PlayerCommand::Next/Previous`; remote Next/VoteSkip/Previous now skip tracks (no more ±10 s seek hack).
+- Status broadcasts carry `RemoteTrackInfo` (id, title, artist, duration) and no longer leak local paths or URLs.
+- Evidence: `security::remote_cannot_enqueue_paths_or_urls`, `security::malformed_and_unversioned_messages_are_ignored`, `protocol::tests::*`.
 
 ## Status
 - **Status:** Pending

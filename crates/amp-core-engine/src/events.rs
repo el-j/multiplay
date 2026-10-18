@@ -15,6 +15,13 @@ pub enum PlayerCommand {
     SeekAbsolute(Duration),
     SetVolume(f32), // Normalized volume (0.0 to 1.0)
     AddToQueue(Box<Track>),
+    /// Skip to the next track in the queue.
+    Next,
+    /// Return to the previous track (or restart the current one).
+    Previous,
+    /// Enqueue a track the host already holds, by id. Used by untrusted remotes,
+    /// which may never supply a path or URL themselves.
+    EnqueueExisting(TrackId),
     RemoveFromQueue(TrackId),
     ClearQueue,
     TriggerDownload(Box<Track>, String), // (Track, Destination folder)

@@ -52,10 +52,10 @@ fn test_dj_engine_dual_stream_and_mixing_harness() {
     let wav_a = generate_test_wav_stream(1.0, 440.0);
     let wav_b = generate_test_wav_stream(1.0, 880.0);
 
-    let mut dec_a = AudioStreamDecoder::open_stream(Cursor::new(wav_a))
-        .expect("Decoder A should initialize");
-    let mut dec_b = AudioStreamDecoder::open_stream(Cursor::new(wav_b))
-        .expect("Decoder B should initialize");
+    let mut dec_a =
+        AudioStreamDecoder::open_stream(Cursor::new(wav_a)).expect("Decoder A should initialize");
+    let mut dec_b =
+        AudioStreamDecoder::open_stream(Cursor::new(wav_b)).expect("Decoder B should initialize");
 
     let chunk_size = 512;
     let mut mixer = DualDeckMixer::new(44100.0, chunk_size);
@@ -67,8 +67,12 @@ fn test_dj_engine_dual_stream_and_mixing_harness() {
     let mut mix_out = vec![0.0f32; chunk_size * 2];
 
     // 1. Initial simultaneous read & center crossfade
-    let n_a = dec_a.read_interleaved_samples(&mut buf_a).expect("Read deck A");
-    let n_b = dec_b.read_interleaved_samples(&mut buf_b).expect("Read deck B");
+    let n_a = dec_a
+        .read_interleaved_samples(&mut buf_a)
+        .expect("Read deck A");
+    let n_b = dec_b
+        .read_interleaved_samples(&mut buf_b)
+        .expect("Read deck B");
     assert!(n_a > 0 && n_b > 0);
 
     mixer.set_crossfader(0.0, CrossfaderCurveProfile::SmoothDip);
@@ -87,7 +91,10 @@ fn test_dj_engine_dual_stream_and_mixing_harness() {
     mixer.deck_a.isolator_eq.kill_mid = true;
     mixer.deck_a.isolator_eq.kill_high = true;
     let _ = mixer.process_and_mix(&buf_a[..n_a], &buf_b[..n_b], &mut mix_out);
-    assert_eq!(mix_out[0], 0.0, "Triple kill should completely silence Deck A");
+    assert_eq!(
+        mix_out[0], 0.0,
+        "Triple kill should completely silence Deck A"
+    );
 
     // Reset kills
     mixer.deck_a.isolator_eq.kill_low = false;

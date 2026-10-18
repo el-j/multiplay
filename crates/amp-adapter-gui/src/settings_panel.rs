@@ -207,10 +207,47 @@ impl SettingsGuiPanel {
                     );
                     ui.add_space(4.0);
 
+                    let before = config.remote.clone();
+                    ui.checkbox(&mut config.remote.enabled, "Enable remote control");
+                    ui.add_enabled_ui(config.remote.enabled, |ui| {
+                        ui.checkbox(
+                            &mut config.remote.allow_lan,
+                            "Allow devices on my network (phones on the same Wi-Fi)",
+                        );
+                    });
+                    if config.remote.allow_lan {
+                        ui.label(
+                            RichText::new(
+                                "Anyone on this network who scans the QR code can control playback. \
+                                 Use only on networks you trust.",
+                            )
+                            .size(10.0)
+                            .color(Color32::from_rgb(240, 180, 0)),
+                        );
+                    }
+                    if config.remote != before {
+                        remote.apply_config(&config.remote);
+                    }
+
+                    if let Some(err) = &remote.last_error {
+                        ui.colored_label(Color32::from_rgb(240, 80, 80), err);
+                    }
+
+                    ui.add_space(4.0);
+                    if !remote.is_running {
+                        ui.label("Remote control is off. Nothing is listening for connections.");
+                        return;
+                    }
+
                     ui.horizontal(|ui| {
-                        ui.label(format!("Daemon Status: Active (Port {})", remote.port));
+                        let scope = if remote.allow_lan { "network" } else { "this computer only" };
+                        ui.label(format!("Listening on port {} ({scope})", remote.port));
                         ui.separator();
-                        ui.label(format!("Connected Remotes: {}", remote.active_peers_count()));
+                        ui.label(format!(
+                            "Connected: {} · Paired devices: {}",
+                            remote.active_peers_count(),
+                            remote.paired_devices()
+                        ));
                     });
 
                     ui.add_space(6.0);
@@ -220,11 +257,15 @@ impl SettingsGuiPanel {
                         }
 
                         ui.vertical(|ui| {
-                            ui.label("Scan QR code with your smartphone camera to connect.");
+                            ui.label("Scan the QR code with your phone camera to pair.");
+                            ui.label("Each code works once and expires after 10 minutes.");
                             ui.add_space(4.0);
                             ui.label(format!("Token: {}", remote.current_token));
-                            if ui.button("🔄 Generate New Token").clicked() {
+                            if ui.button("🔄 New pairing code").clicked() {
                                 remote.refresh_token();
+                            }
+                            if ui.button("🚫 Forget all paired devices").clicked() {
+                                remote.revoke_all_sessions();
                             }
                             ui.add_space(4.0);
                             ui.label("Direct URL:");

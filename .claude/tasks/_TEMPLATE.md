@@ -16,7 +16,7 @@
 - Measurable criterion 2 (e.g., zero memory allocation on CPAL audio thread).
 - **Mocks Rule:** In-memory mocks may be used for unit testing isolated components, but NEVER mark a provider, network, or storage task Completed. Real adapters or recorded golden fixtures are required.
 - Pure-Rust verification passed (`./scripts/verify_pure_rust.sh && ./scripts/verify_pure_rust.sh --self-test`).
-- File length constraint enforced ($\le 300$ lines per file).
+- File length within `.nexus/policy.json` `maxFileLines` (500).
 
 ## Key Files
 - `crates/<crate>/src/<file>.rs`

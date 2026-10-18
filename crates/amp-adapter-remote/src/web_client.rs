@@ -97,33 +97,65 @@ pub const MOBILE_WEB_CLIENT_HTML: &str = r#"<!DOCTYPE html>
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   }
 
+  // Pairing: the QR code carries a single-use ?token=. The host answers with a
+  // long-lived session secret, kept in localStorage for reconnects.
+  const SESSION_KEY = 'multiplay.session';
+  const params = new URLSearchParams(location.search);
+  let pairingToken = params.get('token');
+  if (pairingToken) history.replaceState(null, '', location.pathname);
+  function loadSession() { try { return localStorage.getItem(SESSION_KEY); } catch (_) { return null; } }
+  function saveSession(s) { try { s ? localStorage.setItem(SESSION_KEY, s) : localStorage.removeItem(SESSION_KEY); } catch (_) {} }
+
+  function send(type, payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const msg = { v: 1, type };
+    if (payload !== undefined) msg.payload = payload;
+    ws.send(JSON.stringify(msg));
+  }
+
   function connect() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}/ws`);
+    const session = loadSession();
+    let query;
+    if (pairingToken) { query = 'token=' + encodeURIComponent(pairingToken); pairingToken = null; }
+    else if (session) { query = 'session=' + encodeURIComponent(session); }
+    else {
+      statusEl.textContent = 'Not paired: scan the QR code in multiplay';
+      statusEl.className = 'status-pill disconnected';
+      return;
+    }
+    let opened = false;
+    ws = new WebSocket(`${proto}//${location.host}/ws?${query}`);
     ws.onopen = () => {
+      opened = true;
       statusEl.textContent = 'Connected';
       statusEl.className = 'status-pill';
-      ws.send(JSON.stringify({ type: 'GetPlaybackStatus' }));
+      send('GetPlaybackStatus');
     };
     ws.onclose = () => {
-      statusEl.textContent = 'Disconnected';
       statusEl.className = 'status-pill disconnected';
+      if (!opened && query.startsWith('session=')) {
+        saveSession(null);
+        statusEl.textContent = 'Pairing expired: scan the QR code again';
+        return;
+      }
+      statusEl.textContent = 'Disconnected';
       setTimeout(connect, 2000);
     };
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'Status') {
+        if (msg.type === 'SessionGranted') {
+          saveSession(msg.payload.session);
+        } else if (msg.type === 'Status') {
           const s = msg.payload;
           isPlaying = s.is_playing;
           playBtn.textContent = isPlaying ? '⏸' : '▶';
           if (isPlaying) vinylEl.classList.add('spinning'); else vinylEl.classList.remove('spinning');
           if (s.current_track) {
-            titleEl.textContent = s.current_track.metadata.title;
-            artistEl.textContent = s.current_track.metadata.artist;
-            if (s.current_track.metadata.duration) {
-              totalSecs = s.current_track.metadata.duration.secs || 180;
-            }
+            titleEl.textContent = s.current_track.title;
+            artistEl.textContent = s.current_track.artist;
+            totalSecs = s.current_track.duration_secs || 0;
           }
           elapsedEl.textContent = fmt(s.position_secs);
           durEl.textContent = fmt(totalSecs);
@@ -134,16 +166,13 @@ pub const MOBILE_WEB_CLIENT_HTML: &str = r#"<!DOCTYPE html>
     };
   }
 
-  playBtn.onclick = () => ws && ws.send(JSON.stringify({ type: isPlaying ? 'Pause' : 'Play' }));
-  document.getElementById('prev').onclick = () => ws && ws.send(JSON.stringify({ type: 'Previous' }));
-  document.getElementById('next').onclick = () => ws && ws.send(JSON.stringify({ type: 'Next' }));
-  document.getElementById('vote-skip').onclick = () => ws && ws.send(JSON.stringify({ type: 'VoteSkip' }));
-  volEl.oninput = (e) => ws && ws.send(JSON.stringify({ type: 'SetVolume', payload: e.target.value / 100.0 }));
+  playBtn.onclick = () => send(isPlaying ? 'Pause' : 'Play');
+  document.getElementById('prev').onclick = () => send('Previous');
+  document.getElementById('next').onclick = () => send('Next');
+  document.getElementById('vote-skip').onclick = () => send('VoteSkip');
+  volEl.oninput = (e) => send('SetVolume', e.target.value / 100.0);
   seekEl.onchange = (e) => {
-    if (ws && totalSecs > 0) {
-      const target = Math.round((e.target.value / 100.0) * totalSecs);
-      ws.send(JSON.stringify({ type: 'Seek', payload: target }));
-    }
+    if (totalSecs > 0) send('Seek', Math.round((e.target.value / 100.0) * totalSecs));
   };
 
   connect();

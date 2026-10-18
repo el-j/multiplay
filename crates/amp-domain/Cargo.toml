@@ -3,6 +3,7 @@ name = "amp-domain"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Pure domain models, entities, and value objects for multiplay"
 
 [dependencies]

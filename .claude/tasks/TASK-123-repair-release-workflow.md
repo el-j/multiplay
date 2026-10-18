@@ -25,7 +25,11 @@
 `act -j build-release (or a dry-run tag on a fork)`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Removed the nonexistent `Multiplay.command` and every `|| true`; `if-no-files-found: error` on upload.
+- macOS: `scripts/Info.plist` copied into `Multiplay.app/Contents`, GUI is the bundle executable (`CFBundleExecutable = Multiplay`), TUI shipped as `bin/multiplay-tui`; both macOS targets build on `macos-latest` (macos-13 runners are retired).
+- Linux/Windows: GUI as `multiplay`, TUI as `multiplay-tui`; README and LICENSE included; Linux build deps installed; `--locked`.
+- `SHA256SUMS` generated; tags containing `-` (e.g. `v0.1.0-rc.1`) publish as pre-releases.
+- Pending: push a `v0.1.0-rc.1` tag and confirm artifacts on all 3 OSes.
 
 ## Status
 - **Status:** Pending

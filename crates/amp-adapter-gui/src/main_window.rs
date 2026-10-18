@@ -33,6 +33,22 @@ pub fn render_main_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             );
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if app.remote.is_running {
+                    let text = if app.remote.allow_lan {
+                        "● REMOTE ON (LAN)"
+                    } else {
+                        "● REMOTE ON"
+                    };
+                    ui.label(
+                        RichText::new(text)
+                            .size(11.0)
+                            .strong()
+                            .color(Color32::from_rgb(240, 180, 0)),
+                    )
+                    .on_hover_text(
+                        "Remote control is listening. Turn it off in Settings → Remote.",
+                    );
+                }
                 ui.label(
                     RichText::new("[44.1kHz / 24-bit] [ST]")
                         .size(11.0)

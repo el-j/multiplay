@@ -10,14 +10,21 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # System packages needed to build cpal (ALSA) and eframe/winit (X11, Wayland, GL) on Linux.
+  LINUX_DEPS: >-
+    pkg-config libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
+    libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev
 
 jobs:
   quality-gate:
-    name: Pure-Rust Audit, Linter & Docs
+    name: Native-Code Policy, Format, Lints & Docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -27,52 +34,58 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Verify 100% Pure Rust (Zero-C dynamic/static linkage)
+      - name: Native-code policy (all targets, incl. build-dependencies)
         run: |
-          chmod +x ./scripts/verify_pure_rust.sh
           ./scripts/verify_pure_rust.sh
+          ./scripts/verify_pure_rust.sh --self-test
 
       - name: Format Check (rustfmt)
         run: cargo fmt --all -- --check
 
-      - name: Strict Clippy Audit (Zero warnings)
-        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Strict Clippy Audit (zero warnings)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: Rustdoc Build (Zero missing docs / errors)
-        run: cargo doc --workspace --no-deps
+      - name: Rustdoc Build (warnings are errors)
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --locked
+
+  supply-chain:
+    name: Licenses, Advisories & Bans (cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: cargo deny check
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
 
   matrix-test:
-    name: Multi-Platform Test Matrix
+    name: Tests (${{ matrix.os }})
     needs: quality-gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            platform: macOS (Apple Silicon / Metal)
-          - os: ubuntu-latest
-            platform: Linux (x86_64 / ALSA-free)
-          - os: windows-latest
-            platform: Windows (x86_64 / WASAPI)
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
+
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Run Full Workspace Test Suite
-        run: cargo test --workspace --verbose
-
-      - name: Run E2E Integration Pipeline
-        run: cargo test -p amp-app --test e2e_pipeline --verbose
-
-      - name: Verify Mutation Testing Config
+      # Hardware tests are #[ignore]d; everything else uses a null audio sink.
+      # The guard fails if any test writes multiplay state into the (sandboxed) HOME.
+      - name: Workspace tests (hermetic, no audio hardware)
         shell: bash
-        run: test -f .cargo/mutants.toml
+        run: ./scripts/check_hermetic_tests.sh

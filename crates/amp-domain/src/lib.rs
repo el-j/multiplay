@@ -12,8 +12,8 @@ use std::time::Duration;
 use uuid::Uuid;
 
 pub use config::{
-    AppConfig, AudioHardwareConfig, LibraryConfig, P2PNetworkConfig, StreamingProvidersConfig,
-    UiAndThemeConfig,
+    AppConfig, AudioHardwareConfig, LibraryConfig, P2PNetworkConfig, RemoteControlConfig,
+    StreamingProvidersConfig, UiAndThemeConfig,
 };
 pub use jam_crdt::{CollaborativeQueue, JamItem, JamOperation, LamportTimestamp};
 pub use source_badge::{SourceFilterMask, SourceKind};

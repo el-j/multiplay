@@ -3,6 +3,7 @@ name = "amp-adapter-storage"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Pure-Rust embedded ACID persistence adapter using redb and lofty metadata tagger"
 
 [dependencies]

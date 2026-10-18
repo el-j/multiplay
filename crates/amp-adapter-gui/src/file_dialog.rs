@@ -224,13 +224,9 @@ mod tests {
     }
 
     #[test]
-    fn test_pick_files_ci_mode() {
-        std::env::set_var("CI", "true");
-        let files = pick_audio_files();
-        assert!(files.is_empty());
-
-        let folder = pick_folder();
-        assert!(folder.is_none());
-        std::env::remove_var("CI");
+    fn test_pick_files_never_opens_dialogs_under_test() {
+        // `cfg!(test)` short-circuits the native dialogs; no process-global env mutation needed.
+        assert!(pick_audio_files().is_empty());
+        assert!(pick_folder().is_none());
     }
 }

@@ -12,7 +12,7 @@ use amp_adapter_storage::{
 use amp_domain::source_badge::SourceKind;
 use amp_domain::{AppConfig, AudioSource, Track};
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::Ordering;
 
 /// Core GUI application state container.
@@ -37,14 +37,35 @@ pub struct MultiplayGuiApp {
     pub skin_cache: crate::skin_texture::SkinTextureCache,
     pub visualizer_mode: crate::visualizer_widget::VisualizerMode,
     pub remote: crate::remote_manager::RemoteGuiManager,
+    /// Injected filesystem locations (user home in production, temp dirs in tests).
+    pub paths: crate::app_paths::AppPaths,
 }
 
 impl MultiplayGuiApp {
-    /// Initializes GUI state, audio driver, layout persistence, and standard music directories.
+    /// Initializes GUI state on the default audio device with the user's home directories.
     pub fn new() -> Result<Self, String> {
-        let audio_driver = AudioPlaybackDriver::new()?;
-        let mut remote = crate::remote_manager::RemoteGuiManager::new();
-        remote.start_daemon();
+        Self::with_parts(
+            AudioPlaybackDriver::new()?,
+            crate::app_paths::AppPaths::for_user(),
+        )
+    }
+
+    /// Hardware-free instance whose state lives under `root` (tests and CI).
+    pub fn headless(root: &Path) -> Result<Self, String> {
+        Self::with_parts(
+            AudioPlaybackDriver::new_headless()?,
+            crate::app_paths::AppPaths::in_dir(root),
+        )
+    }
+
+    /// Initializes GUI state from an audio driver and filesystem locations.
+    pub fn with_parts(
+        audio_driver: AudioPlaybackDriver,
+        paths: crate::app_paths::AppPaths,
+    ) -> Result<Self, String> {
+        // The remote daemon stays off until the user enables it (audit SEC-01).
+        let remote =
+            crate::remote_manager::RemoteGuiManager::new(Some(paths.remote_sessions_file()));
 
         let mut app = Self {
             audio_driver,
@@ -67,6 +88,7 @@ impl MultiplayGuiApp {
             skin_cache: crate::skin_texture::SkinTextureCache::default(),
             visualizer_mode: crate::visualizer_widget::VisualizerMode::Spectrum,
             remote,
+            paths,
         };
 
         app.load_layout();
@@ -78,7 +100,7 @@ impl MultiplayGuiApp {
 
     /// Loads last active session playlist and EQ parameters from disk.
     pub fn load_session(&mut self) -> bool {
-        let path = SessionPlaylistSnapshot::default_session_path();
+        let path = self.paths.session_file();
         if let Ok(snap) = SessionPlaylistSnapshot::load_from_file(&path) {
             self.playlist = snap.tracks;
             self.selected_track_idx = if self.playlist.is_empty() {
@@ -115,8 +137,7 @@ impl MultiplayGuiApp {
             eq_gains: self.eq_gains,
             eq_enabled: self.eq_enabled,
         };
-        let path = SessionPlaylistSnapshot::default_session_path();
-        let _ = snap.save_to_file(&path);
+        let _ = snap.save_to_file(&self.paths.session_file());
     }
 
     /// Exports current playlist to an M3U8 playlist file.
@@ -205,10 +226,9 @@ impl MultiplayGuiApp {
         self.save_session();
     }
 
-    /// Scans standard user ~/Music folder.
+    /// Scans the configured music folder (normally ~/Music).
     pub fn scan_user_music_dir(&mut self) {
-        if let Some(home) = std::env::var_os("HOME") {
-            let music_dir = PathBuf::from(home).join("Music");
+        if let Some(music_dir) = self.paths.music_dir.clone() {
             if music_dir.exists() {
                 self.ingest_path(&music_dir);
             }
@@ -217,13 +237,9 @@ impl MultiplayGuiApp {
 
     /// Opens native OS file dialog to pick audio files or skins.
     pub fn open_file_dialog(&mut self) {
-        let files = crate::file_dialog::pick_audio_files();
-        if files.is_empty() {
-            self.scan_user_music_dir();
-        } else {
-            for file in files {
-                self.ingest_path(&file);
-            }
+        // A cancelled dialog returns nothing and changes nothing (audit UX-07).
+        for file in crate::file_dialog::pick_audio_files() {
+            self.ingest_path(&file);
         }
     }
 
@@ -231,8 +247,6 @@ impl MultiplayGuiApp {
     pub fn open_folder_dialog(&mut self) {
         if let Some(folder) = crate::file_dialog::pick_folder() {
             self.ingest_path(&folder);
-        } else {
-            self.scan_user_music_dir();
         }
     }
 
@@ -269,12 +283,12 @@ impl MultiplayGuiApp {
 
     /// Saves modular window layout to configuration directory.
     pub fn save_layout(&self) {
-        crate::layout_manager::save_layout(&self.dock_manager);
+        crate::layout_manager::save_layout(&self.dock_manager, &self.paths.layout_file);
     }
 
     /// Loads modular window layout from configuration directory.
     pub fn load_layout(&mut self) {
-        if let Some(dm) = crate::layout_manager::load_layout() {
+        if let Some(dm) = crate::layout_manager::load_layout(&self.paths.layout_file) {
             self.dock_manager = dm;
         }
     }

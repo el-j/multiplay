@@ -18,13 +18,14 @@ All contributions must strictly satisfy the following technical invariants:
    - `amp-domain` contains domain logic and entities; depends on nothing.
    - `amp-ports` defines driving and driven interfaces; depends only on `amp-domain`.
    - `amp-core-engine` implements domain services and ports; never imports adapter crates.
-   - Adapters (`amp-adapter-*`) implement ports; never import other adapters directly.
+   - Adapters (`amp-adapter-*`) implement ports and must not import other adapters; wiring belongs in the composition root (`amp-app`).
+     Known violation: `amp-adapter-gui` currently depends on other adapters (audit ARC-08); do not add new ones.
 
 3. **Audio Thread Real-Time Safety:**
    - The CPAL audio callback thread must NEVER allocate memory, acquire blocking locks, make system calls, or access the file system. Use lock-free SPSC ring buffers (`rtrb`).
 
 4. **File Length Limit:**
-   - Every source file must be $\le 300$ lines. Decompose large files into focused submodules.
+   - Every source file must stay within 500 lines (`maxFileLines` in `.nexus/policy.json`). Decompose large files into focused submodules.
 
 5. **Definition of Done:**
    - All tasks must adhere to `docs/definition-of-done.md`. Mocks may satisfy unit tests, but tasks representing user-visible features cannot be marked complete without end-to-end demonstrable behavior.

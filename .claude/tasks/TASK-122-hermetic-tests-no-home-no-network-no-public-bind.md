@@ -27,7 +27,11 @@
 `HOME=$(mktemp -d) cargo test --workspace --offline`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `AppPaths` injected into the GUI (session, layout, remote sessions, music dir); tests use per-test temp roots with music scanning disabled.
+- Cancelled file/folder dialogs no longer trigger a `~/Music` rescan (UX-07).
+- The test that mutated the process-global `CI` env var (and removed it, affecting parallel tests) was replaced; `cfg!(test)` already disables native dialogs.
+- `scripts/check_hermetic_tests.sh` / `make test-hermetic` runs the suite with a sandboxed HOME and fails if any multiplay state is written; CI uses it on all 3 OSes. Local run: PASS.
+- Open: network adapters still build real HTTP clients (objective 3, injected base URLs / local test servers).
 
 ## Status
 - **Status:** Pending

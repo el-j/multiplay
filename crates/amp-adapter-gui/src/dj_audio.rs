@@ -162,11 +162,15 @@ mod tests {
     fn test_dj_load_tracks() {
         let mut state = DjAudioSharedState::default();
         let track_a = Track::new(
-            AudioSource::LocalFile { path: "/a.mp3".into() },
+            AudioSource::LocalFile {
+                path: "/a.mp3".into(),
+            },
             TrackMetadata::new("A", "Artist"),
         );
         let track_b = Track::new(
-            AudioSource::LocalFile { path: "/b.mp3".into() },
+            AudioSource::LocalFile {
+                path: "/b.mp3".into(),
+            },
             TrackMetadata::new("B", "Artist"),
         );
 

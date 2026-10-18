@@ -1,6 +1,6 @@
 # multiplay — Pure-Rust Universal Audiophile Audio Player
 
-Universal, ultra-lightweight, audiophile-grade, multi-source audio player written **in pure Rust**. Zero bundled or vendored third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake builds). Audio decoding, storage, TLS, and DSP are pure Rust; host OS platform bindings are strictly governed by `scripts/pure_rust_allowlist.txt`. Features a modular Winamp 1.x dense console, magnetic multi-window docking, audiophile DSP (rubato Sinc resampler, 10-band IIR biquad EQ, zero-alloc FFT spectrum visualizer), RAM precaching, pure-Rust embedded storage (`redb`), multi-source search, and stream resolvers.
+Universal, ultra-lightweight, audiophile-grade, multi-source audio player written **in pure Rust**. Zero bundled or vendored third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg, aws-lc-sys, or cmake builds). Audio decoding, storage, and DSP are pure Rust (TLS uses rustls; its `ring` provider is the one documented C/asm exception); host OS platform bindings are strictly governed by `scripts/pure_rust_allowlist.txt`. Features a modular Winamp 1.x dense console, magnetic multi-window docking, audiophile DSP (rubato Sinc resampler, 10-band IIR biquad EQ, zero-alloc FFT spectrum visualizer), RAM precaching, pure-Rust embedded storage (`redb`), multi-source search, and stream resolvers.
 
 ## Commands
 

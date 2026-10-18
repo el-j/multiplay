@@ -11,4 +11,3 @@ pub use beat_detector::RealtimeBpmDetector;
 pub use deck::{DeckChannelState, DeckId, KillIsolatorEq};
 pub use mixer::DualDeckMixer;
 pub use wsola::{CrossfaderCurveProfile, DjCrossfader, WsolaTimeStretcher};
-

@@ -18,7 +18,7 @@ The multiplay team takes the security of our application, network protocols, and
 If you believe you have discovered a vulnerability (such as remote code execution, unauthenticated remote command injection, buffer overflows, memory safety issues, or sensitive credential leakage), please report it responsibly:
 
 1. **Do not disclose publicly:** Please do NOT open a public GitHub issue or discuss the vulnerability in public channels.
-2. **Contact:** Email security reports to `security@multiplay-audio.internal` (or submit a private security advisory on GitHub if available).
+2. **Contact:** Submit a private report via GitHub Security Advisories: <https://github.com/el-j/multiplay/security/advisories/new>.
 3. **Information to Include:**
    - A detailed description of the vulnerability.
    - Steps to reproduce or proof-of-concept exploit code.
@@ -37,5 +37,5 @@ If you believe you have discovered a vulnerability (such as remote code executio
 
 ## Known Security Architecture Notes
 
-- **Remote Daemon:** By default, remote daemon listening is restricted or bound to loopback `127.0.0.1` pending cryptographic token validation (`PLAN-035`).
-- **Memory Safety:** `#![forbid(unsafe_code)]` is enforced across all domain and engine modules.
+- **Remote Daemon:** off by default; loopback-only unless LAN access is enabled. Upgrades require a single-use pairing token or a 128-bit session secret (stored hashed), a matching `Origin`, and an IP-literal/localhost `Host`. Failed attempts are throttled per address, and peers (8), frame size (64 KiB) and handshake time (10 s) are capped. Remotes can only reference tracks the host already has. Builds before PLAN-035 (commit `7a9a891` and earlier) started an unauthenticated server on `0.0.0.0:9002`.
+- **Memory Safety:** `#![forbid(unsafe_code)]` is enforced in the domain and core engine crates.

@@ -230,7 +230,9 @@ async fn test_progressive_network_audio_streaming() {
     let wav_data = generate_pcm_wav_stream(0.5, 440.0);
     let resolver = Arc::new(ProgressiveMockResolver { wav_data });
 
-    if let Ok(driver) = AudioPlaybackDriver::new() {
+    // Null sink: runs on CI machines without audio devices instead of silently skipping.
+    {
+        let driver = AudioPlaybackDriver::new_headless().expect("headless driver");
         driver.register_resolver(resolver);
 
         let meta = TrackMetadata::new("Stream Song", "Network Station");

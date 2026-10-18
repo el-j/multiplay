@@ -28,7 +28,11 @@
 `cargo test -p amp-adapter-remote && cargo test -p amp-app --test remote_daemon_pipeline`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `RemoteDaemon` owns pairing tokens (64-bit, single-use, 10 min TTL), session secrets (128-bit, stored as SHA-256 in `~/.multiplay/remote_sessions.json`, revocable via "Forget all paired devices") and a per-IP throttle (5 free failures, then 1 s doubling to 300 s).
+- Upgrade checks before the handshake completes: path `/ws`, Host must be an IP literal or `localhost` (DNS-rebinding defence), Origin must equal the daemon origin, peer cap 8 (503), credential (401), throttle (429 + Retry-After).
+- 64 KiB message/frame cap, 10 s handshake timeout; HTTP responses send `nosniff`, `no-referrer`, CSP, `X-Frame-Options: DENY`, never CORS.
+- Web client: reads `?token=`, strips it from the URL, stores the granted session in localStorage, reconnects with `?session=`.
+- Evidence: `cargo test -p amp-adapter-remote --test security` → 15 passed (stable over repeated runs).
 
 ## Status
 - **Status:** Pending

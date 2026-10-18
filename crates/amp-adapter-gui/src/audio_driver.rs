@@ -40,9 +40,24 @@ pub struct AudioPlaybackDriver {
 }
 
 impl AudioPlaybackDriver {
+    /// Opens the system default output device.
     pub fn new() -> Result<Self, String> {
         let available_devices = CpalAudioSink::list_output_devices();
-        let (mut audio_sink, producer) = CpalAudioSink::new()?;
+        let (audio_sink, producer) = CpalAudioSink::new()?;
+        Self::with_sink(audio_sink, producer, available_devices)
+    }
+
+    /// Plays into a null sink: no audio hardware is opened (tests, CI, headless).
+    pub fn new_headless() -> Result<Self, String> {
+        let (audio_sink, producer) = CpalAudioSink::new_null(48_000, 2);
+        Self::with_sink(audio_sink, producer, Vec::new())
+    }
+
+    fn with_sink(
+        mut audio_sink: CpalAudioSink,
+        producer: Producer<f32>,
+        available_devices: Vec<AudioDeviceDescription>,
+    ) -> Result<Self, String> {
         let sample_rate = audio_sink.sample_rate();
         let device_name = audio_sink.device_name().to_string();
         audio_sink.start()?;
@@ -164,5 +179,3 @@ impl AudioPlaybackDriver {
         }
     }
 }
-
-

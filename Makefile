@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: all help build build-release check lint fmt fmt-check test test-verbose \
+.PHONY: all help build build-release check lint fmt fmt-check test test-hw test-hermetic test-verbose \
         verify-pure-rust doc coverage mutation-test bundle bundle-macos package-linux \
         package-windows upgrade clean
 
@@ -51,6 +51,14 @@ fmt-check:
 ## test: Run unit, integration, and doc tests across the entire workspace
 test:
 	./scripts/run_all_tests.sh
+
+## test-hw: Run tests that need real audio hardware (ignored by default and in CI)
+test-hw:
+	cargo test --workspace -- --ignored
+
+## test-hermetic: Run tests with a sandboxed HOME and fail if they write user state
+test-hermetic:
+	./scripts/check_hermetic_tests.sh
 
 ## test-verbose: Run the test suite with verbose output
 test-verbose:

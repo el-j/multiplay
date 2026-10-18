@@ -97,32 +97,17 @@ fn test_ebu_r128_loudness_slewing_and_limiting() {
     let hot_input = vec![1.2f32; 1024];
 
     // High level signal with -8 LUFS track metadata (loud master)
-    let (attenuated, _) = chain.process_interleaved_with_lufs(
-        &hot_input,
-        1.0,
-        0.0,
-        &[0.0; 10],
-        false,
-        Some(-8.0),
-    );
+    let (attenuated, _) =
+        chain.process_interleaved_with_lufs(&hot_input, 1.0, 0.0, &[0.0; 10], false, Some(-8.0));
 
     for s in &attenuated {
-        assert!(
-            s.abs() <= 1.0,
-            "Sample exceeded digital full scale: {s}"
-        );
+        assert!(s.abs() <= 1.0, "Sample exceeded digital full scale: {s}");
     }
 
     // Dynamic quiet signal with -24 LUFS track metadata
     let quiet_input = vec![0.1f32; 1024];
-    let (boosted, _) = chain.process_interleaved_with_lufs(
-        &quiet_input,
-        1.0,
-        0.0,
-        &[0.0; 10],
-        false,
-        Some(-24.0),
-    );
+    let (boosted, _) =
+        chain.process_interleaved_with_lufs(&quiet_input, 1.0, 0.0, &[0.0; 10], false, Some(-24.0));
 
     assert!(
         boosted[500].abs() > quiet_input[500].abs(),
@@ -138,7 +123,7 @@ fn test_binaural_headphone_crossfeed_imaging() {
     let mut hard_panned = vec![0.0f32; 256];
     for f in 0..128 {
         hard_panned[f * 2] = (f as f32 * 0.1).sin(); // Left only
-        hard_panned[f * 2 + 1] = 0.0;                 // Right silent
+        hard_panned[f * 2 + 1] = 0.0; // Right silent
     }
 
     xfeed.process_interleaved(&mut hard_panned);

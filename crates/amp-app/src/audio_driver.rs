@@ -36,7 +36,17 @@ pub struct AudioPlaybackDriver {
 impl AudioPlaybackDriver {
     /// Creates and initializes the playback driver with default audio output.
     pub fn new() -> Result<Self, String> {
-        let (mut audio_sink, producer) = CpalAudioSink::new()?;
+        let (audio_sink, producer) = CpalAudioSink::new()?;
+        Self::with_sink(audio_sink, producer)
+    }
+
+    /// Plays into a null sink: no audio hardware is opened (tests, CI, headless).
+    pub fn new_headless() -> Result<Self, String> {
+        let (audio_sink, producer) = CpalAudioSink::new_null(48_000, 2);
+        Self::with_sink(audio_sink, producer)
+    }
+
+    fn with_sink(mut audio_sink: CpalAudioSink, producer: Producer<f32>) -> Result<Self, String> {
         let sample_rate = audio_sink.sample_rate();
         audio_sink.start()?;
 

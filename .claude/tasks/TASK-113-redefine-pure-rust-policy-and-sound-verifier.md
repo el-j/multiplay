@@ -34,5 +34,12 @@
 - Self-test confirmed rejection of `openssl-sys`, `libsqlite3-sys`, `ffmpeg-sys`, and unapproved `-sys` crates.
 - Policy updated across `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, and `.nexus/policy.json`.
 
+**Review corrections (2026-10-17):** the first version failed open (`cargo tree ... || true` passed on any cargo error), only gated `-sys` names (crates compiling C via `cc` such as `ring` were never checked), and its self-test only exercised string matching. Rewritten:
+- Fails closed when the dependency graph cannot be read.
+- Gates every `-sys` crate **and** every direct dependent of `cc`/`cmake`/`pkg-config`/`bindgen`/`vcpkg`/`cxx-build`/`nasm-rs`, on `--target all -e normal,build`; warns on stale allowlist entries.
+- `--self-test` builds 8 throwaway offline workspaces (openssl-sys, libsqlite3-sys, unapproved -sys, C via `cc` build-dep, cfg(linux)-only -sys, broken manifest, plus 2 accepted cases) and runs the real audit on each.
+- Allowlist corrected: `ring` documented as the one C/asm **exception** (not "pure Rust"); added `android-activity`, `wayland-backend`, `khronos-egl`; removed non-native entries. Policy text in CLAUDE.md/AGENTS.md/policy.json/DoD no longer claims TLS is pure Rust.
+- Local run: `22 native-code crates checked; all are allowlisted`; self-test 8/8 OK. CI on 3 OSes not yet observed (changes not pushed).
+
 ## Status
 - **Status:** Completed

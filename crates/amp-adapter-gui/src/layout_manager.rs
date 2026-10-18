@@ -3,23 +3,20 @@
 #![forbid(unsafe_code)]
 
 use crate::docking::{DockManager, WindowId};
-use std::path::PathBuf;
+use std::path::Path;
 
-/// Saves modular window layout to configuration directory.
-pub fn save_layout(dock_manager: &DockManager) {
-    if let Some(home) = std::env::var_os("HOME") {
-        let config_dir = PathBuf::from(home).join(".config/multiplay");
-        let _ = std::fs::create_dir_all(&config_dir);
-        if let Ok(json) = serde_json::to_string_pretty(dock_manager) {
-            let _ = std::fs::write(config_dir.join("window_layout.json"), json);
-        }
+/// Saves modular window layout to `file`.
+pub fn save_layout(dock_manager: &DockManager, file: &Path) {
+    if let Some(dir) = file.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(json) = serde_json::to_string_pretty(dock_manager) {
+        let _ = std::fs::write(file, json);
     }
 }
 
-/// Loads modular window layout from configuration directory if present.
-pub fn load_layout() -> Option<DockManager> {
-    let home = std::env::var_os("HOME")?;
-    let file = PathBuf::from(home).join(".config/multiplay/window_layout.json");
+/// Loads modular window layout from `file` if present.
+pub fn load_layout(file: &Path) -> Option<DockManager> {
     let json = std::fs::read_to_string(file).ok()?;
     serde_json::from_str::<DockManager>(&json).ok()
 }

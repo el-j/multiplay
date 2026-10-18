@@ -111,6 +111,28 @@ impl CpalAudioSink {
         (sink, producer, consumer)
     }
 
+    /// Hardware-free sink for tests, CI runners without audio devices, and headless mode.
+    /// A background thread drains the ring buffer at real-time pace and discards the samples,
+    /// so producers see the same back-pressure as with a real device.
+    pub fn new_null(sample_rate: u32, channels: u16) -> (Self, Producer<f32>) {
+        let (mut sink, producer, mut consumer) = Self::new_mock(sample_rate, channels);
+        sink.device_name = "Null Output (no audio device)".to_string();
+        let per_tick = (sample_rate as usize * channels.max(1) as usize) / 100;
+        thread::Builder::new()
+            .name("amp-null-sink".to_string())
+            .spawn(move || {
+                while !consumer.is_abandoned() {
+                    let n = consumer.slots().min(per_tick);
+                    if let Ok(chunk) = consumer.read_chunk(n) {
+                        chunk.commit_all();
+                    }
+                    thread::sleep(Duration::from_millis(10));
+                }
+            })
+            .ok();
+        (sink, producer)
+    }
+
     pub fn device_name(&self) -> &str {
         &self.device_name
     }
@@ -232,6 +254,22 @@ mod tests {
     }
 
     #[test]
+    fn null_sink_drains_without_hardware() {
+        let (mut sink, mut producer) = CpalAudioSink::new_null(48_000, 2);
+        sink.start().expect("null sink start");
+        for _ in 0..4096 {
+            let _ = producer.push(0.25);
+        }
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(
+            producer.slots() > DEFAULT_RING_BUFFER_FRAMES - 4096,
+            "samples must be drained"
+        );
+        sink.stop().expect("null sink stop");
+    }
+
+    #[test]
+    #[ignore = "needs audio hardware (run with `make test-hw`)"]
     fn test_device_enumeration_and_fallback() {
         let devices = CpalAudioSink::list_output_devices();
         assert!(
@@ -241,6 +279,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "needs audio hardware (run with `make test-hw`)"]
     fn test_repeated_start_pause_stop_lifecycle() {
         let (mut sink, mut producer) =
             CpalAudioSink::new().expect("Failed to initialize default sink");
@@ -258,6 +297,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "needs audio hardware (run with `make test-hw`)"]
     fn test_play_macbook_pro_speakers_explicit() {
         let target = "MacBook Pro Speakers";
         if let Ok((mut sink, mut producer)) = CpalAudioSink::new_with_device(Some(target)) {

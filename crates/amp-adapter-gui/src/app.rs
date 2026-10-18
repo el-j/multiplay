@@ -10,8 +10,30 @@ mod tests {
     use super::*;
     use amp_adapter_decoder::AudioStreamDecoder;
     use amp_domain::{AudioSource, Track};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::time::Duration;
+
+    /// Temporary state root removed on drop; keeps tests away from the user's home.
+    struct TestRoot(PathBuf);
+
+    impl TestRoot {
+        fn new() -> Self {
+            let dir =
+                std::env::temp_dir().join(format!("multiplay-gui-test-{}", uuid::Uuid::new_v4()));
+            std::fs::create_dir_all(&dir).expect("create test root");
+            Self(dir)
+        }
+
+        fn app(&self) -> MultiplayGuiApp {
+            MultiplayGuiApp::headless(&self.0).expect("Failed to initialize headless app")
+        }
+    }
+
+    impl Drop for TestRoot {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn create_test_wav(path: &Path) {
         let sample_rate = 44100u32;
@@ -51,7 +73,8 @@ mod tests {
         let test_file = temp_dir.join("test_drag_drop_song.wav");
         create_test_wav(&test_file);
 
-        let mut app = MultiplayGuiApp::new().expect("Failed to initialize app");
+        let root = TestRoot::new();
+        let mut app = root.app();
         let initial_len = app.playlist.len();
 
         app.ingest_path(&test_file);
@@ -69,11 +92,18 @@ mod tests {
 
     #[test]
     fn test_playlist_empty_state() {
-        let mut app = MultiplayGuiApp::new().expect("Failed to initialize app");
+        let root = TestRoot::new();
+        let mut app = root.app();
         app.playlist.clear();
         assert!(app.playlist.is_empty());
+        // Cancelled dialogs must not trigger a library rescan.
         app.open_file_dialog();
         app.open_folder_dialog();
+        assert!(app.playlist.is_empty());
+        assert!(
+            !app.remote.is_running,
+            "remote control must be off by default"
+        );
     }
 
     #[test]
@@ -117,7 +147,8 @@ mod tests {
 
     #[test]
     fn test_playlist_m3u8_export_and_import() {
-        let mut app = MultiplayGuiApp::new().expect("Failed to initialize app");
+        let root = TestRoot::new();
+        let mut app = root.app();
         app.playlist.clear();
 
         let track = Track::new(
@@ -142,5 +173,25 @@ mod tests {
         assert_eq!(app.playlist[0].metadata.title, "Song One");
 
         let _ = std::fs::remove_file(temp_m3u8);
+    }
+}
+
+#[cfg(test)]
+mod persistence_tests {
+    use super::*;
+
+    #[test]
+    fn session_is_written_inside_injected_root_only() {
+        let root =
+            std::env::temp_dir().join(format!("multiplay-gui-persist-{}", uuid::Uuid::new_v4()));
+        let mut app = MultiplayGuiApp::headless(&root).expect("headless app");
+        app.ingest_url("http://127.0.0.1:1/stream.mp3");
+        app.save_layout();
+        assert!(app.paths.session_file().exists());
+        assert!(app.paths.layout_file.exists());
+
+        let reloaded = MultiplayGuiApp::headless(&root).expect("reload");
+        assert_eq!(reloaded.playlist.len(), 1);
+        let _ = std::fs::remove_dir_all(root);
     }
 }

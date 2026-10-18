@@ -24,7 +24,9 @@
 `cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `cargo fmt --all` applied; `cargo fmt --all -- --check` clean.
+- CI installs `pkg-config libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev` on Linux; clippy/doc/tests use `--locked`; rustdoc runs with `RUSTDOCFLAGS=-D warnings` (passes locally).
+- Pending: observe a green run on macOS, Linux and Windows after pushing.
 
 ## Status
 - **Status:** Pending

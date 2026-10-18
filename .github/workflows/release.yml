@@ -9,9 +9,15 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+  LINUX_DEPS: >-
+    pkg-config libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
+    libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev
+
 jobs:
   build-release:
-    name: Build & Package Binary (${{ matrix.target }})
+    name: Build & Package (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,61 +26,68 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: multiplay-macos-arm64.tar.gz
-            is_macos: true
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: multiplay-macos-x86_64.tar.gz
-            is_macos: true
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: multiplay-linux-x86_64.tar.gz
-            is_linux: true
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: multiplay-windows-x86_64.zip
-            is_windows: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Build Workspace Release Binaries
-        run: cargo build --workspace --release --target ${{ matrix.target }}
+      - name: Build release binaries
+        run: cargo build --release --locked --target ${{ matrix.target }} -p amp-app -p amp-adapter-gui
 
-      # Packaging for macOS
-      - name: Package macOS Artifacts
-        if: matrix.is_macos
+      # The GUI is the app bundle's main executable; the TUI ships next to it.
+      - name: Package macOS app bundle
+        if: runner.os == 'macOS'
         run: |
-          mkdir -p staging/Multiplay.app/Contents/MacOS
-          mkdir -p staging/Multiplay.app/Contents/Resources
-          cp target/${{ matrix.target }}/release/amp-app staging/Multiplay.app/Contents/MacOS/Multiplay
-          cp target/${{ matrix.target }}/release/multiplay-gui staging/Multiplay.app/Contents/MacOS/MultiplayGUI || true
-          cp Multiplay.command staging/
-          chmod +x staging/Multiplay.app/Contents/MacOS/* staging/Multiplay.command
+          set -euo pipefail
+          BIN=target/${{ matrix.target }}/release
+          APP=staging/Multiplay.app/Contents
+          mkdir -p "$APP/MacOS" "$APP/Resources" staging/bin
+          cp scripts/Info.plist "$APP/Info.plist"
+          cp "$BIN/multiplay-gui" "$APP/MacOS/Multiplay"
+          cp "$BIN/amp-app" staging/bin/multiplay-tui
+          cp README.md LICENSE staging/
+          chmod +x "$APP/MacOS/Multiplay" staging/bin/multiplay-tui
           tar -czf ${{ matrix.artifact_name }} -C staging .
 
-      # Packaging for Linux
-      - name: Package Linux Artifacts
-        if: matrix.is_linux
+      - name: Package Linux binaries
+        if: runner.os == 'Linux'
         run: |
+          set -euo pipefail
+          BIN=target/${{ matrix.target }}/release
           mkdir -p staging/bin
-          cp target/${{ matrix.target }}/release/amp-app staging/bin/multiplay
-          cp target/${{ matrix.target }}/release/multiplay-gui staging/bin/multiplay-gui || true
+          cp "$BIN/multiplay-gui" staging/bin/multiplay
+          cp "$BIN/amp-app" staging/bin/multiplay-tui
+          cp README.md LICENSE staging/
           chmod +x staging/bin/*
           tar -czf ${{ matrix.artifact_name }} -C staging .
 
-      # Packaging for Windows
-      - name: Package Windows Artifacts
-        if: matrix.is_windows
+      - name: Package Windows binaries
+        if: runner.os == 'Windows'
         shell: bash
         run: |
+          set -euo pipefail
+          BIN=target/${{ matrix.target }}/release
           mkdir -p staging/bin
-          cp target/${{ matrix.target }}/release/amp-app.exe staging/bin/multiplay.exe
-          cp target/${{ matrix.target }}/release/multiplay-gui.exe staging/bin/multiplay-gui.exe || true
+          cp "$BIN/multiplay-gui.exe" staging/bin/multiplay.exe
+          cp "$BIN/amp-app.exe" staging/bin/multiplay-tui.exe
+          cp README.md LICENSE staging/
           cd staging && 7z a ../${{ matrix.artifact_name }} *
 
       - name: Upload Artifact
@@ -82,6 +95,7 @@ jobs:
         with:
           name: release-${{ matrix.target }}
           path: ${{ matrix.artifact_name }}
+          if-no-files-found: error
 
   publish-release:
     name: Publish GitHub Release
@@ -94,11 +108,11 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Generate SHA-256 Checksums
+      - name: Generate SHA-256 checksums
         working-directory: release-assets
         run: |
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -108,4 +122,5 @@ jobs:
             release-assets/*
           generate_release_notes: true
           draft: false
-          prerelease: false
+          # Tags like v0.1.0-rc.1 are published as pre-releases.
+          prerelease: ${{ contains(github.ref_name, '-') }}

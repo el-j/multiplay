@@ -3,6 +3,7 @@ name = "amp-adapter-tui"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 
 [dependencies]
 amp-domain = { workspace = true }

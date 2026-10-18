@@ -27,7 +27,10 @@
 `cargo deny check && cargo audit`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `deny.toml`: license allow-list (MPL-2.0-compatible), advisories, wildcard/source bans and the native-code deny list. `cargo deny check` → `advisories ok, bans ok, licenses ok, sources ok` locally. Added as a CI job; Dependabot configured for cargo (GUI stack grouped) and GitHub Actions.
+- Workspace crates marked `publish = false`.
+- Two advisories are ignored **with owners**: RUSTSEC-2025-0141 (bincode unmaintained → TASK-148) and RUSTSEC-2025-0003 (out-of-bounds read in `fast-float` via `rusty_ytdl` → `boa_engine`, which parses remote YouTube JavaScript; no upstream fix → TASK-157).
+- Open: consolidating shared versions into `[workspace.dependencies]` and removing the `block 0.1.6` future-incompat warning (needs the eframe upgrade).
 
 ## Status
 - **Status:** Pending

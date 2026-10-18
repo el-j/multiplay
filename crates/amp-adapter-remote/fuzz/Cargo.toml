@@ -1,0 +1,26 @@
+# cargo-fuzz harness for the remote-control protocol decoder (TASK-119, feeds TASK-185).
+# Deliberately outside the workspace: libfuzzer-sys compiles LLVM's libFuzzer (C++),
+# which the native-code policy forbids in shipped crates. Requires nightly:
+#   cargo install cargo-fuzz
+#   cd crates/amp-adapter-remote && cargo +nightly fuzz run remote_protocol
+[package]
+name = "amp-adapter-remote-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+amp-adapter-remote = { path = ".." }
+
+[[bin]]
+name = "remote_protocol"
+path = "fuzz_targets/remote_protocol.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

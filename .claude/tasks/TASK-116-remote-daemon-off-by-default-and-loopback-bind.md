@@ -28,7 +28,13 @@
 `cargo test -p amp-adapter-gui remote && ./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `MultiplayGuiApp` no longer starts the daemon; `AppConfig.remote { enabled: false, allow_lan: false, port: 9002 }` (`#[serde(default)]` so old configs load).
+- Settings → Remote: "Enable remote control" and "Allow devices on my network" toggles start/stop/rebind the daemon; busy port is reported in the UI. Loopback (`127.0.0.1`) unless LAN is allowed.
+- Main window shows `● REMOTE ON` / `● REMOTE ON (LAN)` while listening.
+- LAN address picked via `if-addrs` interface enumeration (no `8.8.8.8` trick).
+- Evidence: launched `target/debug/multiplay-gui`, waited 10 s, `lsof -nP -a -p <pid> -iTCP -sTCP:LISTEN` → empty; `lsof -iTCP:9002` → empty.
+- Tests: `remote_manager::tests::{new_manager_does_not_listen, enabling_binds_loopback_and_disabling_releases_the_port, busy_port_is_reported}`, `config::tests::remote_control_is_off_and_loopback_by_default`.
+- Note: the toggle is not persisted across launches until settings persistence lands (PLAN-041); it always starts off.
 
 ## Status
 - **Status:** Pending

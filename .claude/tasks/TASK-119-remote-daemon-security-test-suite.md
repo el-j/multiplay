@@ -23,7 +23,8 @@
 `cargo test -p amp-adapter-remote --test security`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- `crates/amp-adapter-remote/tests/security.rs` (15 tests): unauthenticated/unknown/expired token → 401; replayed token → 401; session reconnect then revoke → 401; cross-origin → 403; DNS-rebinding Host → 403; throttling → 429 (even for a valid token while backed off); peer cap → 503; 100 KiB frame closes the socket with no command dispatched; malformed/unversioned JSON answered with Error and the session survives; path/URL enqueue refused; HTTP security headers; shutdown closes the listener.
+- Fuzz harness `crates/amp-adapter-remote/fuzz` (`cargo +nightly fuzz run remote_protocol`), kept outside the workspace because libfuzzer-sys builds C++. **Not yet run** (no nightly toolchain locally); a 5,000-case deterministic no-panic test runs in normal CI.
 
 ## Status
 - **Status:** Pending

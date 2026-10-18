@@ -20,7 +20,8 @@ mod tests {
 
     #[test]
     fn test_multiplay_app_initialization_and_keybindings() {
-        let (mut app, _cmd_rx) = MultiplayApp::new().expect("Failed to initialize MultiplayApp");
+        let (mut app, _cmd_rx) =
+            MultiplayApp::new_headless().expect("Failed to initialize MultiplayApp");
         assert_eq!(app.playback_state, PlaybackState::Stopped);
         assert_eq!(app.volume, 85);
 

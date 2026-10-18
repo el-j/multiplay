@@ -31,11 +31,8 @@ pub fn draw_qr_code(ui: &mut Ui, matrix: &[Vec<bool>], size: f32) {
     for (row_idx, row) in matrix.iter().enumerate() {
         for (col_idx, &is_dark) in row.iter().enumerate() {
             if is_dark {
-                let min = rect.min
-                    + Vec2::new(
-                        col_idx as f32 * cell_size,
-                        row_idx as f32 * cell_size,
-                    );
+                let min =
+                    rect.min + Vec2::new(col_idx as f32 * cell_size, row_idx as f32 * cell_size);
                 let max = min + Vec2::new(cell_size, cell_size);
                 painter.rect_filled(Rect::from_min_max(min, max), 0.0, Color32::BLACK);
             }

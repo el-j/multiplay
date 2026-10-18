@@ -200,8 +200,10 @@ fn process_standard_tick(
                 // If partial chunk at EOF, stitch from next_decoder if available
                 if n < pcm_buffer.len() && next_decoder.is_some() {
                     let remainder = &mut pcm_buffer[n..];
-                    if let Ok(next_n) =
-                        next_decoder.as_mut().unwrap().read_interleaved_samples(remainder)
+                    if let Ok(next_n) = next_decoder
+                        .as_mut()
+                        .unwrap()
+                        .read_interleaved_samples(remainder)
                     {
                         read_samples += next_n;
                     }
@@ -270,8 +272,10 @@ fn handoff_to_next(
     let next_t = driver.next_track.lock().unwrap().take();
     *driver.current_track.lock().unwrap() = next_t;
     *driver.total_duration.lock().unwrap() = decoder.as_ref().and_then(|d| d.duration());
-    *driver.elapsed.lock().unwrap() =
-        decoder.as_ref().map(|d| d.elapsed()).unwrap_or(Duration::ZERO);
+    *driver.elapsed.lock().unwrap() = decoder
+        .as_ref()
+        .map(|d| d.elapsed())
+        .unwrap_or(Duration::ZERO);
     if let Some(ref d) = decoder {
         dsp_chain.set_source_sample_rate(d.sample_rate());
     }

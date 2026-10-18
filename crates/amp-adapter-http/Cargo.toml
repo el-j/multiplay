@@ -3,6 +3,7 @@ name = "amp-adapter-http"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Pure-Rust HTTP and Internet Radio (Icecast/Shoutcast) stream resolver adapter"
 
 [dependencies]

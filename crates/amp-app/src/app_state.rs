@@ -42,6 +42,17 @@ pub struct MultiplayApp {
 impl MultiplayApp {
     /// Creates a new MultiplayApp with real storage, search providers, and audio driver.
     pub fn new() -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
+        Self::with_driver(AudioPlaybackDriver::new().ok())
+    }
+
+    /// Creates a MultiplayApp that plays into a null sink (tests and CI; no audio hardware).
+    pub fn new_headless() -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
+        Self::with_driver(AudioPlaybackDriver::new_headless().ok())
+    }
+
+    fn with_driver(
+        audio_driver: Option<AudioPlaybackDriver>,
+    ) -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
         let (event_bus, cmd_rx) = EventBus::new(64);
 
         let temp_dir = std::env::temp_dir().join(format!("multiplay_db_{}", uuid::Uuid::new_v4()));
@@ -86,7 +97,7 @@ impl MultiplayApp {
             t2,
         ));
 
-        let audio_driver = AudioPlaybackDriver::new().ok().map(Arc::new);
+        let audio_driver = audio_driver.map(Arc::new);
 
         let app = Self {
             event_bus,

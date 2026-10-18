@@ -84,27 +84,31 @@ impl MultiplayGuiApp {
                     self.volume = v.clamp(0.0, 1.0);
                     self.audio_driver.set_volume(self.volume);
                 }
-                amp_core_engine::PlayerCommand::SeekRelative(_, forward) => {
-                    if forward {
-                        if self.selected_track_idx + 1 < self.playlist.len() {
-                            self.selected_track_idx += 1;
-                            self.audio_driver
-                                .play(self.playlist[self.selected_track_idx].clone());
-                        }
-                    } else if self.selected_track_idx > 0 {
-                        self.selected_track_idx -= 1;
-                        self.audio_driver
-                            .play(self.playlist[self.selected_track_idx].clone());
-                    }
-                }
+                amp_core_engine::PlayerCommand::Next => self.remote_skip(true),
+                amp_core_engine::PlayerCommand::Previous => self.remote_skip(false),
                 amp_core_engine::PlayerCommand::SeekAbsolute(target) => {
                     self.audio_driver.seek(target);
                 }
-                amp_core_engine::PlayerCommand::AddToQueue(track) => {
-                    self.playlist.push(*track);
+                amp_core_engine::PlayerCommand::EnqueueExisting(id) => {
+                    // Remotes may only re-queue tracks the host already has.
+                    if let Some(track) = self.playlist.iter().find(|t| t.id == id).cloned() {
+                        self.playlist.push(track);
+                    }
                 }
                 _ => {}
             }
+        }
+    }
+
+    fn remote_skip(&mut self, forward: bool) {
+        let target = if forward {
+            (self.selected_track_idx + 1 < self.playlist.len()).then(|| self.selected_track_idx + 1)
+        } else {
+            self.selected_track_idx.checked_sub(1)
+        };
+        if let Some(idx) = target {
+            self.selected_track_idx = idx;
+            self.audio_driver.play(self.playlist[idx].clone());
         }
     }
 

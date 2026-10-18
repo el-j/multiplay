@@ -35,5 +35,13 @@ Reconciliation executed against AUDIT-2026-10-17:
 - Orchestrator index and orchestrator.json re-baselined to derived disk metrics: 52 plans, 194 tasks, 80 verified completed tasks.
 - Active plan set to PLAN-034.
 
+**Review follow-up (2026-10-17):** the reconciliation is incomplete. These tasks are still marked Completed although the audit shows their user-visible outcome is missing; re-open them through Nexus:
+- TASK-016 offline downloader (dead code, always writes `.wav`: AUD/ARC-07)
+- TASK-022 plugin host, TASK-033 shuffle, TASK-110 crossfeed (unreachable from any binary: ARC-07)
+- TASK-045 / TASK-046 config store & settings modal (settings never persisted: DAT)
+- TASK-048 CI pipeline (CI red), TASK-049 release pipeline (`Multiplay.command` missing: BLD-04)
+- TASK-050 "zero gaps" audit, TASK-075 mutation testing (never run: QA-03), TASK-078 pure-Rust gate (verifier was unsound: BLD-01)
+- TASK-101 BPM sync (not integrated: ARC-07), TASK-103 remote daemon autostart (SEC-01; superseded by TASK-116)
+
 ## Status
 - **Status:** Completed

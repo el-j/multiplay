@@ -3,6 +3,7 @@ name = "amp-adapter-cpal"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Pure-Rust hardware audio sink adapter using CPAL and lock-free ring buffer"
 
 [dependencies]

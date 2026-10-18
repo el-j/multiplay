@@ -105,7 +105,11 @@ fn render_header(ui: &mut Ui, state: &mut DjConsoleState) {
         ui.separator();
         ui.checkbox(&mut state.key_lock, "Key Lock (WSOLA)");
         ui.separator();
-        let curve_text = if state.sharp_cut { "Curve: Sharp Cut" } else { "Curve: Smooth Dip" };
+        let curve_text = if state.sharp_cut {
+            "Curve: Sharp Cut"
+        } else {
+            "Curve: Smooth Dip"
+        };
         if ui.button(curve_text).clicked() {
             state.sharp_cut = !state.sharp_cut;
         }
@@ -125,9 +129,21 @@ fn render_deck_column(
         ("DECK B", Color32::from_rgb(255, 140, 40))
     };
 
-    let title = if is_deck_a { state.deck_a_title.clone() } else { state.deck_b_title.clone() };
-    let bpm = if is_deck_a { state.deck_a_bpm } else { state.deck_b_bpm };
-    let is_playing = if is_deck_a { state.deck_a_playing } else { state.deck_b_playing };
+    let title = if is_deck_a {
+        state.deck_a_title.clone()
+    } else {
+        state.deck_b_title.clone()
+    };
+    let bpm = if is_deck_a {
+        state.deck_a_bpm
+    } else {
+        state.deck_b_bpm
+    };
+    let is_playing = if is_deck_a {
+        state.deck_a_playing
+    } else {
+        state.deck_b_playing
+    };
 
     ui.vertical(|ui| {
         ui.label(RichText::new(label).color(color).strong());
@@ -163,7 +179,10 @@ fn render_deck_column(
 
             // Sync button
             let sync_text = if is_deck_a { "SYNC [B]" } else { "SYNC [A]" };
-            if ui.button(RichText::new(sync_text).color(Color32::from_rgb(0, 235, 136))).clicked() {
+            if ui
+                .button(RichText::new(sync_text).color(Color32::from_rgb(0, 235, 136)))
+                .clicked()
+            {
                 let mut shared = driver.dj_audio.lock().unwrap();
                 if is_deck_a {
                     state.deck_a_pitch = shared.sync_deck_a_to_b();
@@ -174,7 +193,11 @@ fn render_deck_column(
         });
 
         // Pitch slider
-        let pitch = if is_deck_a { &mut state.deck_a_pitch } else { &mut state.deck_b_pitch };
+        let pitch = if is_deck_a {
+            &mut state.deck_a_pitch
+        } else {
+            &mut state.deck_b_pitch
+        };
         ui.horizontal(|ui| {
             ui.add(egui::Slider::new(pitch, -16.0..=16.0).text("Pitch %"));
             if ui.button("0%").clicked() {
@@ -190,9 +213,19 @@ fn render_deck_column(
 fn render_kill_buttons(ui: &mut Ui, state: &mut DjConsoleState, is_deck_a: bool) {
     ui.horizontal(|ui| {
         let (cue, hi, mid, low) = if is_deck_a {
-            (&mut state.deck_a_cue, &mut state.deck_a_kill_high, &mut state.deck_a_kill_mid, &mut state.deck_a_kill_low)
+            (
+                &mut state.deck_a_cue,
+                &mut state.deck_a_kill_high,
+                &mut state.deck_a_kill_mid,
+                &mut state.deck_a_kill_low,
+            )
         } else {
-            (&mut state.deck_b_cue, &mut state.deck_b_kill_high, &mut state.deck_b_kill_mid, &mut state.deck_b_kill_low)
+            (
+                &mut state.deck_b_cue,
+                &mut state.deck_b_kill_high,
+                &mut state.deck_b_kill_mid,
+                &mut state.deck_b_kill_low,
+            )
         };
 
         let cue_color = if *cue { Color32::RED } else { Color32::GRAY };
@@ -203,10 +236,16 @@ fn render_kill_buttons(ui: &mut Ui, state: &mut DjConsoleState, is_deck_a: bool)
         if ui.button(if *hi { "KILL HI [X]" } else { "HI" }).clicked() {
             *hi = !*hi;
         }
-        if ui.button(if *mid { "KILL MID [X]" } else { "MID" }).clicked() {
+        if ui
+            .button(if *mid { "KILL MID [X]" } else { "MID" })
+            .clicked()
+        {
             *mid = !*mid;
         }
-        if ui.button(if *low { "KILL LOW [X]" } else { "LOW" }).clicked() {
+        if ui
+            .button(if *low { "KILL LOW [X]" } else { "LOW" })
+            .clicked()
+        {
             *low = !*low;
         }
     });

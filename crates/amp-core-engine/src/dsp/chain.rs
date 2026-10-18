@@ -189,14 +189,8 @@ mod tests {
         let mut chain = PlaybackDspChain::new(48000, 512);
         let input = vec![0.2f32; 1024];
         // Track at -24 LUFS should be boosted towards -14 LUFS
-        let (output, _) = chain.process_interleaved_with_lufs(
-            &input,
-            1.0,
-            0.0,
-            &[0.0; 10],
-            false,
-            Some(-24.0),
-        );
+        let (output, _) =
+            chain.process_interleaved_with_lufs(&input, 1.0, 0.0, &[0.0; 10], false, Some(-24.0));
         assert!(output[500].abs() > input[500].abs());
     }
 }

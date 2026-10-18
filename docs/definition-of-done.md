@@ -13,7 +13,7 @@ Every task must pass all applicable gates before its status can transition to `C
 
 ### Gate 1: Pure-Rust Invariant & Soundness
 - Zero bundled or vendored third-party C/C++ libraries (no OpenSSL, SQLite, FFmpeg, etc.).
-- Audio decoding, key-value storage, TLS/cryptography, and DSP must be 100% pure Rust.
+- Audio decoding, key-value storage, and DSP must be pure Rust. TLS uses rustls; its `ring` crypto provider (C/asm) is the single documented exception in the allowlist.
 - Any platform `-sys` bindings must be documented in `scripts/pure_rust_allowlist.txt`.
 - Mandatory verification:
   ```bash
@@ -35,7 +35,7 @@ Every task must pass all applicable gates before its status can transition to `C
 
 ### Gate 4: Code Quality & Line Limits
 - `#![forbid(unsafe_code)]` in domain core and core engine.
-- Strict limit of $\le 300$ lines per file across the entire repository.
+- Every source file stays within `.nexus/policy.json` `maxFileLines` (500 lines).
 - Zero compiler warnings, clippy warnings, or format errors:
   ```bash
   cargo fmt --check

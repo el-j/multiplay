@@ -3,6 +3,7 @@ name = "amp-core-engine"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+publish = false
 description = "Core playback orchestrator, RAM precaching, DSP pipeline and event dispatcher"
 
 [dependencies]

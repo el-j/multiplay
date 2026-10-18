@@ -34,5 +34,12 @@
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` created.
 - Automated verification command passed: `test -f README.md && test -f LICENSE && cargo metadata --format-version 1 | grep -q '"license"'`.
 
+**Review corrections (2026-10-17):**
+- `LICENSE` was an abridged paraphrase of MPL-2.0 (sections 9–10 and Exhibits A/B missing, wording altered). Replaced with the verbatim text (SHA-256 `fab3dd6b…3e85`, identical to mozilla.org/MPL/2.0/index.txt).
+- README feature matrix overstated reality (EQ, resampler, TUI, GUI, HTTP/ICY marked Stable; Opus claimed; "remote disabled by default" was false). Rewritten from the audit with Stable/Beta/Experimental/Planned and a security warning; run commands fixed (`--gui` flag does not exist).
+- SECURITY.md claimed a loopback bind and gave a non-existent `.internal` address; now states the real exposure and uses GitHub private advisories.
+- CODE_OF_CONDUCT.md lacked the Contributor Covenant attribution required by CC BY 4.0; added.
+- Repository URL corrected to `github.com/el-j/multiplay`; CONTRIBUTING no longer claims adapters never import adapters (ARC-08) and uses the policy's 500-line limit.
+
 ## Status
 - **Status:** Completed

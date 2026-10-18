@@ -90,7 +90,11 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
     let (replay_gain_mb, integrated_lufs_mb) = if let Some(t) = tag {
         let rg = t
             .get(&lofty::tag::ItemKey::ReplayGainTrackGain)
-            .or_else(|| t.get(&lofty::tag::ItemKey::Unknown("REPLAYGAIN_TRACK_GAIN".to_string())))
+            .or_else(|| {
+                t.get(&lofty::tag::ItemKey::Unknown(
+                    "REPLAYGAIN_TRACK_GAIN".to_string(),
+                ))
+            })
             .and_then(|item| item.value().text())
             .and_then(|s| s.replace("dB", "").trim().parse::<f32>().ok())
             .map(|db| (db * 100.0).round() as i32);
@@ -98,7 +102,13 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
         let lufs = t
             .get(&lofty::tag::ItemKey::Unknown("R128_TRACK_GAIN".to_string()))
             .and_then(|item| item.value().text())
-            .and_then(|s| s.replace("LUFS", "").replace("dB", "").trim().parse::<f32>().ok())
+            .and_then(|s| {
+                s.replace("LUFS", "")
+                    .replace("dB", "")
+                    .trim()
+                    .parse::<f32>()
+                    .ok()
+            })
             .map(|v| (v * 100.0).round() as i32);
 
         (rg, lufs)

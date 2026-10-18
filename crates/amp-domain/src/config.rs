@@ -15,6 +15,30 @@ pub struct AppConfig {
     pub p2p: P2PNetworkConfig,
     pub ui: UiAndThemeConfig,
     pub plugins: HashMap<String, String>,
+    /// Phone/browser remote control. Missing in older config files, so it defaults (off).
+    #[serde(default)]
+    pub remote: RemoteControlConfig,
+}
+
+/// Remote-control daemon settings. Off and loopback-only unless the user opts in.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RemoteControlConfig {
+    /// Start the remote-control daemon.
+    pub enabled: bool,
+    /// Listen on all network interfaces instead of loopback only.
+    pub allow_lan: bool,
+    /// TCP port to listen on.
+    pub port: u16,
+}
+
+impl Default for RemoteControlConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            allow_lan: false,
+            port: 9002,
+        }
+    }
 }
 
 /// Music library indexing and filesystem watching configuration.
@@ -167,5 +191,18 @@ mod tests {
             deserialized.plugins.get("dsp_reverb"),
             Some(&"enabled".to_string())
         );
+    }
+
+    #[test]
+    fn remote_control_is_off_and_loopback_by_default() {
+        let config = AppConfig::default();
+        assert!(!config.remote.enabled);
+        assert!(!config.remote.allow_lan);
+
+        // Config files written before the `remote` section existed still load.
+        let mut json: serde_json::Value = serde_json::to_value(&config).unwrap();
+        json.as_object_mut().unwrap().remove("remote");
+        let legacy: AppConfig = serde_json::from_value(json).expect("legacy config must load");
+        assert_eq!(legacy.remote, RemoteControlConfig::default());
     }
 }

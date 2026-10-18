@@ -60,8 +60,14 @@ impl DualDeckMixer {
     /// Synchronizes Deck B tempo to match Deck A's current BPM.
     /// Returns the computed pitch percent applied to Deck B.
     pub fn sync_deck_b_to_a(&mut self) -> Option<f32> {
-        let bpm_a = self.deck_a.bpm.unwrap_or_else(|| self.deck_a_bpm.estimated_bpm());
-        let bpm_b = self.deck_b.bpm.unwrap_or_else(|| self.deck_b_bpm.estimated_bpm());
+        let bpm_a = self
+            .deck_a
+            .bpm
+            .unwrap_or_else(|| self.deck_a_bpm.estimated_bpm());
+        let bpm_b = self
+            .deck_b
+            .bpm
+            .unwrap_or_else(|| self.deck_b_bpm.estimated_bpm());
 
         if bpm_b > 10.0 {
             let ratio = bpm_a / bpm_b;
@@ -76,8 +82,14 @@ impl DualDeckMixer {
     /// Synchronizes Deck A tempo to match Deck B's current BPM.
     /// Returns the computed pitch percent applied to Deck A.
     pub fn sync_deck_a_to_b(&mut self) -> Option<f32> {
-        let bpm_a = self.deck_a.bpm.unwrap_or_else(|| self.deck_a_bpm.estimated_bpm());
-        let bpm_b = self.deck_b.bpm.unwrap_or_else(|| self.deck_b_bpm.estimated_bpm());
+        let bpm_a = self
+            .deck_a
+            .bpm
+            .unwrap_or_else(|| self.deck_a_bpm.estimated_bpm());
+        let bpm_b = self
+            .deck_b
+            .bpm
+            .unwrap_or_else(|| self.deck_b_bpm.estimated_bpm());
 
         if bpm_a > 10.0 {
             let ratio = bpm_b / bpm_a;
@@ -103,26 +115,26 @@ impl DualDeckMixer {
         }
 
         // 1. Process Deck A
-        let samples_a = self.process_deck_channel(
-            true,
-            deck_a_in,
-            out_len,
-        );
+        let samples_a = self.process_deck_channel(true, deck_a_in, out_len);
 
         // 2. Process Deck B
-        let samples_b = self.process_deck_channel(
-            false,
-            deck_b_in,
-            out_len,
-        );
+        let samples_b = self.process_deck_channel(false, deck_b_in, out_len);
 
         let max_samples = samples_a.max(samples_b).min(out_len);
         let (gain_a, gain_b) = self.crossfader.compute_gains();
 
         // 3. Sum and soft-saturate outputs
         for (i, out_sample) in output.iter_mut().enumerate().take(max_samples) {
-            let sa = if i < samples_a { self.scratch_a[i] } else { 0.0 };
-            let sb = if i < samples_b { self.scratch_b[i] } else { 0.0 };
+            let sa = if i < samples_a {
+                self.scratch_a[i]
+            } else {
+                0.0
+            };
+            let sb = if i < samples_b {
+                self.scratch_b[i]
+            } else {
+                0.0
+            };
             let mixed = (sa * gain_a) + (sb * gain_b);
 
             // Clean musical soft-saturation prevents harsh digital clipping
@@ -155,7 +167,11 @@ impl DualDeckMixer {
         } else {
             self.deck_b.pitch_percent
         };
-        let key_lock = if is_deck_a { self.key_lock_a } else { self.key_lock_b };
+        let key_lock = if is_deck_a {
+            self.key_lock_a
+        } else {
+            self.key_lock_b
+        };
         let vol_fader = if is_deck_a {
             self.deck_a.volume_fader
         } else {
@@ -169,10 +185,12 @@ impl DualDeckMixer {
             let speed = (1.0 + pitch / 100.0).clamp(0.5, 2.0);
             if is_deck_a {
                 self.deck_a_stretcher.set_speed_ratio(speed);
-                self.deck_a_stretcher.process(&input[..target_len], &mut self.stretched_a[..target_len])
+                self.deck_a_stretcher
+                    .process(&input[..target_len], &mut self.stretched_a[..target_len])
             } else {
                 self.deck_b_stretcher.set_speed_ratio(speed);
-                self.deck_b_stretcher.process(&input[..target_len], &mut self.stretched_b[..target_len])
+                self.deck_b_stretcher
+                    .process(&input[..target_len], &mut self.stretched_b[..target_len])
             }
         } else {
             if is_deck_a {
@@ -183,7 +201,11 @@ impl DualDeckMixer {
             target_len
         };
 
-        let src = if is_deck_a { &self.stretched_a[..processed_samples] } else { &self.stretched_b[..processed_samples] };
+        let src = if is_deck_a {
+            &self.stretched_a[..processed_samples]
+        } else {
+            &self.stretched_b[..processed_samples]
+        };
 
         // Process isolator EQ and volume fader
         for (i, &raw_sample) in src.iter().enumerate().take(processed_samples) {
@@ -203,10 +225,14 @@ impl DualDeckMixer {
 
         // Live BPM transient detection
         if is_deck_a {
-            let _ = self.deck_a_bpm.process_block(&self.scratch_a[..processed_samples]);
+            let _ = self
+                .deck_a_bpm
+                .process_block(&self.scratch_a[..processed_samples]);
             self.deck_a.bpm = Some(self.deck_a_bpm.estimated_bpm());
         } else {
-            let _ = self.deck_b_bpm.process_block(&self.scratch_b[..processed_samples]);
+            let _ = self
+                .deck_b_bpm
+                .process_block(&self.scratch_b[..processed_samples]);
             self.deck_b.bpm = Some(self.deck_b_bpm.estimated_bpm());
         }
 
