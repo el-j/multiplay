@@ -33,5 +33,7 @@
 - `scripts/check_hermetic_tests.sh` / `make test-hermetic` runs the suite with a sandboxed HOME and fails if any multiplay state is written; CI uses it on all 3 OSes. Local run: PASS.
 - Open: network adapters still build real HTTP clients (objective 3, injected base URLs / local test servers).
 
+- 2026-10-19: CI green on ubuntu/macos/windows (run https://github.com/el-j/multiplay/actions/runs/39215214130, commit after 3 CI-found fixes: winit X11/Wayland features, stream-underrun data loss, TUI lock starvation; hermetic guard tolerates Windows INetCache churn). Tests job 71-341 s, previously 70 min on Linux.
+
 ## Status
 - **Status:** Pending
