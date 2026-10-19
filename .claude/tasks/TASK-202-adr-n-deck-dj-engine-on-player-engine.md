@@ -50,6 +50,7 @@ Describe the release-build demo performed and link evidence (screenshot, screen 
   - the runtime keeps a simulated real-time sound card fed for 2 s with no starvation.
   A mutation check (pitch ignored; old track freed on the render thread) made the matching tests fail.
 - Open: the GUI still uses the old `DualDeckMixer` path, until PLAN-055 moves it onto this engine; the flag is not yet read by the UI. No 10-minute real-device soak yet; that needs the GUI wiring.
+- 2026-10-19: CI flake on macOS (run for e7c6274): `dj_runtime_keeps_a_real_time_output_fed` starved. The cause was a wall-clock test sharing its binary with the CPU-heavy 10-minute mixing test, on a 3-core runner with a debug build. The runtime tests now have their own binary (`tests/dj_runtime.rs`), and that test's lead is 100 ms. Open for the GUI wiring (PLAN-055): the production render thread runs at normal priority with a ~50 ms lead, so a heavily loaded machine can still underrun. Measure there and consider a larger default lead or a higher-priority thread.
 
 ## Status
 - **Status:** Pending
