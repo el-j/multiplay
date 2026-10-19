@@ -1,5 +1,5 @@
 //! Deck strips and the mixer column of the DJ console (TASK-212). Every button triggers a
-//! [`DjAction`] through [`act`] or [`hold`], which also records it, so a test can check that
+//! [`DjAction`] through `act` or `hold`, which also record it, so a test can check that
 //! every control is on screen.
 
 #![forbid(unsafe_code)]

@@ -15,8 +15,8 @@ use uuid::Uuid;
 
 pub use analysis::{analysis_key, HotCues, TrackAnalysis, ANALYSIS_VERSION, HOT_CUE_SLOTS};
 pub use config::{
-    AppConfig, AudioHardwareConfig, ExperimentalConfig, LibraryConfig, P2PNetworkConfig,
-    RemoteControlConfig, StreamingProvidersConfig, UiAndThemeConfig,
+    AppConfig, AudioHardwareConfig, LibraryConfig, P2PNetworkConfig, RemoteControlConfig,
+    StreamingProvidersConfig, UiAndThemeConfig,
 };
 pub use deck_assign::{next_for_deck, next_markers, DeckAssignment};
 pub use jam_crdt::{CollaborativeQueue, JamItem, JamOperation, LamportTimestamp};

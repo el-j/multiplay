@@ -62,8 +62,9 @@ two streams into the normal player's output queue. That design cannot carry real
    - **Key lock.** Key lock is WSOLA on the playhead: Hann grains of 2,048 frames with 50 %
      overlap, read at native speed and placed at the new tempo. Each grain is shifted by up to
      256 frames to where the audio best continues the previous one.
-9. **Hidden until the DJ experience is accepted.** `experimental.dj_mode` in the config
-   (default off) gates the new DJ mode until PLAN-055 is accepted.
+9. **No feature gate.** The `experimental.dj_mode` switch planned here was never read by the
+   UI. TASK-213 removed it once the DJ verification suite passed; old config files that still
+   contain the section load unchanged.
 
 ## Consequences
 

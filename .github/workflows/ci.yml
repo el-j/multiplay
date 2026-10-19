@@ -89,3 +89,9 @@ jobs:
       - name: Workspace tests (hermetic, no audio hardware)
         shell: bash
         run: ./scripts/check_hermetic_tests.sh
+
+      - name: DJ release-build checks (10-minute soak, speed budgets)
+        shell: bash
+        run: |
+          cargo test --release --locked -p amp-core-engine --test dj_soak --test dj_analysis --test dj_mixer
+          cargo test --release --locked -p amp-adapter-gui --test dj_waveform_perf
