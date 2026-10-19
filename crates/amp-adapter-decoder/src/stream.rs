@@ -208,6 +208,16 @@ impl AudioStreamDecoder {
     }
 }
 
+impl amp_ports::PcmStreamPort for AudioStreamDecoder {
+    fn sample_rate(&self) -> u32 {
+        AudioStreamDecoder::sample_rate(self)
+    }
+
+    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, String> {
+        self.read_interleaved_samples(out)
+    }
+}
+
 /// Downmixes an interleaved multi-channel frame to stereo according to ITU-R BS.775.
 pub fn downmix_frame(samples: &[f32], frame_idx: usize, channels: usize) -> (f32, f32) {
     let inv_sqrt_2 = std::f32::consts::FRAC_1_SQRT_2;

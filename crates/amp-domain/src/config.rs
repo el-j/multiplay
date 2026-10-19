@@ -18,6 +18,17 @@ pub struct AppConfig {
     /// Phone/browser remote control. Missing in older config files, so it defaults (off).
     #[serde(default)]
     pub remote: RemoteControlConfig,
+    /// Features that are not finished yet. Missing in older config files, so all stay off.
+    #[serde(default)]
+    pub experimental: ExperimentalConfig,
+}
+
+/// Switches for unfinished features; everything is off by default.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ExperimentalConfig {
+    /// The new multi-deck DJ mode (ADR-003), until its experience is accepted (PLAN-055).
+    #[serde(default)]
+    pub dj_mode: bool,
 }
 
 /// Remote-control daemon settings. Off and loopback-only unless the user opts in.
@@ -191,6 +202,15 @@ mod tests {
             deserialized.plugins.get("dsp_reverb"),
             Some(&"enabled".to_string())
         );
+    }
+
+    #[test]
+    fn experimental_dj_mode_is_off_by_default_and_in_old_files() {
+        assert!(!AppConfig::default().experimental.dj_mode);
+        let mut old = serde_json::to_value(AppConfig::default()).unwrap();
+        old.as_object_mut().unwrap().remove("experimental");
+        let parsed: AppConfig = serde_json::from_value(old).unwrap();
+        assert!(!parsed.experimental.dj_mode);
     }
 
     #[test]

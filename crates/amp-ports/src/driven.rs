@@ -39,6 +39,16 @@ pub trait ProviderSearchPort: Send + Sync {
     async fn query(&self, query: &str) -> Result<Vec<Track>, ProviderError>;
 }
 
+/// Driven port for a decoded audio stream: interleaved stereo `f32` frames at the stream's own
+/// sample rate. The DJ engine loads deck tracks through it, so the core never names a decoder.
+pub trait PcmStreamPort: Send {
+    /// Native sample rate of the decoded audio in Hz.
+    fn sample_rate(&self) -> u32;
+    /// Fills `out` with up to `out.len()` interleaved stereo samples `[L, R, ...]` and returns how
+    /// many were written; `Ok(0)` means the end of the stream.
+    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, String>;
+}
+
 /// Driven port for hardware audio output device sinks.
 pub trait AudioSinkPort: Send + Sync {
     fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), String>;

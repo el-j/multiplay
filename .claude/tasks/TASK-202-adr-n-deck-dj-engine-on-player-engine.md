@@ -31,6 +31,25 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: ADR-003 (`docs/adr/ADR-003-dj-engine.md`) records the deck model (4 in the model, 2 shown), threads, the parameter/command/garbage channels, buses and real-time rules, and reconciles TASK-039/041/099/100/101/102 and TASK-176.
+- 2026-10-19: engine in `amp_core_engine::dj::engine`:
+  - `TrackBuffer`: decoded in chunks on a loader thread, readable lock-free while loading.
+  - `PcmStreamPort` (new driven port), implemented by the Symphonia decoder.
+  - Per-deck variable-rate Hermite playhead (rate conversion and tempo in one step).
+  - Master and cue buses, equal-power crossfader, click-free gain ramps.
+  - `DjRuntime`: render thread with a ~50 ms lead instead of the player's 1.5 s queue.
+  - `experimental.dj_mode` config flag (default off, old files parse).
+- Evidence: `cargo test -p amp-core-engine dj` covers:
+  - 44.1 and 48 kHz decks at true pitch on a 48 kHz bus;
+  - pitch changes tempo;
+  - PFL is on cue only;
+  - clean end of track;
+  - 10 minutes of mixing (accelerated render) with zero underruns;
+  - `render` makes zero allocations and frees, proven by a counting global allocator;
+  - a deck plays while its track is still loading;
+  - the runtime keeps a simulated real-time sound card fed for 2 s with no starvation.
+  A mutation check (pitch ignored; old track freed on the render thread) made the matching tests fail.
+- Open: the GUI still uses the old `DualDeckMixer` path, until PLAN-055 moves it onto this engine; the flag is not yet read by the UI. No 10-minute real-device soak yet; that needs the GUI wiring.
 
 ## Status
 - **Status:** Pending
