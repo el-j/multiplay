@@ -30,6 +30,14 @@ pub struct MultiplayGuiApp {
     pub window_resize: Option<crate::chrome::resize::ResizeSession>,
     /// Heights to restore when a shaded window is rolled back down.
     pub shade_restore: std::collections::HashMap<WindowId, f32>,
+    /// Zoom factor the dock layout is expressed in (2.0 in double size).
+    pub applied_zoom: f32,
+    /// Frames left in which OS geometry reports are ignored after a zoom change.
+    pub geometry_settle: u8,
+    /// Zoom the saved layout asks for, applied on the first frame.
+    pub startup_zoom: f32,
+    /// Last layout written to disk.
+    pub saved_layout: Option<crate::layout_manager::LayoutSnapshot>,
     pub dj_state: DjConsoleState,
     pub settings_tab: GuiSettingsTab,
     pub config: AppConfig,
@@ -83,6 +91,10 @@ impl MultiplayGuiApp {
             window_drag: None,
             window_resize: None,
             shade_restore: std::collections::HashMap::new(),
+            applied_zoom: 1.0,
+            geometry_settle: 0,
+            startup_zoom: 1.0,
+            saved_layout: None,
             dj_state: DjConsoleState::default(),
             settings_tab: GuiSettingsTab::default(),
             config: AppConfig::default(),
@@ -288,20 +300,38 @@ impl MultiplayGuiApp {
         }
     }
 
-    /// Saves modular window layout to configuration directory.
-    pub fn save_layout(&self) {
-        crate::layout_manager::save_layout(&self.dock_manager, &self.paths.layout_file);
+    /// Current layout as it would be saved.
+    pub fn layout_snapshot(&self) -> crate::layout_manager::LayoutSnapshot {
+        crate::layout_manager::LayoutSnapshot::capture(
+            &self.dock_manager,
+            &self.shade_restore,
+            self.applied_zoom,
+        )
     }
 
-    /// Loads modular window layout from configuration directory.
-    pub fn load_layout(&mut self) {
-        if let Some(dm) = crate::layout_manager::load_layout(&self.paths.layout_file) {
-            self.dock_manager = dm;
+    /// Saves the window layout to the configuration directory.
+    pub fn save_layout(&mut self) {
+        let snap = self.layout_snapshot();
+        if crate::layout_manager::save_layout(&snap, &self.paths.layout_file).is_ok() {
+            self.saved_layout = Some(snap);
         }
     }
 
-    /// Synchronizes positions of all transitively docked satellite windows when parent window moves.
-    pub fn sync_child_viewport_positions(&self, ctx: &eframe::egui::Context) {
-        crate::layout_manager::sync_child_viewport_positions(&self.dock_manager, ctx);
+    /// Saves the layout when it changed and no drag, resize or zoom change is under way.
+    pub fn save_layout_if_changed(&mut self) {
+        let busy =
+            self.window_drag.is_some() || self.window_resize.is_some() || self.geometry_settle > 0;
+        if !busy && self.saved_layout.as_ref() != Some(&self.layout_snapshot()) {
+            self.save_layout();
+        }
+    }
+
+    /// Loads the window layout (at 1x); its zoom is applied on the first frame.
+    pub fn load_layout(&mut self) {
+        if let Some(snap) = crate::layout_manager::load_layout(&self.paths.layout_file) {
+            snap.apply(&mut self.dock_manager, &mut self.shade_restore);
+            self.startup_zoom = snap.zoom;
+            self.saved_layout = Some(snap);
+        }
     }
 }

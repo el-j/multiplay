@@ -192,6 +192,11 @@ impl SettingsGuiPanel {
 
                     ui.add_space(4.0);
                     ui.checkbox(&mut config.ui.compact_mode, "Compact Winamp Mode");
+                    let mut double = ui.ctx().zoom_factor() > 1.5;
+                    if ui.checkbox(&mut double, "Double size (Ctrl+D)").changed() {
+                        ui.ctx()
+                            .set_zoom_factor(crate::chrome::zoom::toggled(ui.ctx().zoom_factor()));
+                    }
                     ui.add(
                         egui::Slider::new(&mut config.ui.visualizer_fps, 30..=144)
                             .text("Visualizer FPS"),

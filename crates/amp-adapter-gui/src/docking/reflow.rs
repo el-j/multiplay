@@ -17,24 +17,46 @@ pub fn overlaps(a: &DockRect, b: &DockRect) -> bool {
 /// Moves `moving` the shortest distance that takes it out of every rect in `others`, so it ends
 /// flush against them instead of on top of them.
 pub fn separate_from(moving: DockRect, others: &[DockRect]) -> DockRect {
+    let (dx, dy) = free_offset(&[moving], others, (0.0, 0.0));
     let mut r = moving;
-    for _ in 0..8 {
-        let Some(o) = others.iter().find(|o| overlaps(&r, o)) else {
-            break;
-        };
-        let pushes = [
-            (o.left() - r.right(), 0.0),
-            (o.right() - r.left(), 0.0),
-            (0.0, o.top() - r.bottom()),
-            (0.0, o.bottom() - r.top()),
-        ];
-        let (dx, dy) = pushes
-            .into_iter()
-            .min_by(|a, b| (a.0.abs() + a.1.abs()).total_cmp(&(b.0.abs() + b.1.abs())))
-            .unwrap_or((0.0, 0.0));
-        r.translate(dx, dy);
-    }
+    r.translate(dx, dy);
     r
+}
+
+/// The offset closest to `want` at which every rect of `members` (moved together) is clear of
+/// every rect in `others`. Candidates are `want` itself and every offset that puts a member
+/// flush against an edge of another window; placing the group below everything always works,
+/// so a free spot is always found.
+pub fn free_offset(members: &[DockRect], others: &[DockRect], want: (f32, f32)) -> (f32, f32) {
+    let clear = |(dx, dy): (f32, f32)| {
+        members.iter().all(|m| {
+            let mut moved = *m;
+            moved.translate(dx, dy);
+            !others.iter().any(|o| overlaps(&moved, o))
+        })
+    };
+    if clear(want) {
+        return want;
+    }
+    let mut xs = vec![want.0];
+    let mut ys = vec![want.1];
+    for m in members {
+        for o in others {
+            xs.extend([o.left() - m.right(), o.right() - m.left()]);
+            ys.extend([o.top() - m.bottom(), o.bottom() - m.top()]);
+        }
+    }
+    let dist = |(dx, dy): (f32, f32)| (dx - want.0).abs() + (dy - want.1).abs();
+    let best = xs
+        .iter()
+        .flat_map(|&dx| ys.iter().map(move |&dy| (dx, dy)))
+        .filter(|&c| clear(c))
+        .min_by(|a, b| dist(*a).total_cmp(&dist(*b)));
+    best.unwrap_or_else(|| {
+        let floor = others.iter().map(|o| o.bottom()).fold(f32::MIN, f32::max);
+        let top = members.iter().map(|m| m.top()).fold(f32::MAX, f32::min);
+        (want.0, floor - top)
+    })
 }
 
 /// Edge of a window that is being moved by a size change.

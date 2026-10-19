@@ -31,9 +31,26 @@ impl eframe::App for MultiplayGuiApp {
             }
         }
 
+        // Double size / zoom: re-express the layout before any window geometry is read.
+        chrome::zoom::sync(self, ctx);
+
         // 3. Main window: self-drawn title strip; dragging it moves the docked group live
         if self.initialized_viewports.insert(WindowId::Main) {
-            // First frame: put the root window where the saved layout says, at least min size.
+            // First frame: apply the saved zoom, bring windows from unplugged monitors back,
+            // and put the root window where the layout says, at least at its minimum size.
+            if (self.startup_zoom - 1.0).abs() > 1e-3 {
+                ctx.set_zoom_factor(self.startup_zoom);
+            }
+            let all: Vec<_> = self
+                .dock_manager
+                .windows
+                .iter()
+                .map(|(id, r)| (*id, *r))
+                .collect();
+            for (id, r) in crate::layout_manager::fit_on_screen(&all, &chrome::screens(ctx)) {
+                self.dock_manager.set_rect(id, r);
+            }
+            self.geometry_settle = chrome::zoom::SETTLE_FRAMES;
             let min = chrome::resize::min_inner_size(WindowId::Main);
             let mut r = self.dock_manager.get_rect(WindowId::Main);
             r.width = r.width.max(min.x);
@@ -60,6 +77,13 @@ impl eframe::App for MultiplayGuiApp {
 
         // 7. Broadcast Real-Time Player State to Mobile Remote Clients
         self.broadcast_remote_state();
+
+        // 8. Persist the window layout once an interaction has finished
+        self.save_layout_if_changed();
+    }
+
+    fn on_exit(&mut self) {
+        self.save_layout();
     }
 }
 

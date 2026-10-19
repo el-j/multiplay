@@ -31,3 +31,6 @@ if-addrs = "0.15"
 image = { version = "0.25", default-features = false, features = ["bmp"] }
 
 
+
+[dev-dependencies]
+proptest = "1.5"

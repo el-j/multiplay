@@ -28,6 +28,7 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
 /// Renders `window`'s content under its title strip, grows the window if anything still did
 /// not fit, and adds the resize handles.
 pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId) {
+    chrome::zoom::shortcut(ctx);
     if app.dock_manager.is_shaded(window) {
         return;
     }

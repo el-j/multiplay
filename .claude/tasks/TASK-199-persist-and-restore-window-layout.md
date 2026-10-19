@@ -29,6 +29,9 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: versioned layout file (`layout_manager::LayoutSnapshot`, version 1): positions and sizes stored at 1x, plus visibility, shade with restore height, and zoom (double size). Atomic write (temp file, then rename). It is saved whenever the layout changes and no drag, resize or zoom change is under way, and on exit. Before this the layout was loaded but never saved in normal use. The old `DockManager` dump migrates; files from a newer version or garbage are ignored. Docks are rebuilt from touching edges.
+- 2026-10-19: `fit_on_screen`: groups whose top-left is on no screen move onto the first screen as one piece (docks kept, no landing on other groups); groups already on a screen stay. 7 tests incl. "unplugged second monitor" and an app restart test (`layout_survives_a_restart`). Verified on macOS with a scratch HOME: file written on first launch, relaunch restored a 2x side-docked layout exactly.
+- Deviation (my call): stored in its own file next to the config, not inside the config store (TASK-150 is still pending and window geometry is UI state, not a preference). Open: monitor origins. egui reports only the current monitor's size, so a layout on a secondary monitor left of or above the primary is pulled back to the primary on launch (TASK-200).
 
 ## Status
 - **Status:** Pending

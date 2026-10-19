@@ -111,7 +111,7 @@ pub fn resize_window(
 
 /// Grows `window` when its content spilled past the window (runtime never-clip guard).
 pub fn grow_to_fit(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId, spill: Vec2) {
-    if spill.x <= 0.5 && spill.y <= 0.5 || app.window_resize.is_some() {
+    if spill.x <= 0.5 && spill.y <= 0.5 || app.window_resize.is_some() || app.geometry_settle > 0 {
         return;
     }
     let r = app.dock_manager.get_rect(window);

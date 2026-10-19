@@ -37,6 +37,8 @@ Describe the release-build demo performed and link evidence (screenshot, screen 
 
 - 2026-10-19: no-overlap guarantee implemented: `docking::reflow` (overlaps, separate_from, attached_beyond, clamp_growth, resize_with_attached, push_apart; 6 tests incl. a resize-sequence no-overlap check). Dragged groups stop flush instead of landing on a window (drag test). Shade/unshade moves the docked column below with the edge. Newly shown windows open clear of others at least at their minimum size.
 - Open: double size (Ctrl+D); property test over random drag/show/shade sequences.
+- 2026-10-19: property test `tests/no_overlap_property.rs` (proptest, 256 cases per run, also run at 20,000): random sequences of drag, resize, shade, show/hide and double size never leave two visible windows overlapping. It found two real bugs: greedy separation pushed a window out of one window into another, and the group drag did the same. Both now use `docking::free_offset`, an exact search for the closest flush free position.
+- 2026-10-19: double size: Ctrl+D (Cmd+D on macOS) or Settings > Appearance > "Double size". Uses egui's zoom factor (crisp text, not pixel-doubled); `docking::rescale_layout` keeps main fixed on screen and every dock intact (3 tests). The standard zoom keys go through the same path. Verified on macOS: saved layout at 2x reopened as main (120,100,960x420), EQ (120,520,960x400) docked below, playlist (1080,100,600x820) docked right; content fits.
 
 ## Status
 - **Status:** Pending

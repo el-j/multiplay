@@ -123,6 +123,7 @@ dependencies = [
  "eframe",
  "if-addrs",
  "image",
+ "proptest",
  "rtrb",
  "serde",
  "serde_json",

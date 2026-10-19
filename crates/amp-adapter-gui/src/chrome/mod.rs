@@ -7,6 +7,7 @@ pub mod drag;
 pub mod handles;
 pub mod layout;
 pub mod resize;
+pub mod zoom;
 
 use crate::app_state::MultiplayGuiApp;
 use crate::docking::{DockRect, WindowId};
@@ -167,7 +168,7 @@ fn drive_drag(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId, 
 /// Records where the OS reports a window, except while the app itself is dragging it.
 pub fn track_geometry(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId) {
     // While the app moves or resizes windows it is the source of truth; OS reports lag behind.
-    if app.window_drag.is_some() || app.window_resize.is_some() {
+    if app.window_drag.is_some() || app.window_resize.is_some() || app.geometry_settle > 0 {
         return;
     }
     let geometry = ctx.input(|i| {

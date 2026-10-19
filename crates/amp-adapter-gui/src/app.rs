@@ -194,4 +194,27 @@ mod persistence_tests {
         assert_eq!(reloaded.playlist.len(), 1);
         let _ = std::fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn layout_survives_a_restart() {
+        use crate::docking::{DockRect, WindowId};
+        let root =
+            std::env::temp_dir().join(format!("multiplay-gui-layout-{}", uuid::Uuid::new_v4()));
+        let mut app = MultiplayGuiApp::headless(&root).expect("headless app");
+        let moved = DockRect::new(600.0, 100.0, 360.0, 420.0);
+        app.dock_manager.set_rect(WindowId::Playlist, moved);
+        app.dock_manager.set_visible(WindowId::Equalizer, false);
+        app.applied_zoom = 2.0;
+        app.save_layout_if_changed();
+
+        let reloaded = MultiplayGuiApp::headless(&root).expect("reload");
+        assert!(!reloaded.dock_manager.is_visible(WindowId::Equalizer));
+        assert_eq!(reloaded.startup_zoom, 2.0);
+        // Stored at 1x, so the playlist keeps its offset from main and its size.
+        let main = reloaded.dock_manager.get_rect(WindowId::Main);
+        let pl = reloaded.dock_manager.get_rect(WindowId::Playlist);
+        assert_eq!((pl.x - main.x, pl.y - main.y), (480.0, 0.0));
+        assert_eq!((pl.width, pl.height), (360.0, 420.0));
+        let _ = std::fs::remove_dir_all(root);
+    }
 }

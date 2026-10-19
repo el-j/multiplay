@@ -6,13 +6,15 @@
 pub mod geometry;
 pub mod manager;
 pub mod reflow;
+pub mod scale;
 pub mod snap;
 
 pub use geometry::{
     DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD,
 };
 pub use manager::DockManager;
-pub use reflow::{clamp_growth, overlaps, resize_with_attached, separate_from};
+pub use reflow::{clamp_growth, free_offset, overlaps, resize_with_attached, separate_from};
+pub use scale::rescale_layout;
 pub use snap::{connected_group, snap_rect, touching};
 
 #[cfg(test)]
