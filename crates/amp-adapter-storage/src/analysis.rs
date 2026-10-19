@@ -8,9 +8,9 @@ use amp_ports::{AnalysisCachePort, HotCueStorePort};
 use redb::TableDefinition;
 
 pub(crate) const ANALYSIS_TABLE: TableDefinition<&str, &[u8]> =
-    TableDefinition::new("dj_analysis_v1");
+    TableDefinition::new("dj_analysis_v2");
 pub(crate) const HOT_CUE_TABLE: TableDefinition<&str, &[u8]> =
-    TableDefinition::new("dj_hot_cues_v1");
+    TableDefinition::new("dj_hot_cues_v2");
 
 impl HotCueStorePort for RedbStorageAdapter {
     fn load_hot_cues(&self, key: &str) -> HotCues {
@@ -18,13 +18,13 @@ impl HotCueStorePort for RedbStorageAdapter {
             let txn = self.db.begin_read().ok()?;
             let table = txn.open_table(HOT_CUE_TABLE).ok()?;
             let bytes = table.get(key).ok()??;
-            bincode::deserialize(bytes.value()).ok()
+            postcard::from_bytes(bytes.value()).ok()
         };
         read().unwrap_or_default()
     }
 
     fn store_hot_cues(&self, key: &str, cues: &HotCues) -> Result<(), String> {
-        let bytes = bincode::serialize(cues).map_err(|e| e.to_string())?;
+        let bytes = postcard::to_allocvec(cues).map_err(|e| e.to_string())?;
         let txn = self.db.begin_write().map_err(|e| e.to_string())?;
         {
             let mut table = txn.open_table(HOT_CUE_TABLE).map_err(|e| e.to_string())?;
@@ -41,11 +41,11 @@ impl AnalysisCachePort for RedbStorageAdapter {
         let txn = self.db.begin_read().ok()?;
         let table = txn.open_table(ANALYSIS_TABLE).ok()?;
         let bytes = table.get(key).ok()??;
-        bincode::deserialize(bytes.value()).ok()
+        postcard::from_bytes(bytes.value()).ok()
     }
 
     fn store(&self, key: &str, analysis: &TrackAnalysis) -> Result<(), String> {
-        let bytes = bincode::serialize(analysis).map_err(|e| e.to_string())?;
+        let bytes = postcard::to_allocvec(analysis).map_err(|e| e.to_string())?;
         let txn = self.db.begin_write().map_err(|e| e.to_string())?;
         {
             let mut table = txn.open_table(ANALYSIS_TABLE).map_err(|e| e.to_string())?;
