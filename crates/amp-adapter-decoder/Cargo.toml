@@ -9,5 +9,5 @@ description = "Pure-Rust multi-format audio demuxer and decoder adapter using Sy
 [dependencies]
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
-symphonia = { version = "0.5", default-features = false, features = ["mp3", "flac", "pcm", "vorbis", "aac", "isomp4", "ogg", "wav"] }
+symphonia = { version = "0.6", default-features = false, features = ["mp3", "flac", "pcm", "vorbis", "aac", "isomp4", "ogg", "wav"] }
 rtrb = { workspace = true }

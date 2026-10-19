@@ -9,8 +9,8 @@ publish = false
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 amp-core-engine = { path = "../amp-core-engine" }
-ratatui = "0.28"
-crossterm = "0.28"
+ratatui = "0.30"
+crossterm = "0.29"
 
 [dev-dependencies]
 tokio = { workspace = true }

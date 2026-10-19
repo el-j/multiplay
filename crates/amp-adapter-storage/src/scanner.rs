@@ -89,26 +89,12 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
 
     let (replay_gain_mb, integrated_lufs_mb) = if let Some(t) = tag {
         let rg = t
-            .get(&lofty::tag::ItemKey::ReplayGainTrackGain)
-            .or_else(|| {
-                t.get(&lofty::tag::ItemKey::Unknown(
-                    "REPLAYGAIN_TRACK_GAIN".to_string(),
-                ))
-            })
-            .and_then(|item| item.value().text())
-            .and_then(|s| s.replace("dB", "").trim().parse::<f32>().ok())
+            .get_string(lofty::tag::ItemKey::ReplayGainTrackGain)
+            .and_then(parse_gain_db)
             .map(|db| (db * 100.0).round() as i32);
-
         let lufs = t
-            .get(&lofty::tag::ItemKey::Unknown("R128_TRACK_GAIN".to_string()))
-            .and_then(|item| item.value().text())
-            .and_then(|s| {
-                s.replace("LUFS", "")
-                    .replace("dB", "")
-                    .trim()
-                    .parse::<f32>()
-                    .ok()
-            })
+            .get_string(lofty::tag::ItemKey::R128TrackGain)
+            .and_then(r128_gain_to_lufs)
             .map(|v| (v * 100.0).round() as i32);
 
         (rg, lufs)
@@ -141,10 +127,33 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
     })
 }
 
+/// Parses a ReplayGain value such as `-6.48 dB`.
+fn parse_gain_db(s: &str) -> Option<f32> {
+    s.replace("dB", "").trim().parse::<f32>().ok()
+}
+
+/// Integrated loudness from an Opus/Vorbis `R128_TRACK_GAIN` tag. The tag holds the gain (in
+/// Q7.8 fixed point, i.e. 1/256 dB) that brings the track to -23 LUFS, so the track's own
+/// loudness is -23 LUFS minus that gain.
+fn r128_gain_to_lufs(s: &str) -> Option<f32> {
+    let q78 = s.trim().parse::<i32>().ok()?;
+    Some(-23.0 - q78 as f32 / 256.0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn replaygain_and_r128_tags_parse() {
+        assert_eq!(parse_gain_db("-6.48 dB"), Some(-6.48));
+        assert_eq!(parse_gain_db("+2 dB"), Some(2.0));
+        // -1280 / 256 = -5 dB of gain needed to reach -23 LUFS: the track is at -18 LUFS.
+        assert_eq!(r128_gain_to_lufs("-1280"), Some(-18.0));
+        assert_eq!(r128_gain_to_lufs("512"), Some(-25.0));
+        assert_eq!(r128_gain_to_lufs("loud"), None);
+    }
 
     #[test]
     fn test_collect_audio_files() {

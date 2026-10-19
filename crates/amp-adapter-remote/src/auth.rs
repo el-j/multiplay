@@ -23,7 +23,7 @@ const MAX_PENDING_TOKENS: usize = 16;
 /// Hex-encodes `n` bytes from the OS cryptographic RNG.
 fn random_hex(n: usize) -> String {
     let mut buf = vec![0u8; n];
-    getrandom::getrandom(&mut buf).expect("OS random number generator unavailable");
+    getrandom::fill(&mut buf).expect("OS random number generator unavailable");
     buf.iter().map(|b| format!("{b:02x}")).collect()
 }
 

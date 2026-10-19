@@ -110,10 +110,10 @@ pub fn render_playlist_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
 }
 
 fn render_empty_playlist_drop_zone(app: &mut MultiplayGuiApp, ui: &mut Ui) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(Color32::from_rgb(18, 24, 32))
         .stroke(egui::Stroke::new(1.0f32, Color32::from_rgb(0, 200, 120)))
-        .rounding(4.0)
+        .corner_radius(4.0)
         .inner_margin(8.0)
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -199,7 +199,7 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         } else {
             Color32::from_rgb(12, 16, 22)
         };
-        egui::Frame::none().fill(row_bg).show(ui, |ui| {
+        egui::Frame::NONE.fill(row_bg).show(ui, |ui| {
             row_rtl(ui, |ui| {
                 let remove = RichText::new("✕")
                     .size(10.0)

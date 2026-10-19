@@ -10,8 +10,6 @@ unmaintained = "workspace"
 yanked = "deny"
 # Every ignore names the task that removes it. Review on each release.
 ignore = [
-    # bincode 1.x unmaintained; replaced by a versioned schema in TASK-148 (DAT-03).
-    { id = "RUSTSEC-2025-0141", reason = "bincode migration tracked in TASK-148" },
     # fast-float 0.2 (via rusty_ytdl -> boa_engine) reads out of bounds on empty input.
     # No upgrade exists upstream; the YouTube resolver rework (TASK-157) must drop or patch it.
     { id = "RUSTSEC-2025-0003", reason = "rusty_ytdl/boa dependency; tracked in TASK-157" },

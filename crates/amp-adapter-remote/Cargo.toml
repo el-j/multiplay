@@ -12,14 +12,14 @@ amp-ports = { workspace = true }
 amp-core-engine = { path = "../amp-core-engine" }
 
 tokio = { workspace = true, features = ["net", "time", "sync", "macros", "io-util"] }
-tokio-tungstenite = { version = "0.24", default-features = false, features = ["handshake"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 qrcode = { version = "0.14", default-features = false }
-sha2 = { version = "0.10", default-features = false }
-getrandom = "0.2"
+sha2 = { version = "0.11", default-features = false }
+getrandom = "0.4"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

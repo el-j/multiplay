@@ -12,7 +12,8 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 impl eframe::App for MultiplayGuiApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = &ui.ctx().clone();
         // Smooth continuous 60 FPS repaint only while audio is playing (idle state is event-driven)
         if self.audio_driver.is_playing.load(Ordering::Relaxed) {
             ctx.request_repaint_after(Duration::from_millis(16));
@@ -26,7 +27,8 @@ impl eframe::App for MultiplayGuiApp {
         // 2. OS-Native Drag-and-Drop Ingestion (Files & Folders on Main Player)
         let dropped_files = ctx.input(|i| i.raw.dropped_files.clone());
         for f in dropped_files {
-            if let Some(path) = f.path {
+            let path = f.path().to_path_buf();
+            if !path.as_os_str().is_empty() {
                 self.ingest_path(&path);
             }
         }
@@ -65,11 +67,11 @@ impl eframe::App for MultiplayGuiApp {
         } else {
             chrome::track_geometry(self, ctx, WindowId::Main);
         }
-        let action = chrome::title_bar(self, ctx, WindowId::Main, "multiplay", true, true);
+        let action = chrome::title_bar(self, ui, WindowId::Main, "multiplay", true, true);
         chrome::apply_action(self, ctx, WindowId::Main, action);
 
         // 4. Render Main Player Content in Root Viewport (hidden while shaded)
-        crate::viewports::show_body(self, ctx, WindowId::Main);
+        crate::viewports::show_body(self, ui, WindowId::Main);
 
         // 5. Render Modular Satellite OS Native Windows
         render_satellite_windows(self, ctx);

@@ -86,7 +86,7 @@ async fn next_text(ws: &mut Ws) -> String {
         .expect("stream ended")
         .expect("ws error");
     match msg {
-        Message::Text(t) => t,
+        Message::Text(t) => t.to_string(),
         other => panic!("expected text frame, got {other:?}"),
     }
 }
@@ -284,7 +284,7 @@ async fn oversized_frame_closes_the_socket() {
         r#"{{"v":1,"type":"Seek","payload":{}}}"#,
         "9".repeat(100 * 1024)
     );
-    let _ = ws.send(Message::Text(huge)).await;
+    let _ = ws.send(Message::Text(huge.into())).await;
     let closed = tokio::time::timeout(Duration::from_secs(2), async {
         loop {
             match ws.next().await {
@@ -350,9 +350,9 @@ async fn remote_cannot_enqueue_paths_or_urls() {
 
     // Only ids are accepted; the host decides whether the id exists.
     let id = uuid::Uuid::new_v4();
-    ws.send(Message::Text(format!(
-        r#"{{"v":1,"type":"EnqueueById","payload":"{id}"}}"#
-    )))
+    ws.send(Message::Text(
+        format!(r#"{{"v":1,"type":"EnqueueById","payload":"{id}"}}"#).into(),
+    ))
     .await
     .unwrap();
     assert!(matches!(

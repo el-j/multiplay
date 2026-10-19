@@ -54,13 +54,13 @@ fn overflow(app: &mut MultiplayGuiApp, window: WindowId, size: Vec2) -> Vec2 {
             screen_rect: Some(Rect::from_min_size(Pos2::ZERO, size)),
             ..Default::default()
         };
-        let _ = ctx.run(input, |ctx| {
-            egui::TopBottomPanel::top("title")
-                .exact_height(TITLE_HEIGHT)
-                .show(ctx, |_| {});
+        let mut output = ctx.run_ui(input, |ui| {
+            egui::Panel::top("title")
+                .exact_size(TITLE_HEIGHT)
+                .show(ui, |_| {});
             egui::CentralPanel::default()
-                .frame(egui::Frame::none().inner_margin(8.0))
-                .show(ctx, |ui| {
+                .frame(egui::Frame::NONE.inner_margin(8.0))
+                .show(ui, |ui| {
                     let avail = ui.max_rect();
                     window_body(app, window, ui);
                     let used = ui.min_rect();
@@ -70,6 +70,8 @@ fn overflow(app: &mut MultiplayGuiApp, window: WindowId, size: Vec2) -> Vec2 {
                     );
                 });
         });
+        // Offscreen: no renderer applies texture updates, so drop them explicitly.
+        output.textures_delta.clear();
     }
     spill
 }

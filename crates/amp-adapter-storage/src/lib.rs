@@ -14,7 +14,7 @@ use async_trait::async_trait;
 
 pub use keyring::{KeyringStorageAdapter, SecretString};
 pub use playlist::{export_m3u8, import_m3u8, SessionPlaylistSnapshot};
-use redb::{Database, ReadableTable, TableDefinition};
+use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 pub use scanner::{collect_audio_files, extract_track_from_file, LibraryScanner};
 use std::path::Path;
 use std::sync::Arc;

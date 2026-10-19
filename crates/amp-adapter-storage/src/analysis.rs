@@ -5,7 +5,7 @@
 use crate::RedbStorageAdapter;
 use amp_domain::{HotCues, TrackAnalysis};
 use amp_ports::{AnalysisCachePort, HotCueStorePort};
-use redb::TableDefinition;
+use redb::{ReadableDatabase, TableDefinition};
 
 pub(crate) const ANALYSIS_TABLE: TableDefinition<&str, &[u8]> =
     TableDefinition::new("dj_analysis_v2");

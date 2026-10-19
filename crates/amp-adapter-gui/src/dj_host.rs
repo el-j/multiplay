@@ -34,6 +34,8 @@ const DECODE_FRAMES: usize = 512;
 const MAX_FRAMES: usize = DECODE_FRAMES * 4;
 /// Crossfade between normal playback and the decks, both ways.
 const CROSSFADE_SECS: f64 = 0.02;
+/// Audio decoded and discarded before the hand-back blend (well past the resampler's start-up).
+const PREROLL_SECS: f64 = 0.05;
 /// Audio kept queued in DJ mode (about 50 ms at 48 kHz).
 const LEAD_SECS: f64 = 0.05;
 /// Deck A must be decoded this far past the playing position before it takes over.
@@ -80,6 +82,8 @@ struct Handback {
     playing: bool,
     done: usize,
     fade: usize,
+    /// Output frames of pre-roll still to discard before the blend starts.
+    skip: usize,
 }
 
 impl DjHost {
@@ -245,7 +249,7 @@ impl DjHost {
             return self.handback_step(driver, dsp);
         }
         if let (Some((done, fade)), Some(dec)) = (self.fade_in, normal.as_mut()) {
-            let (frames, read) = self.blend_step(driver, dsp, dec, done, fade, true);
+            let (frames, read) = self.blend_step(driver, dsp, dec, &mut 0, (done, fade), true);
             if done + frames >= fade || read == 0 {
                 self.fade_in = None;
                 *normal = None;
@@ -324,15 +328,25 @@ impl DjHost {
             return;
         };
         dsp.set_source_sample_rate(decoder.sample_rate());
-        let delay = dsp.resampler_delay_frames() as f64 / f64::from(self.sample_rate);
+        // Line the two up: the decks are heard `LATENCY_FRAMES` behind their playhead (the
+        // limiter's lookahead), and the fresh resampler delays the decoder by its own delay.
+        let rate = f64::from(self.sample_rate);
+        let delay = dsp.resampler_delay_frames() as f64 / rate;
+        let engine_lag = LATENCY_FRAMES as f64 / rate;
         let position = pending.status.deck(pending.deck).position_secs();
-        let _ = decoder.seek(Duration::from_secs_f64(position + delay));
+        let target = (position - engine_lag + delay).max(0.0);
+        // Pre-roll: start earlier and throw that audio away, so the fresh resampler has real
+        // audio in its history (it starts with its delay as silence) when the blend begins.
+        let start = (target - PREROLL_SECS).max(0.0);
+        let skip = ((target - start) * rate).round() as usize;
+        let _ = decoder.seek(Duration::from_secs_f64(start));
         self.handback = Some(Handback {
             decoder,
             track: pending.track,
             playing: pending.playing,
             done: 0,
             fade: (f64::from(self.sample_rate) * CROSSFADE_SECS) as usize,
+            skip,
         });
     }
 
@@ -343,7 +357,14 @@ impl DjHost {
         dsp: &mut PlaybackDspChain,
     ) -> Option<AudioStreamDecoder> {
         let mut hb = self.handback.take()?;
-        let (frames, read) = self.blend_step(driver, dsp, &mut hb.decoder, hb.done, hb.fade, false);
+        let (frames, read) = self.blend_step(
+            driver,
+            dsp,
+            &mut hb.decoder,
+            &mut hb.skip,
+            (hb.done, hb.fade),
+            false,
+        );
         hb.done += frames;
         if hb.done < hb.fade && read > 0 {
             self.handback = Some(hb);
@@ -372,8 +393,8 @@ impl DjHost {
         driver: &AudioPlaybackDriver,
         dsp: &mut PlaybackDspChain,
         decoder: &mut AudioStreamDecoder,
-        done: usize,
-        fade: usize,
+        skip: &mut usize,
+        (done, fade): (usize, usize),
         to_decks: bool,
     ) -> (usize, usize) {
         let read = decoder
@@ -383,8 +404,15 @@ impl DjHost {
         let preamp = driver.eq_preamp.lock().map(|p| *p).unwrap_or(0.0);
         let eq_on = driver.eq_enabled.load(Ordering::Relaxed);
         let vol = volume(driver);
-        let (normal, bands) =
+        let (processed, bands) =
             dsp.process_interleaved(&self.decoded[..read], vol, preamp, &gains, eq_on);
+        // Drop pre-roll first (nothing is pushed while it lasts).
+        let drop = (*skip).min(processed.len() / 2);
+        *skip -= drop;
+        let normal = &processed[drop * 2..];
+        if normal.is_empty() && read > 0 {
+            return (0, read);
+        }
         let frames = (normal.len() / 2).min(self.main.len() / 2);
         self.render_dj(driver, frames);
         let mut out = Vec::with_capacity(frames * 2);

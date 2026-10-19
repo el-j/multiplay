@@ -14,14 +14,14 @@ rtrb = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
-rubato = "0.15"
+rubato = "5.0"
 rustfft = "6.4"
 num-complex = "0.4"
-lofty = "0.21"
+lofty = "0.25"
 uuid = { workspace = true }
 zip = { version = "9.0", default-features = false, features = ["deflate"] }
-rand = { version = "0.8", features = ["small_rng"] }
+rand = "0.10"
 basic-toml = "0.1"
 
 [dev-dependencies]
-proptest = "1.5"
+proptest = "1.12"

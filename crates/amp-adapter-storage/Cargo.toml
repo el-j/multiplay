@@ -12,12 +12,12 @@ amp-ports = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-redb = "2.1"
-lofty = "0.21"
+redb = "4.4"
+lofty = "0.25"
 # Compact serde encoding for database values (bincode is discontinued).
 postcard = { version = "1.1", default-features = false, features = ["use-std"] }
 async-trait = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.27"
 uuid = { workspace = true }
