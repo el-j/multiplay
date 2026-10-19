@@ -17,7 +17,7 @@ Every window draws its own classic chrome (no OS title bars, no maximize/fullscr
 1. **TASK-195** (P0): ADR & Self-Drawn Classic Window Chrome (Frameless, No Maximize)
 2. **TASK-196** (P0): Live App-Driven Drag & Magnetic Snap Engine (Windows + Screen Edges)
 3. **TASK-197** (P1): Docked Groups, Group Move, Shade/Resize Reflow & Double Size
-4. **TASK-198** (P1): Classic Fixed Sizes & Stepped Resize Grip (Playlist, Remote)
+4. **TASK-198** (P1): Meaningful Resizing & Responsive, Never-Clipping Window Content
 5. **TASK-199** (P1): Persist & Restore Window Layout, Docking and Visibility
 6. **TASK-200** (P1): Windowing Platform Matrix & Wayland Fallback
 7. **TASK-201** (P1): Settings as a One-Time Overlay Window
@@ -26,7 +26,7 @@ Every window draws its own classic chrome (no OS title bars, no maximize/fullscr
 - [ ] [TASK-195: ADR & Self-Drawn Classic Window Chrome (Frameless, No Maximize)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-195-adr-and-self-drawn-classic-window-chrome.md)
 - [ ] [TASK-196: Live App-Driven Drag & Magnetic Snap Engine (Windows + Screen Edges)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-196-live-drag-and-magnetic-snap-engine.md)
 - [ ] [TASK-197: Docked Groups, Group Move, Shade/Resize Reflow & Double Size](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-197-docked-groups-shade-reflow-and-double-size.md)
-- [ ] [TASK-198: Classic Fixed Sizes & Stepped Resize Grip (Playlist, Remote)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-198-classic-fixed-sizes-and-stepped-resize.md)
+- [ ] [TASK-198: Meaningful Resizing & Responsive, Never-Clipping Window Content](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-198-classic-fixed-sizes-and-stepped-resize.md)
 - [ ] [TASK-199: Persist & Restore Window Layout, Docking and Visibility](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-199-persist-and-restore-window-layout.md)
 - [ ] [TASK-200: Windowing Platform Matrix & Wayland Fallback](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-200-windowing-platform-matrix-and-wayland-fallback.md)
 - [ ] [TASK-201: Settings as a One-Time Overlay Window](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-201-settings-one-time-overlay.md)

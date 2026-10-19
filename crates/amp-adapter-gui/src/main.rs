@@ -11,7 +11,7 @@ use eframe::egui::{Pos2, Vec2};
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
         viewport: classic_viewport("multiplay", false)
-            .with_inner_size(Vec2::new(480.0, 190.0))
+            .with_inner_size(Vec2::new(480.0, 210.0))
             .with_position(Pos2::new(120.0, 100.0))
             .with_active(true),
         vsync: true,

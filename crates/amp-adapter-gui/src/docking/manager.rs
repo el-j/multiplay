@@ -25,22 +25,22 @@ impl Default for DockManager {
     fn default() -> Self {
         let mut windows = HashMap::new();
         // Classic Winamp layout coordinates
-        windows.insert(WindowId::Main, DockRect::new(120.0, 100.0, 480.0, 190.0));
+        windows.insert(WindowId::Main, DockRect::new(120.0, 100.0, 480.0, 210.0));
         windows.insert(
             WindowId::Equalizer,
-            DockRect::new(120.0, 290.0, 480.0, 155.0),
+            DockRect::new(120.0, 310.0, 480.0, 200.0),
         );
         windows.insert(
             WindowId::Playlist,
-            DockRect::new(120.0, 445.0, 480.0, 260.0),
+            DockRect::new(120.0, 510.0, 480.0, 300.0),
         );
         windows.insert(
             WindowId::Settings,
-            DockRect::new(610.0, 100.0, 460.0, 400.0),
+            DockRect::new(610.0, 100.0, 520.0, 420.0),
         );
         windows.insert(
             WindowId::DjConsole,
-            DockRect::new(120.0, 710.0, 480.0, 180.0),
+            DockRect::new(610.0, 530.0, 480.0, 220.0),
         );
 
         let mut visibility = HashMap::new();

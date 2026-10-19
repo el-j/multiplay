@@ -26,6 +26,8 @@ pub struct MultiplayGuiApp {
     pub initialized_viewports: HashSet<WindowId>,
     /// Title-bar drag in progress (app-driven, live magnetic snapping).
     pub window_drag: Option<crate::chrome::drag::DragSession>,
+    /// Edge or grip resize in progress (app-driven, keeps windows apart).
+    pub window_resize: Option<crate::chrome::resize::ResizeSession>,
     /// Heights to restore when a shaded window is rolled back down.
     pub shade_restore: std::collections::HashMap<WindowId, f32>,
     pub dj_state: DjConsoleState,
@@ -79,6 +81,7 @@ impl MultiplayGuiApp {
             dock_manager: DockManager::default(),
             initialized_viewports: HashSet::new(),
             window_drag: None,
+            window_resize: None,
             shade_restore: std::collections::HashMap::new(),
             dj_state: DjConsoleState::default(),
             settings_tab: GuiSettingsTab::default(),

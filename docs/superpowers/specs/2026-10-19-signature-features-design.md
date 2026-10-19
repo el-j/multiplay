@@ -53,17 +53,27 @@ intimidating), and let a room full of phones suggest music without anyone handin
 
 ## 4. Part A — Classic Windows & Magnetic Docking (PLAN-053)
 
-### Window set and sizes (classic reference values)
-| Window | Size (1×) | Resize | Docks | Notes |
+### Window set, sizes and resizing (owner decision 2026-10-19: resizable, responsive)
+| Window | Default | Min | Resize | Docks |
 | :--- | :--- | :--- | :--- | :--- |
-| Main | 275 × 116 | none | anchor | Becomes the DJ console in DJ mode (Part C) |
-| Equalizer | 275 × 116 | none | yes | |
-| Playlist | 275 × 232 min | grip, 25 × 29 steps | yes | Shows deck badges in DJ mode |
-| Remote & Sharing | 275 × 232 min | grip, 25 × 29 steps | yes | Part D |
-| Settings | content-sized | none | **no** | One-time overlay (below) |
+| Main | 480 × 210 | 300 × 200 | grip + right/bottom edges | anchor |
+| Equalizer | 480 × 200 | 300 × 170 | grip + right/bottom edges | yes |
+| Playlist | 480 × 300 | 300 × 180 | grip + right/bottom edges | yes |
+| Remote & Sharing | 480 × 300 | 300 × 180 | grip + right/bottom edges | yes |
+| Settings | 520 × 420 | 360 × 260 | grip + right/bottom edges | **no** |
 
+- Resizing is app-driven (like dragging): the moving edge snaps to neighbour edges, is clamped
+  to the window's minimum, pushes windows docked to that edge, and stops at windows that are
+  not docked. No maximize, no fullscreen.
+- **Responsive content rules (every window):** nothing is ever clipped or drawn outside the
+  window. Long text truncates with an ellipsis; rows that can run out of space wrap or switch
+  to a compact form (icon-only buttons, dropdowns instead of pill rows); lists and visualizers
+  take the remaining space; tall content scrolls. A runtime guard grows a window if content
+  still does not fit. An offscreen egui test renders each window at its minimum and several
+  sizes and fails on any overflow.
+- **No overlap:** a dragged window stops flush against windows it would cover; showing a
+  window, restoring a layout, unshading or resizing moves overlapping windows out of the way.
 - **Double size** (Ctrl+D) scales every dockable window 2×; docking geometry scales with it.
-- No maximize, no fullscreen, no OS title bar or border on any window.
 
 ### Self-drawn chrome
 - Every window is a frameless viewport (`with_decorations(false)`, `with_resizable(false)`, no
@@ -192,6 +202,8 @@ intimidating), and let a room full of phones suggest music without anyone handin
 2. Remix decks and stems (PLAN-057) are planned now but scheduled **after 1.0**, behind
    `experimental.remix_decks`. *(my call)*
 3. Snap distance 10 px default, configurable. *(my call; classic value not documented)*
+   Windows are freely resizable within minimums instead of classic fixed sizes, and never
+   overlap. *(owner decision 2026-10-19)*
 4. Wayland: prefer XWayland; pure Wayland gets no snapping. *(my call)*
 5. "Play both tracks per deck" means a track can be assigned to A, B, or both (owner accepted the
    playback).

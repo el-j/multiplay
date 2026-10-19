@@ -4,7 +4,9 @@
 #![forbid(unsafe_code)]
 
 pub mod drag;
+pub mod handles;
 pub mod layout;
+pub mod resize;
 
 use crate::app_state::MultiplayGuiApp;
 use crate::docking::{DockRect, WindowId};
@@ -97,7 +99,7 @@ pub fn title_bar(
             if resp.double_clicked() && hit == ChromeHit::Title && full {
                 action = ChromeAction::ToggleShade;
             }
-            if resp.drag_started() && hit == ChromeHit::Title {
+            if resp.drag_started() && hit == ChromeHit::Title && app.window_resize.is_none() {
                 if let Some(p) = pointer_screen(ctx) {
                     let windows = app.dock_manager.dockable_windows();
                     app.window_drag = DragSession::start(window, p, &windows);
@@ -109,7 +111,7 @@ pub fn title_bar(
 }
 
 /// Pointer position in screen points (window origin + local position).
-fn pointer_screen(ctx: &egui::Context) -> Option<(f32, f32)> {
+pub(crate) fn pointer_screen(ctx: &egui::Context) -> Option<(f32, f32)> {
     ctx.input(|i| {
         let origin = i.viewport().inner_rect?.min;
         let p = i.pointer.latest_pos()?;
@@ -118,7 +120,7 @@ fn pointer_screen(ctx: &egui::Context) -> Option<(f32, f32)> {
 }
 
 /// Monitor work areas available for screen-edge snapping.
-fn screens(ctx: &egui::Context) -> Vec<DockRect> {
+pub(crate) fn screens(ctx: &egui::Context) -> Vec<DockRect> {
     // egui reports only the current monitor's size; treat it as the origin monitor when the
     // window lies on it (multi-monitor origins arrive with TASK-200).
     let (size, outer) = ctx.input(|i| (i.viewport().monitor_size, i.viewport().outer_rect));
@@ -164,11 +166,8 @@ fn drive_drag(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId, 
 
 /// Records where the OS reports a window, except while the app itself is dragging it.
 pub fn track_geometry(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId) {
-    let dragging = app
-        .window_drag
-        .as_ref()
-        .is_some_and(|s| s.members.iter().any(|(id, _)| *id == window));
-    if dragging {
+    // While the app moves or resizes windows it is the source of truth; OS reports lag behind.
+    if app.window_drag.is_some() || app.window_resize.is_some() {
         return;
     }
     let geometry = ctx.input(|i| {
@@ -210,10 +209,8 @@ pub fn apply_action(
                 TITLE_HEIGHT
             };
             app.dock_manager.toggle_shade(window);
-            ctx.send_viewport_cmd_to(
-                id,
-                ViewportCommand::InnerSize(Vec2::new(rect.width, height)),
-            );
+            // Windows docked below follow the bottom edge up and back down.
+            handles::resize_window(app, ctx, window, rect.width, height);
         }
     }
 }

@@ -22,6 +22,7 @@ pub mod playback_worker;
 pub mod playlist_window;
 pub mod qr_widget;
 pub mod remote_manager;
+pub mod responsive;
 pub mod settings_panel;
 pub mod skin_texture;
 pub mod track_loader;

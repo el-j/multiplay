@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-use crate::docking::{connected_group, snap_rect, DockRect, WindowId};
+use crate::docking::{connected_group, separate_from, snap_rect, DockRect, WindowId};
 
 /// One title-bar drag, from press to release.
 #[derive(Debug, Clone, PartialEq)]
@@ -66,7 +66,25 @@ impl DragSession {
         let mut moved_bounds = start_bounds;
         moved_bounds.translate(dx, dy);
         let snapped = snap_rect(moved_bounds, &others, screens, snap_distance);
-        let (sx, sy) = (snapped.x - start_bounds.x, snapped.y - start_bounds.y);
+        let (mut sx, mut sy) = (snapped.x - start_bounds.x, snapped.y - start_bounds.y);
+
+        // Never land on another window: push the whole group out of any overlap, member by
+        // member, so it stops flush against the window it ran into.
+        for _ in 0..8 {
+            let push = self.members.iter().find_map(|(_, r)| {
+                let mut moved = *r;
+                moved.translate(sx, sy);
+                let freed = separate_from(moved, &others);
+                (freed != moved).then_some((freed.x - moved.x, freed.y - moved.y))
+            });
+            match push {
+                Some((px, py)) => {
+                    sx += px;
+                    sy += py;
+                }
+                None => break,
+            }
+        }
 
         self.members
             .iter()
@@ -165,5 +183,19 @@ mod tests {
             .unwrap()
             .1;
         assert_eq!(eq.bottom(), 900.0);
+    }
+
+    #[test]
+    fn dragging_onto_another_window_stops_flush_against_it() {
+        let w = layout();
+        // Playlist dragged so it would cover the middle of the main window.
+        let s = DragSession::start(WindowId::Playlist, (700.0, 105.0), &w).unwrap();
+        let moved = s.positions((300.0, 140.0), &w, &[], 10.0);
+        let main = w[0].1;
+        assert!(
+            !crate::docking::overlaps(&moved[0].1, &main),
+            "{:?}",
+            moved[0].1
+        );
     }
 }

@@ -42,7 +42,7 @@ impl SettingsGuiPanel {
             ui.add_space(4.0);
 
             // Tab bar
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.selectable_value(active_tab, GuiSettingsTab::Folders, "📁 Folders");
                 ui.selectable_value(active_tab, GuiSettingsTab::Audio, "🔊 Audio Output");
                 ui.selectable_value(active_tab, GuiSettingsTab::Accounts, "🌐 Accounts");
@@ -55,7 +55,9 @@ impl SettingsGuiPanel {
             ui.separator();
             ui.add_space(4.0);
 
-            match active_tab {
+            // Slider length follows the window so captioned sliders never run past the edge.
+            ui.spacing_mut().slider_width = (ui.available_width() * 0.35).clamp(60.0, 220.0);
+            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| match active_tab {
                 GuiSettingsTab::Folders => {
                     ui.label(RichText::new("Indexed Music Directories:").strong());
                     for dir in &config.library.music_directories {
@@ -67,7 +69,7 @@ impl SettingsGuiPanel {
                     );
                 }
                 GuiSettingsTab::Audio => {
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         ui.label("Hardware Rate:");
                         ui.label(
                             RichText::new(format!(
@@ -82,16 +84,15 @@ impl SettingsGuiPanel {
                         "Enable EBU R128 Loudness Normalization",
                     );
                     if config.audio.loudness_normalization {
-                        ui.add(
-                            egui::Slider::new(&mut config.audio.target_lufs, -23..=-11)
-                                .text("Target Loudness (LUFS)"),
-                        );
+                        ui.label("Target loudness (LUFS)");
+                        ui.add(egui::Slider::new(&mut config.audio.target_lufs, -23..=-11));
                     }
-                    ui.add(
-                        egui::Slider::new(&mut config.audio.crossfade_duration_ms, 0..=12000)
-                            .text("Automix Crossfade (0ms = Gapless)"),
-                    );
-                    ui.horizontal(|ui| {
+                    ui.label("Automix crossfade in ms (0 = gapless)");
+                    ui.add(egui::Slider::new(
+                        &mut config.audio.crossfade_duration_ms,
+                        0..=12000,
+                    ));
+                    ui.horizontal_wrapped(|ui| {
                         ui.label("Binaural Headphone Crossfeed:");
                         egui::ComboBox::from_id_salt("crossfeed_cb")
                             .selected_text(&config.audio.headphone_crossfeed)
@@ -144,7 +145,7 @@ impl SettingsGuiPanel {
                             .strong()
                             .color(Color32::from_rgb(0, 230, 140)),
                     );
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         ui.label("Current Skin:");
                         ui.label(
                             RichText::new(&theme.name)
@@ -153,7 +154,7 @@ impl SettingsGuiPanel {
                         );
                     });
 
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         if ui.button("Default Skin").clicked() {
                             *theme = amp_core_engine::WinampTheme::default();
                         }
@@ -177,7 +178,7 @@ impl SettingsGuiPanel {
 
                     ui.add_space(6.0);
                     ui.label(RichText::new("Visualizer Spectrum Gradient Preview:").size(11.0));
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         for c in &theme.viscolor_gradient {
                             let (r, g, b) = *c;
                             let color = Color32::from_rgb(r, g, b);
@@ -239,7 +240,7 @@ impl SettingsGuiPanel {
                         return;
                     }
 
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         let scope = if remote.allow_lan { "network" } else { "this computer only" };
                         ui.label(format!("Listening on port {} ({scope})", remote.port));
                         ui.separator();
@@ -251,7 +252,7 @@ impl SettingsGuiPanel {
                     });
 
                     ui.add_space(6.0);
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         if let Some(ref matrix) = remote.qr_matrix {
                             crate::qr_widget::draw_qr_code(ui, matrix, 140.0);
                         }
@@ -274,7 +275,7 @@ impl SettingsGuiPanel {
                         });
                     });
                 }
-            }
+            });
         });
     }
 }

@@ -6,9 +6,8 @@
 use crate::app_state::MultiplayGuiApp;
 use crate::chrome;
 use crate::docking::WindowId;
-use crate::main_window::render_main_window_content;
 use crate::viewports::render_satellite_windows;
-use eframe::egui::{self, Color32};
+use eframe::egui;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
@@ -33,22 +32,25 @@ impl eframe::App for MultiplayGuiApp {
         }
 
         // 3. Main window: self-drawn title strip; dragging it moves the docked group live
-        chrome::track_geometry(self, ctx, WindowId::Main);
+        if self.initialized_viewports.insert(WindowId::Main) {
+            // First frame: put the root window where the saved layout says, at least min size.
+            let min = chrome::resize::min_inner_size(WindowId::Main);
+            let mut r = self.dock_manager.get_rect(WindowId::Main);
+            r.width = r.width.max(min.x);
+            r.height = r.height.max(min.y);
+            self.dock_manager.set_rect(WindowId::Main, r);
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                r.width, r.height,
+            )));
+            ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(egui::pos2(r.x, r.y)));
+        } else {
+            chrome::track_geometry(self, ctx, WindowId::Main);
+        }
         let action = chrome::title_bar(self, ctx, WindowId::Main, "multiplay", true, true);
         chrome::apply_action(self, ctx, WindowId::Main, action);
 
         // 4. Render Main Player Content in Root Viewport (hidden while shaded)
-        if !self.dock_manager.is_shaded(WindowId::Main) {
-            egui::CentralPanel::default()
-                .frame(
-                    egui::Frame::none()
-                        .fill(Color32::from_rgb(14, 18, 22))
-                        .inner_margin(8.0),
-                )
-                .show(ctx, |ui| {
-                    render_main_window_content(self, ui);
-                });
-        }
+        crate::viewports::show_body(self, ctx, WindowId::Main);
 
         // 5. Render Modular Satellite OS Native Windows
         render_satellite_windows(self, ctx);

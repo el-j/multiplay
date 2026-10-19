@@ -1,293 +1,256 @@
-//! Main player faceplate window for Multiplay.
-//! Classic Winamp 1.x VFD glowing display, real-time visualizer, transport controls, and timeline scrubber.
+//! Main player faceplate: track display, output device, clock and visualizer, scrubber,
+//! transport and window toggles. Responsive from 300 pt wide: text truncates, the transport
+//! turns icon-only when narrow, and the visualizer takes all spare width and height.
 
 #![forbid(unsafe_code)]
 
 use crate::app::MultiplayGuiApp;
 use crate::docking::WindowId;
-use crate::visualizer_widget::VisualizerWidget;
-use eframe::egui::{self, Color32, RichText, Ui};
+use crate::responsive::row_rtl;
+use crate::visualizer_widget::{VisualizerMode, VisualizerWidget};
+use eframe::egui::{self, Color32, Layout, RichText, Ui};
 use std::time::Duration;
 
+/// Below this content width the transport shows icons only.
+const NARROW: f32 = 440.0;
+/// Height reserved under the visualizer for scrubber, transport and toggle rows.
+const BOTTOM_ROWS: f32 = 78.0;
+const ACCENT: Color32 = Color32::from_rgb(0, 235, 136);
+
 pub fn render_main_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
-    ui.group(|ui| {
-        // 1. Title Bar & VFD Track Title
-        ui.horizontal(|ui| {
-            let title_text =
-                if !app.playlist.is_empty() && app.selected_track_idx < app.playlist.len() {
-                    let track = &app.playlist[app.selected_track_idx];
-                    format!(
-                        "WINAMP 1.x :: {}. {} - {}",
-                        app.selected_track_idx + 1,
-                        track.metadata.artist,
-                        track.metadata.title
-                    )
-                } else {
-                    "WINAMP 1.x :: [NO TRACK LOADED - DROP FILES HERE]".to_string()
-                };
-            ui.heading(
-                RichText::new(title_text)
-                    .size(14.0)
-                    .strong()
-                    .color(Color32::from_rgb(0, 235, 136)),
-            );
+    let narrow = ui.available_width() < NARROW;
+    ui.spacing_mut().item_spacing.y = 4.0;
+    track_row(app, ui, narrow);
+    device_row(app, ui);
+    clock_and_visualizer_row(app, ui);
+    scrubber_row(app, ui);
+    transport_row(app, ui, narrow);
+    toggles_row(app, ui);
+}
 
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if app.remote.is_running {
-                    let text = if app.remote.allow_lan {
-                        "● REMOTE ON (LAN)"
-                    } else {
-                        "● REMOTE ON"
-                    };
-                    ui.label(
-                        RichText::new(text)
-                            .size(11.0)
-                            .strong()
-                            .color(Color32::from_rgb(240, 180, 0)),
-                    )
-                    .on_hover_text(
-                        "Remote control is listening. Turn it off in Settings → Remote.",
-                    );
-                }
-                ui.label(
-                    RichText::new("[44.1kHz / 24-bit] [ST]")
-                        .size(11.0)
-                        .color(Color32::from_rgb(0, 200, 240)),
-                );
-            });
-        });
-
-        ui.add_space(4.0);
-
-        // 2. Hardware Output Device Selector
-        let current_dev = app.audio_driver.current_device_name.lock().unwrap().clone();
-        ui.horizontal(|ui| {
-            ui.label(
-                RichText::new("🔊 AUDIO DEVICE:")
-                    .size(10.0)
-                    .strong()
-                    .color(Color32::from_rgb(140, 170, 190)),
-            );
-            for dev in &app.audio_driver.available_devices {
-                let is_selected = dev.name == current_dev;
-                let btn_text = if is_selected {
-                    format!("● {}", dev.name)
-                } else {
-                    format!("○ {}", dev.name)
-                };
-                let text_color = if is_selected {
-                    Color32::from_rgb(0, 255, 180)
-                } else {
-                    Color32::from_rgb(140, 140, 150)
-                };
-                if ui
-                    .selectable_label(
-                        is_selected,
-                        RichText::new(btn_text).size(10.0).color(text_color),
-                    )
-                    .clicked()
-                    && !is_selected
-                {
-                    let _ = app.audio_driver.switch_device(&dev.name);
-                }
-            }
-        });
-
-        ui.add_space(4.0);
-
-        // 3. Glowing VFD Digital Clock & Visualizer
-        ui.horizontal(|ui| {
-            let elapsed_dur = *app.audio_driver.elapsed.lock().unwrap();
-            let el_s = elapsed_dur.as_secs();
-            let clock_text = format!("{:02}:{:02}", el_s / 60, el_s % 60);
-
-            ui.vertical(|ui| {
-                ui.label(
-                    RichText::new("ELAPSED TIME")
-                        .size(9.0)
-                        .color(Color32::from_rgb(100, 140, 160)),
-                );
-                ui.label(
-                    RichText::new(clock_text)
-                        .size(26.0)
-                        .monospace()
-                        .strong()
-                        .color(Color32::from_rgb(0, 255, 140)),
-                );
-            });
-
-            ui.add_space(10.0);
-
-            let spec = *app.audio_driver.visualizer_spectrum.lock().unwrap();
-            let wave = *app.audio_driver.visualizer_waveform.lock().unwrap();
-            let vis_resp =
-                VisualizerWidget::new(app.visualizer_mode, &spec, &wave, &app.theme, 42.0).ui(ui);
-            if vis_resp.clicked() {
-                app.visualizer_mode = match app.visualizer_mode {
-                    crate::visualizer_widget::VisualizerMode::Spectrum => {
-                        crate::visualizer_widget::VisualizerMode::Oscilloscope
-                    }
-                    crate::visualizer_widget::VisualizerMode::Oscilloscope => {
-                        crate::visualizer_widget::VisualizerMode::Spectrum
-                    }
-                };
-            }
-        });
-
-        ui.add_space(4.0);
-
-        // 4. Interactive Timeline Scrubbing Bar
-        let elapsed = *app.audio_driver.elapsed.lock().unwrap();
-        let total = *app.audio_driver.total_duration.lock().unwrap();
-        let total_secs = total
-            .unwrap_or(Duration::from_secs(1))
-            .as_secs_f32()
-            .max(1.0);
-        let mut progress = (elapsed.as_secs_f32() / total_secs).clamp(0.0, 1.0);
-
-        ui.horizontal(|ui| {
-            let el_str = format!(
-                "{:02}:{:02}",
-                elapsed.as_secs() / 60,
-                elapsed.as_secs() % 60
-            );
-            let tot_str = if let Some(t) = total {
-                format!("{:02}:{:02}", t.as_secs() / 60, t.as_secs() % 60)
+fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
+    let title = match app.playlist.get(app.selected_track_idx) {
+        Some(t) => format!(
+            "{}. {} - {}",
+            app.selected_track_idx + 1,
+            t.metadata.artist,
+            t.metadata.title
+        ),
+        None => "No track loaded - drop files here".to_string(),
+    };
+    row_rtl(ui, |ui| {
+        if app.remote.is_running {
+            let text = if app.remote.allow_lan {
+                "● REMOTE (LAN)"
             } else {
-                "--:--".to_string()
+                "● REMOTE"
             };
-
             ui.label(
-                RichText::new(el_str)
+                RichText::new(text)
                     .size(10.0)
-                    .monospace()
-                    .color(Color32::from_rgb(0, 230, 140)),
+                    .strong()
+                    .color(Color32::from_rgb(240, 180, 0)),
+            )
+            .on_hover_text("Remote control is listening. Turn it off in Settings → Remote.");
+        }
+        if !narrow {
+            ui.label(
+                RichText::new("44.1kHz ST")
+                    .size(10.0)
+                    .color(Color32::from_rgb(0, 200, 240)),
             );
-            let scrub_slider = egui::Slider::new(&mut progress, 0.0..=1.0)
+        }
+        ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+            ui.add(
+                egui::Label::new(RichText::new(title).size(13.0).strong().color(ACCENT)).truncate(),
+            )
+            .on_hover_text("Current track");
+        });
+    });
+}
+
+fn device_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
+    let current = app.audio_driver.current_device_name.lock().unwrap().clone();
+    let mut chosen = None;
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new("🔊")
+                .size(11.0)
+                .color(Color32::from_rgb(140, 170, 190)),
+        )
+        .on_hover_text("Audio output device");
+        egui::ComboBox::from_id_salt("output_device")
+            .width(ui.available_width() - 8.0)
+            .truncate()
+            .selected_text(RichText::new(&current).size(10.0))
+            .show_ui(ui, |ui| {
+                for dev in &app.audio_driver.available_devices {
+                    if ui
+                        .selectable_label(dev.name == current, &dev.name)
+                        .clicked()
+                    {
+                        chosen = Some(dev.name.clone());
+                    }
+                }
+            });
+    });
+    if let Some(name) = chosen.filter(|n| *n != current) {
+        let _ = app.audio_driver.switch_device(&name);
+    }
+}
+
+fn clock_and_visualizer_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
+    let height = (ui.available_height() - BOTTOM_ROWS).max(36.0);
+    let el_s = app.audio_driver.elapsed.lock().unwrap().as_secs();
+    ui.horizontal(|ui| {
+        ui.set_height(height);
+        ui.vertical(|ui| {
+            ui.label(
+                RichText::new("ELAPSED")
+                    .size(9.0)
+                    .color(Color32::from_rgb(100, 140, 160)),
+            );
+            ui.label(
+                RichText::new(format!("{:02}:{:02}", el_s / 60, el_s % 60))
+                    .size(24.0)
+                    .monospace()
+                    .strong()
+                    .color(Color32::from_rgb(0, 255, 140)),
+            );
+        });
+        let spec = *app.audio_driver.visualizer_spectrum.lock().unwrap();
+        let wave = *app.audio_driver.visualizer_waveform.lock().unwrap();
+        let resp =
+            VisualizerWidget::new(app.visualizer_mode, &spec, &wave, &app.theme, height).ui(ui);
+        if resp
+            .on_hover_text("Click to switch spectrum / oscilloscope")
+            .clicked()
+        {
+            app.visualizer_mode = match app.visualizer_mode {
+                VisualizerMode::Spectrum => VisualizerMode::Oscilloscope,
+                VisualizerMode::Oscilloscope => VisualizerMode::Spectrum,
+            };
+        }
+    });
+}
+
+fn mmss(d: Duration) -> String {
+    format!("{:02}:{:02}", d.as_secs() / 60, d.as_secs() % 60)
+}
+
+fn scrubber_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
+    let elapsed = *app.audio_driver.elapsed.lock().unwrap();
+    let total = *app.audio_driver.total_duration.lock().unwrap();
+    let total_secs = total.map_or(1.0, |t| t.as_secs_f32()).max(1.0);
+    let mut progress = (elapsed.as_secs_f32() / total_secs).clamp(0.0, 1.0);
+    let small = |s: String, c| RichText::new(s).size(10.0).monospace().color(c);
+    row_rtl(ui, |ui| {
+        let tot = total.map_or("--:--".to_string(), mmss);
+        ui.label(small(tot, Color32::from_rgb(120, 180, 240)));
+        ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+            ui.label(small(mmss(elapsed), Color32::from_rgb(0, 230, 140)));
+            ui.spacing_mut().slider_width = (ui.available_width() - 4.0).max(20.0);
+            let slider = egui::Slider::new(&mut progress, 0.0..=1.0)
                 .show_value(false)
                 .trailing_fill(true);
-            if ui
-                .add_sized([ui.available_width() - 50.0, 12.0], scrub_slider)
-                .changed()
-            {
-                let target = Duration::from_secs_f32(progress * total_secs);
-                app.audio_driver.seek(target);
-            }
-            ui.label(
-                RichText::new(tot_str)
-                    .size(10.0)
-                    .monospace()
-                    .color(Color32::from_rgb(120, 180, 240)),
-            );
-        });
-
-        ui.add_space(6.0);
-
-        // 5. Transport Controls Row & Window Toggles
-        ui.horizontal(|ui| {
-            if ui.button(RichText::new("⏮ PREV").size(12.0)).clicked() && app.selected_track_idx > 0
-            {
-                app.selected_track_idx -= 1;
+            if ui.add(slider).changed() {
                 app.audio_driver
-                    .play(app.playlist[app.selected_track_idx].clone());
-                let upcoming = app.playlist.get(app.selected_track_idx + 1).cloned();
-                app.audio_driver.set_next_track(upcoming);
+                    .seek(Duration::from_secs_f32(progress * total_secs));
             }
+        });
+    });
+}
 
-            let is_playing = app
-                .audio_driver
-                .is_playing
-                .load(std::sync::atomic::Ordering::Relaxed);
-            let play_label = if is_playing { "⏸ PAUSE" } else { "▶ PLAY" };
-            let play_color = if is_playing {
-                Color32::from_rgb(255, 180, 50)
-            } else {
-                Color32::from_rgb(0, 230, 140)
-            };
+fn play_index(app: &mut MultiplayGuiApp, idx: usize) {
+    app.selected_track_idx = idx;
+    app.audio_driver.play(app.playlist[idx].clone());
+    let upcoming = app.playlist.get(idx + 1).cloned();
+    app.audio_driver.set_next_track(upcoming);
+}
 
+fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
+    let label = |icon: &str, text: &str| {
+        if narrow {
+            icon.to_string()
+        } else {
+            format!("{icon} {text}")
+        }
+    };
+    let is_playing = app
+        .audio_driver
+        .is_playing
+        .load(std::sync::atomic::Ordering::Relaxed);
+    ui.horizontal(|ui| {
+        if ui
+            .button(label("⏮", "PREV"))
+            .on_hover_text("Previous")
+            .clicked()
+            && app.selected_track_idx > 0
+        {
+            play_index(app, app.selected_track_idx - 1);
+        }
+        let (icon, text, color) = if is_playing {
+            ("⏸", "PAUSE", Color32::from_rgb(255, 180, 50))
+        } else {
+            ("▶", "PLAY", Color32::from_rgb(0, 230, 140))
+        };
+        if ui
+            .button(RichText::new(label(icon, text)).strong().color(color))
+            .on_hover_text(text)
+            .clicked()
+        {
+            if is_playing {
+                app.audio_driver.toggle_play_pause();
+            } else if app.selected_track_idx < app.playlist.len() {
+                play_index(app, app.selected_track_idx);
+            }
+        }
+        if ui
+            .button(label("⏹", "STOP"))
+            .on_hover_text("Stop")
+            .clicked()
+        {
+            app.audio_driver.stop();
+        }
+        if ui
+            .button(label("⏭", "NEXT"))
+            .on_hover_text("Next")
+            .clicked()
+            && app.selected_track_idx + 1 < app.playlist.len()
+        {
+            play_index(app, app.selected_track_idx + 1);
+        }
+        ui.label(
+            RichText::new("VOL")
+                .size(10.0)
+                .color(Color32::from_rgb(180, 200, 220)),
+        );
+        ui.spacing_mut().slider_width = (ui.available_width() - 4.0).max(30.0);
+        let vol = egui::Slider::new(&mut app.volume, 0.0..=1.0)
+            .show_value(false)
+            .trailing_fill(true);
+        if ui.add(vol).on_hover_text("Volume").changed() {
+            app.audio_driver.set_volume(app.volume);
+        }
+    });
+}
+
+fn toggles_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        for (id, text, tip) in [
+            (WindowId::Equalizer, "EQ", "Equalizer window"),
+            (WindowId::Playlist, "PL", "Playlist window"),
+            (WindowId::DjConsole, "DJ", "DJ console"),
+            (WindowId::Settings, "⚙", "Preferences"),
+        ] {
+            let on = app.dock_manager.is_visible(id);
             if ui
-                .button(
-                    RichText::new(play_label)
-                        .size(13.0)
-                        .strong()
-                        .color(play_color),
-                )
+                .selectable_label(on, RichText::new(text).size(11.0))
+                .on_hover_text(tip)
                 .clicked()
             {
-                if !is_playing {
-                    if !app.playlist.is_empty() && app.selected_track_idx < app.playlist.len() {
-                        app.audio_driver
-                            .play(app.playlist[app.selected_track_idx].clone());
-                        let upcoming = app.playlist.get(app.selected_track_idx + 1).cloned();
-                        app.audio_driver.set_next_track(upcoming);
-                    }
-                } else {
-                    app.audio_driver.toggle_play_pause();
-                }
+                app.dock_manager.toggle_visible(id);
             }
-
-            if ui.button(RichText::new("⏹ STOP").size(12.0)).clicked() {
-                app.audio_driver.stop();
-            }
-
-            if ui.button(RichText::new("⏭ NEXT").size(12.0)).clicked()
-                && app.selected_track_idx + 1 < app.playlist.len()
-            {
-                app.selected_track_idx += 1;
-                app.audio_driver
-                    .play(app.playlist[app.selected_track_idx].clone());
-                let upcoming = app.playlist.get(app.selected_track_idx + 1).cloned();
-                app.audio_driver.set_next_track(upcoming);
-            }
-
-            ui.add_space(10.0);
-
-            // Volume Slider
-            ui.label(
-                RichText::new("VOL:")
-                    .size(11.0)
-                    .color(Color32::from_rgb(180, 200, 220)),
-            );
-            let vol_slider = egui::Slider::new(&mut app.volume, 0.0..=1.0)
-                .show_value(false)
-                .trailing_fill(true);
-            if ui.add_sized([75.0, 16.0], vol_slider).changed() {
-                app.audio_driver.set_volume(app.volume);
-            }
-
-            // Window Toggles
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let pref_on = app.dock_manager.is_visible(WindowId::Settings);
-                if ui
-                    .button(
-                        RichText::new(if pref_on { "PREF [ON]" } else { "PREF [OFF]" }).size(10.0),
-                    )
-                    .clicked()
-                {
-                    app.dock_manager.toggle_visible(WindowId::Settings);
-                }
-                let dj_on = app.dock_manager.is_visible(WindowId::DjConsole);
-                if ui
-                    .button(RichText::new(if dj_on { "DJ [ON]" } else { "DJ [OFF]" }).size(10.0))
-                    .clicked()
-                {
-                    app.dock_manager.toggle_visible(WindowId::DjConsole);
-                }
-                let pl_on = app.dock_manager.is_visible(WindowId::Playlist);
-                if ui
-                    .button(RichText::new(if pl_on { "PL [ON]" } else { "PL [OFF]" }).size(10.0))
-                    .clicked()
-                {
-                    app.dock_manager.toggle_visible(WindowId::Playlist);
-                }
-                let eq_on = app.dock_manager.is_visible(WindowId::Equalizer);
-                if ui
-                    .button(RichText::new(if eq_on { "EQ [ON]" } else { "EQ [OFF]" }).size(10.0))
-                    .clicked()
-                {
-                    app.dock_manager.toggle_visible(WindowId::Equalizer);
-                }
-            });
-        });
+        }
     });
 }
