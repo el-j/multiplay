@@ -228,8 +228,8 @@ fn run_playback_loop(
         }
 
         if !is_playing.load(Ordering::SeqCst) {
-            let mut spec = visualizer_spectrum.lock().unwrap();
-            *spec = [0.0; 16];
+            // Release the lock before sleeping, or controls such as stop() starve.
+            *visualizer_spectrum.lock().unwrap() = [0.0; 16];
             std::thread::sleep(Duration::from_millis(15));
             continue;
         }
@@ -287,5 +287,28 @@ fn run_playback_loop(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+
+    #[test]
+    fn controls_stay_responsive_while_paused() {
+        // The idle worker must not hold shared state locks while it sleeps, or callers
+        // such as stop() starve (minutes on Linux CI).
+        let driver = AudioPlaybackDriver::new_headless().expect("headless driver");
+        std::thread::sleep(Duration::from_millis(50));
+        let started = Instant::now();
+        for _ in 0..100 {
+            driver.stop();
+        }
+        let took = started.elapsed();
+        assert!(
+            took < Duration::from_millis(500),
+            "100 stop() calls took {took:?}"
+        );
     }
 }

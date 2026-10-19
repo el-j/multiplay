@@ -3,14 +3,24 @@
 
 #![forbid(unsafe_code)]
 
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{ErrorKind, Read, Seek, SeekFrom};
+use std::time::{Duration, Instant};
 use symphonia::core::io::MediaSource;
 
+/// How long a read waits for a stalled progressive stream before reporting `WouldBlock`.
+pub const DEFAULT_STALL_TIMEOUT: Duration = Duration::from_secs(5);
+const UNDERRUN_POLL: Duration = Duration::from_millis(2);
+
 /// MediaSource wrapper adapting any `Read + Seek + Send + Sync + 'static` stream to Symphonia's interface.
+///
+/// A `WouldBlock` from the inner stream (network underrun) is waited out here instead of being
+/// passed on: Symphonia drops the bytes it already copied for a packet when a read fails part-way,
+/// so surfacing the error would lose audio. Only a stall longer than the timeout is reported.
 pub struct GenericMediaSource<S> {
     inner: S,
     seekable: bool,
     byte_len: Option<u64>,
+    stall_timeout: Duration,
 }
 
 impl<S: Read + Seek + Send + Sync> GenericMediaSource<S> {
@@ -19,6 +29,7 @@ impl<S: Read + Seek + Send + Sync> GenericMediaSource<S> {
             inner,
             seekable: true,
             byte_len: None,
+            stall_timeout: DEFAULT_STALL_TIMEOUT,
         }
     }
 
@@ -27,7 +38,15 @@ impl<S: Read + Seek + Send + Sync> GenericMediaSource<S> {
             inner,
             seekable: true,
             byte_len,
+            stall_timeout: DEFAULT_STALL_TIMEOUT,
         }
+    }
+
+    /// Overrides how long a read waits for a stalled stream (see [`DEFAULT_STALL_TIMEOUT`]).
+    #[must_use]
+    pub fn with_stall_timeout(mut self, stall_timeout: Duration) -> Self {
+        self.stall_timeout = stall_timeout;
+        self
     }
 
     pub fn into_inner(self) -> S {
@@ -37,7 +56,18 @@ impl<S: Read + Seek + Send + Sync> GenericMediaSource<S> {
 
 impl<S: Read + Seek + Send + Sync> Read for GenericMediaSource<S> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.inner.read(buf)
+        let started = Instant::now();
+        loop {
+            match self.inner.read(buf) {
+                Err(e) if e.kind() == ErrorKind::WouldBlock => {
+                    if started.elapsed() >= self.stall_timeout {
+                        return Err(e);
+                    }
+                    std::thread::sleep(UNDERRUN_POLL);
+                }
+                other => return other,
+            }
+        }
     }
 }
 
