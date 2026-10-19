@@ -45,6 +45,40 @@ impl BiquadFilter {
         }
     }
 
+    /// Creates a 2nd-order low-pass filter (Audio EQ Cookbook) at `cutoff` Hz with quality `q`
+    /// (0.707 for a Butterworth response).
+    pub fn new_lowpass(sample_rate: f32, cutoff: f32, q: f32) -> Self {
+        let (cos, alpha) = Self::omega(sample_rate, cutoff, q);
+        let b1 = 1.0 - cos;
+        Self::normalized(b1 / 2.0, b1, b1 / 2.0, 1.0 + alpha, -2.0 * cos, 1.0 - alpha)
+    }
+
+    /// Creates a 2nd-order high-pass filter (Audio EQ Cookbook) at `cutoff` Hz with quality `q`.
+    pub fn new_highpass(sample_rate: f32, cutoff: f32, q: f32) -> Self {
+        let (cos, alpha) = Self::omega(sample_rate, cutoff, q);
+        let b0 = (1.0 + cos) / 2.0;
+        Self::normalized(b0, -(1.0 + cos), b0, 1.0 + alpha, -2.0 * cos, 1.0 - alpha)
+    }
+
+    fn omega(sample_rate: f32, freq: f32, q: f32) -> (f32, f32) {
+        let w = 2.0 * PI * freq.clamp(1.0, sample_rate * 0.49) / sample_rate;
+        (w.cos(), w.sin() / (2.0 * q.max(0.01)))
+    }
+
+    fn normalized(b0: f32, b1: f32, b2: f32, a0: f32, a1: f32, a2: f32) -> Self {
+        Self {
+            b0: b0 / a0,
+            b1: b1 / a0,
+            b2: b2 / a0,
+            a1: a1 / a0,
+            a2: a2 / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+        }
+    }
+
     /// Processes a single sample in-place without memory allocation.
     #[inline(always)]
     pub fn process_sample(&mut self, input: f32) -> f32 {
@@ -94,6 +128,33 @@ impl BiquadFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Steady-state gain of `f` for a sine at `hz`, in dB.
+    fn gain_db(mut f: BiquadFilter, hz: f32) -> f32 {
+        let rate = 48_000.0;
+        let (mut peak_in, mut peak_out) = (0.0f32, 0.0f32);
+        for i in 0..48_000 {
+            let x = (2.0 * PI * hz * i as f32 / rate).sin();
+            let y = f.process_sample(x);
+            if i > 24_000 {
+                peak_in = peak_in.max(x.abs());
+                peak_out = peak_out.max(y.abs());
+            }
+        }
+        20.0 * (peak_out / peak_in).log10()
+    }
+
+    #[test]
+    fn lowpass_and_highpass_follow_the_butterworth_response() {
+        let lp = BiquadFilter::new_lowpass(48_000.0, 1_000.0, 0.707);
+        assert!(gain_db(lp, 100.0).abs() < 0.1);
+        assert!((gain_db(lp, 1_000.0) + 3.01).abs() < 0.2);
+        assert!(gain_db(lp, 10_000.0) < -38.0);
+        let hp = BiquadFilter::new_highpass(48_000.0, 1_000.0, 0.707);
+        assert!(gain_db(hp, 10_000.0).abs() < 0.1);
+        assert!((gain_db(hp, 1_000.0) + 3.01).abs() < 0.2);
+        assert!(gain_db(hp, 100.0) < -38.0);
+    }
 
     #[test]
     fn test_biquad_unity_gain() {

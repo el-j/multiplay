@@ -68,6 +68,11 @@ impl TrackBuffer {
         self.failed.get().map(String::as_str)
     }
 
+    /// True once [`Self::cancel`] was called.
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Relaxed)
+    }
+
     /// Asks the loader to stop (the deck no longer needs this track).
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Relaxed);

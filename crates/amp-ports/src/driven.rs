@@ -49,6 +49,14 @@ pub trait PcmStreamPort: Send {
     fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, String>;
 }
 
+/// Driven port for cached DJ track analysis, keyed by `amp_domain::analysis_key`.
+pub trait AnalysisCachePort: Send + Sync {
+    /// The stored analysis for `key`, if any (of any version; callers check it).
+    fn load(&self, key: &str) -> Option<amp_domain::TrackAnalysis>;
+    /// Stores `analysis` under `key`, replacing an older one.
+    fn store(&self, key: &str, analysis: &amp_domain::TrackAnalysis) -> Result<(), String>;
+}
+
 /// Driven port for hardware audio output device sinks.
 pub trait AudioSinkPort: Send + Sync {
     fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), String>;

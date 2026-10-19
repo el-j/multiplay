@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod analysis;
 pub mod keyring;
 pub mod playlist;
 pub mod scanner;
@@ -35,6 +36,7 @@ impl RedbStorageAdapter {
         {
             let _ = write_txn.open_table(TRACKS_TABLE)?;
             let _ = write_txn.open_table(INDEX_TABLE)?;
+            let _ = write_txn.open_table(analysis::ANALYSIS_TABLE)?;
         }
         write_txn.commit()?;
 

@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod analysis;
 pub mod config;
 pub mod jam_crdt;
 pub mod source_badge;
@@ -11,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;
 
+pub use analysis::{analysis_key, TrackAnalysis, ANALYSIS_VERSION};
 pub use config::{
     AppConfig, AudioHardwareConfig, ExperimentalConfig, LibraryConfig, P2PNetworkConfig,
     RemoteControlConfig, StreamingProvidersConfig, UiAndThemeConfig,
