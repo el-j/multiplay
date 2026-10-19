@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+use super::bus::{route, CueRouting};
 use super::render::DjEngine;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -34,6 +35,25 @@ impl AudioOut for rtrb::Producer<f32> {
     }
 }
 
+/// The sound card queues the runtime feeds.
+pub struct DjOutputs {
+    /// Main device queue, interleaved with `main_channels` channels.
+    pub main: Box<dyn AudioOut>,
+    /// Channels of the main device (2 for stereo, 4 for a DJ interface).
+    pub main_channels: usize,
+    /// Headphone device queue (stereo), for [`CueRouting::SecondDevice`].
+    pub phones: Option<Box<dyn AudioOut>>,
+}
+
+impl std::fmt::Debug for DjOutputs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DjOutputs")
+            .field("main_channels", &self.main_channels)
+            .field("phones", &self.phones.is_some())
+            .finish()
+    }
+}
+
 /// A running engine thread.
 #[derive(Debug)]
 pub struct DjRuntime {
@@ -42,30 +62,47 @@ pub struct DjRuntime {
 }
 
 impl DjRuntime {
-    /// Starts rendering `engine` into `master` (and `cue`, when there is a cue output), keeping
-    /// about `lead_frames` frames queued.
-    pub fn start(
-        mut engine: DjEngine,
-        mut master: Box<dyn AudioOut>,
-        mut cue: Option<Box<dyn AudioOut>>,
-        lead_frames: usize,
-    ) -> Self {
+    /// Starts rendering `engine` into `out`, keeping about `lead_frames` frames queued on the
+    /// main device. The headphone mix is routed as `DjParams::cue_routing` says; a second-device
+    /// routing without a headphone queue plays master only.
+    pub fn start(mut engine: DjEngine, mut out: DjOutputs, lead_frames: usize) -> Self {
         let stop = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&stop);
+        let params = engine.params();
+        let ch = out.main_channels.max(1);
         let thread = std::thread::Builder::new()
             .name("multiplay-dj-render".into())
             .spawn(move || {
-                let mut m = vec![0.0f32; STEP * 2];
-                let mut c = vec![0.0f32; STEP * 2];
+                let mut master = vec![0.0f32; STEP * 2];
+                let mut cue = vec![0.0f32; STEP * 2];
+                let mut main = vec![0.0f32; STEP * ch];
+                let mut phones = vec![0.0f32; STEP * 2];
                 while !flag.load(Ordering::Relaxed) {
-                    if master.queued() / 2 >= lead_frames {
+                    if out.main.queued() / ch >= lead_frames {
                         std::thread::sleep(Duration::from_millis(1));
                         continue;
                     }
-                    engine.render(&mut m, &mut c);
-                    master.write(&m);
-                    if let Some(out) = cue.as_mut() {
-                        out.write(&c);
+                    engine.render(&mut master, &mut cue);
+                    let routing = match params.cue_routing() {
+                        CueRouting::SecondDevice if out.phones.is_none() => CueRouting::Off,
+                        r => r,
+                    };
+                    route(
+                        routing,
+                        &master,
+                        &cue,
+                        params.cue_mix(),
+                        ch,
+                        &mut main,
+                        &mut phones,
+                    );
+                    out.main.write(&main);
+                    if let (CueRouting::SecondDevice, Some(p)) = (routing, out.phones.as_mut()) {
+                        // The headphone device runs on its own clock; drop a block rather than
+                        // let its queue (and so its latency) grow.
+                        if p.queued() / 2 < lead_frames * 2 {
+                            p.write(&phones);
+                        }
                     }
                 }
             })

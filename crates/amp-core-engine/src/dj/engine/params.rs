@@ -4,6 +4,7 @@
 
 #![forbid(unsafe_code)]
 
+use super::bus::{CueMix, CueRouting};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
 /// Most decks the engine supports (two are shown today; the model holds four).
@@ -143,6 +144,9 @@ impl DeckParams {
 pub struct DjParams {
     decks: [DeckParams; MAX_DECKS],
     crossfader: AtomicF32,
+    cue_mix: AtomicF32,
+    cue_volume: AtomicF32,
+    cue_routing: AtomicU8,
 }
 
 impl Default for DjParams {
@@ -155,6 +159,9 @@ impl Default for DjParams {
                 DeckParams::new(CrossfaderSide::Thru),
             ],
             crossfader: AtomicF32::new(0.0),
+            cue_mix: AtomicF32::new(0.0),
+            cue_volume: AtomicF32::new(0.8),
+            cue_routing: AtomicU8::new(CueRouting::Off as u8),
         }
     }
 }
@@ -171,6 +178,29 @@ impl DjParams {
     /// Current crossfader position.
     pub fn crossfader(&self) -> f32 {
         self.crossfader.get()
+    }
+    /// Headphone blend: 0 = cue only, 1 = master only.
+    pub fn set_cue_mix(&self, v: f32) {
+        self.cue_mix.set(v.clamp(0.0, 1.0));
+    }
+    /// Headphone level, 0 to 1.
+    pub fn set_cue_volume(&self, v: f32) {
+        self.cue_volume.set(v.clamp(0.0, 1.0));
+    }
+    /// Current headphone blend and level.
+    pub fn cue_mix(&self) -> CueMix {
+        CueMix {
+            mix: self.cue_mix.get(),
+            volume: self.cue_volume.get(),
+        }
+    }
+    /// Where the headphone mix goes.
+    pub fn set_cue_routing(&self, r: CueRouting) {
+        self.cue_routing.store(r as u8, Ordering::Relaxed);
+    }
+    /// Current headphone routing.
+    pub fn cue_routing(&self) -> CueRouting {
+        CueRouting::from_u8(self.cue_routing.load(Ordering::Relaxed))
     }
 }
 

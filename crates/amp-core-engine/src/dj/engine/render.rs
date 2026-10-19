@@ -80,6 +80,11 @@ impl DjEngine {
         self.sample_rate
     }
 
+    /// The controls this engine reads.
+    pub fn params(&self) -> Arc<DjParams> {
+        Arc::clone(&self.params)
+    }
+
     /// Mixes the next `master.len() / 2` stereo frames into `master` and the cue bus into
     /// `cue` (same length). Never allocates, locks or frees.
     pub fn render(&mut self, master: &mut [f32], cue: &mut [f32]) {

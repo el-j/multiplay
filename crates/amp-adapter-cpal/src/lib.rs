@@ -39,10 +39,27 @@ impl CpalAudioSink {
     }
 
     /// Spawns the audio actor thread for a specific device, or system default if None.
+    /// The returned queue takes interleaved stereo, whatever the device's channel count.
     pub fn new_with_device(
         target_device_name: Option<&str>,
     ) -> Result<(Self, Producer<f32>), String> {
+        Self::open(target_device_name, false)
+    }
+
+    /// Like [`Self::new_with_device`], but the queue takes frames with all of the device's
+    /// channels (see [`Self::channels`]), e.g. four for a DJ interface with a headphone pair.
+    pub fn new_with_device_native(
+        target_device_name: Option<&str>,
+    ) -> Result<(Self, Producer<f32>), String> {
+        Self::open(target_device_name, true)
+    }
+
+    fn open(
+        target_device_name: Option<&str>,
+        native: bool,
+    ) -> Result<(Self, Producer<f32>), String> {
         let (device, config, resolved_name) = resolve_output_device(target_device_name)?;
+        let source_channels = if native { config.channels } else { 2 };
 
         let initial_rate = config.sample_rate.0;
         let initial_channels = config.channels;
@@ -60,7 +77,15 @@ impl CpalAudioSink {
         thread::Builder::new()
             .name("amp-cpal-actor".to_string())
             .spawn(move || {
-                run_cpal_actor(device, config, consumer, cmd_rx, sr_clone, ch_clone);
+                run_cpal_actor(
+                    device,
+                    config,
+                    source_channels,
+                    consumer,
+                    cmd_rx,
+                    sr_clone,
+                    ch_clone,
+                );
             })
             .map_err(|e| format!("Failed to spawn CPAL actor thread: {e}"))?;
 

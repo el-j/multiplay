@@ -30,6 +30,13 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: engine side done (`dj::engine::bus`):
+  - Master and cue buses; per-deck PFL; cue mix (cue to master) and cue volume, as lock-free params.
+  - Four routings: second device; 4-channel DJ interface (master 1/2, headphones 3/4; added beyond the design because most DJ controllers present this way); split on one stereo device (master mono L, headphones mono R); off.
+  - `DjRuntime` takes `DjOutputs` (main queue with its channel count, optional headphone queue). The headphone queue is bounded so a device on another clock cannot build up latency.
+- Tests: 6 `dj_cue_*` routing tests, plus a capture test where deck B, with its fader down and PFL on, plays only on the right channel in split mode while deck A plays on the left.
+- 2026-10-19 bug fix found on the way, affecting all playback: the cpal callback pushed the stereo queue straight into devices with other channel counts, so 4-channel interfaces and mono devices played garbled audio. `fill_output` now maps stereo to the first two channels (average on mono); `CpalAudioSink::new_with_device_native` opens a device with all its channels for DJ routing. 3 tests.
+- Open: device selection UI and hot-plug for the cue output (with TASK-133, wired in PLAN-055). A headphone device whose sample rate differs from the main device needs a resampler, or must be opened at the main rate. Manual laptop + USB headphones check.
 
 ## Status
 - **Status:** Pending
