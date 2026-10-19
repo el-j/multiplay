@@ -6,6 +6,7 @@
 - Priority: **P2**
 - Audit findings: `UX-08`, `ORC-06` — see [AUDIT-2026-10-17](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md)
 - Depends on: TASK-125, TASK-142
+- **Superseded by:** PLAN-054 (TASK-202 engine) and PLAN-055 (TASK-209..213 UX); close via Nexus when those land.
 
 ## Objectives
 1. Hide DJ console behind `experimental.dj_mode`.

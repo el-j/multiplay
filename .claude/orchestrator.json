@@ -6,9 +6,9 @@
   "status": "in_progress",
   "verificationCommand": "./scripts/verify_pure_rust.sh && cargo test --workspace",
   "metrics": {
-    "totalPlans": 52,
+    "totalPlans": 57,
     "completedPlans": 22,
-    "totalTasks": 194,
+    "totalTasks": 224,
     "completedTasks": 84
   },
   "plans": [
@@ -590,6 +590,71 @@
         "TASK-193",
         "TASK-194",
         "TASK-115"
+      ]
+    },
+    {
+      "id": "PLAN-053",
+      "title": "Classic Self-Drawn Windows & Live Magnetic Docking",
+      "status": "pending",
+      "tasks": [
+        "TASK-195",
+        "TASK-196",
+        "TASK-197",
+        "TASK-198",
+        "TASK-199",
+        "TASK-200",
+        "TASK-201"
+      ]
+    },
+    {
+      "id": "PLAN-054",
+      "title": "DJ Engine: Multi-Deck Mixer, Prelisten Cue Bus & Beat Analysis",
+      "status": "pending",
+      "tasks": [
+        "TASK-202",
+        "TASK-203",
+        "TASK-204",
+        "TASK-205",
+        "TASK-206",
+        "TASK-207",
+        "TASK-208"
+      ]
+    },
+    {
+      "id": "PLAN-055",
+      "title": "DJ Mode Experience: Console, Deck Assignment, Waveforms & Controls",
+      "status": "pending",
+      "tasks": [
+        "TASK-209",
+        "TASK-210",
+        "TASK-211",
+        "TASK-212",
+        "TASK-213"
+      ]
+    },
+    {
+      "id": "PLAN-056",
+      "title": "Remote & Sharing Window: Host-Moderated Requests",
+      "status": "pending",
+      "tasks": [
+        "TASK-214",
+        "TASK-215",
+        "TASK-216",
+        "TASK-217",
+        "TASK-218",
+        "TASK-219"
+      ]
+    },
+    {
+      "id": "PLAN-057",
+      "title": "Remix Decks, Stems & Mix Recording (Post-1.0, Experimental)",
+      "status": "pending",
+      "tasks": [
+        "TASK-220",
+        "TASK-221",
+        "TASK-222",
+        "TASK-223",
+        "TASK-224"
       ]
     }
   ]

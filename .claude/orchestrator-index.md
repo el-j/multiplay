@@ -1,9 +1,9 @@
 # Nexus Orchestrator Master Index: multiplay
 
 **Universal Audiophile Pure-Rust Audio Player Engine & Modular Winamp TUI**  
-*Tracking: 52 Plans | 194 Tasks | 84 Verified Completed | Status: IN PROGRESS (Implementing PLAN-035: Remote Control Security Hardening)*
+*Tracking: 57 Plans | 224 Tasks | 84 Verified Completed | Status: IN PROGRESS (Implementing PLAN-035: Remote Control Security Hardening)*
 
-> **⚠ Release-readiness audit (2026-10-17):** a full code audit found that many tasks marked *Completed* below do not deliver their user-visible outcome (e.g. Soulseek/P2P/Spotify are in-memory mocks, search is unwired, CI is red). See [.claude/audits/README.md](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md). Status reconciliation of existing tasks is tracked in TASK-112 (to be done via the Nexus tools). The v1.0 roadmap (PLAN-034 … PLAN-052, TASK-112 … TASK-194) is listed under **Release Readiness Roadmap** below.
+> **⚠ Release-readiness audit (2026-10-17):** a full code audit found that many tasks marked *Completed* below do not deliver their user-visible outcome (e.g. Soulseek/P2P/Spotify are in-memory mocks, search is unwired, CI is red). See [.claude/audits/README.md](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/audits/README.md). Status reconciliation of existing tasks is tracked in TASK-112 (to be done via the Nexus tools). The v1.0 roadmap (PLAN-034 … PLAN-057, TASK-112 … TASK-224) is listed under **Release Readiness Roadmap** below.
 
 
 
@@ -318,6 +318,7 @@
 ## Release Readiness Roadmap — v1.0 (from AUDIT-2026-10-17)
 
 Freeze on new feature plans until M2 is complete. Milestones run in order. PLAN-051 and PLAN-052 can run alongside them.
+M3.5 holds the last features before release ([design](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/superpowers/specs/2026-10-19-signature-features-design.md)); PLAN-053 touches only the GUI and may start during M1. No further feature plans after M3.5.
 
 | Milestone | Outcome users feel | Plans |
 | :--- | :--- | :--- |
@@ -325,6 +326,7 @@ Freeze on new feature plans until M2 is complete. Milestones run in order. PLAN-
 | **M1 — It plays, reliably** | Instant pause/seek, robust streaming, persistent library & settings | PLAN-037, PLAN-038, PLAN-039, PLAN-041 |
 | **M2 — Sounds right** | Bit-transparent by default, correct loudness, gapless | PLAN-040 |
 | **M3 — Finds everything** | One search across library, YouTube, Bandcamp, SoundCloud, Soulseek | PLAN-042, PLAN-043, PLAN-044, PLAN-045, PLAN-046 |
+| **M3.5 — Signature features** | Classic magnetic windows, DJ mode with prelisten & beat sync, host-moderated phone requests | PLAN-053, PLAN-054, PLAN-055, PLAN-056 (PLAN-057 post-1.0, experimental) |
 | **M4 — Feels great** | Onboarding, library + artwork, media keys, full TUI, diagnostics | PLAN-047, PLAN-048 |
 | **M5 — Ship** | Signed installers, release QA, legal & privacy, clean architecture | PLAN-049, PLAN-050, PLAN-051, PLAN-052 |
 
@@ -486,6 +488,56 @@ Freeze on new feature plans until M2 is complete. Milestones run in order. PLAN-
 | [TASK-192](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-192-provider-tos-review-and-opt-in-disclosures.md) | Provider ToS Review, Opt-In Disclosures & Download Policy | Pending | product | `cargo build -p amp-app --no-default-features` |
 | [TASK-193](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-193-privacy-statement-and-network-inventory.md) | Privacy Statement & Network Activity Inventory | Pending | security | `test -f docs/privacy.md` |
 | [TASK-194](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-194-trademark-safe-branding.md) | Trademark-Safe Branding (Remove 'WINAMP' from UI Titles) | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+
+### PLAN-053: Classic Self-Drawn Windows & Live Magnetic Docking (Pending · P1 · M3.5 — Signature features)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-195](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-195-adr-and-self-drawn-classic-window-chrome.md) | ADR & Self-Drawn Classic Window Chrome (Frameless, No Maximize) | Pending | frontend_gui | `cargo test -p amp-adapter-gui chrome` |
+| [TASK-196](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-196-live-drag-and-magnetic-snap-engine.md) | Live App-Driven Drag & Magnetic Snap Engine (Windows + Screen Edges) | Pending | frontend_gui | `cargo test -p amp-adapter-gui docking` |
+| [TASK-197](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-197-docked-groups-shade-reflow-and-double-size.md) | Docked Groups, Group Move, Shade/Resize Reflow & Double Size | Pending | frontend_gui | `cargo test -p amp-adapter-gui docking` |
+| [TASK-198](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-198-classic-fixed-sizes-and-stepped-resize.md) | Classic Fixed Sizes & Stepped Resize Grip (Playlist, Remote) | Pending | frontend_gui | `cargo test -p amp-adapter-gui resize` |
+| [TASK-199](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-199-persist-and-restore-window-layout.md) | Persist & Restore Window Layout, Docking and Visibility | Pending | frontend_gui | `cargo test -p amp-adapter-gui layout` |
+| [TASK-200](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-200-windowing-platform-matrix-and-wayland-fallback.md) | Windowing Platform Matrix & Wayland Fallback | Pending | frontend_gui | `cargo test -p amp-adapter-gui && ./scripts/verify_pure_rust.sh` |
+| [TASK-201](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-201-settings-one-time-overlay.md) | Settings as a One-Time Overlay Window | Pending | frontend_gui | `cargo test -p amp-adapter-gui settings` |
+
+### PLAN-054: DJ Engine: Multi-Deck Mixer, Prelisten Cue Bus & Beat Analysis (Pending · P1 · M3.5 — Signature features)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-202](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-202-adr-n-deck-dj-engine-on-player-engine.md) | ADR & N-Deck DJ Engine on PlayerEngine (Per-Deck Decode, Resample, Stretch) | Pending | audio_engine | `cargo test -p amp-core-engine dj` |
+| [TASK-203](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-203-prelisten-headphone-cue-bus.md) | Prelisten: Headphone Cue Bus, Cue Mix & Output Routing | Pending | audio_engine | `cargo test -p amp-core-engine dj_cue` |
+| [TASK-204](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-204-offline-track-analysis-bpm-beatgrid-waveforms.md) | Background Track Analysis: BPM, Beat Grid, Waveforms (Cached) | Pending | dsp_engineering | `cargo test -p amp-core-engine dj_analysis` |
+| [TASK-205](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-205-tempo-and-phase-sync-key-lock.md) | Beat Matching: Tempo & Phase Sync, Quantize, Pitch Range, Key Lock, Nudge | Pending | dsp_engineering | `cargo test -p amp-core-engine dj_sync` |
+| [TASK-206](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-206-loops-ab-beat-loops-and-hot-cues.md) | Loops & Cues: A-B Loop, Beat Loops, Loop Roll, Hot Cues | Pending | audio_engine | `cargo test -p amp-core-engine dj_loops` |
+| [TASK-207](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-207-dj-mixer-eq-filter-gain-meters.md) | DJ Mixer: Trim/Auto-Gain, 3-Band EQ & Kills, Filter, Faders, Crossfader, Limiter, Meters | Pending | dsp_engineering | `cargo test -p amp-core-engine dj_mixer` |
+| [TASK-208](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-208-auto-mix-beat-aware-transitions.md) | Auto Mix: Automatic Beat-Aware Transitions Between Decks | Pending | audio_engine | `cargo test -p amp-core-engine dj_automix` |
+
+### PLAN-055: DJ Mode Experience: Console, Deck Assignment, Waveforms & Controls (Pending · P1 · M3.5 — Signature features)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-209](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-209-dj-mode-swaps-main-window-into-console.md) | DJ Mode Toggle: Main Window Becomes the Deck Console Without a Gap | Pending | frontend_gui | `cargo test -p amp-adapter-gui dj_mode` |
+| [TASK-210](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-210-playlist-deck-assignment-a-b-both.md) | One Playlist, Deck Assignment (A / B / Both) & 'Next on Deck' Markers | Pending | frontend_gui | `cargo test -p amp-adapter-gui deck_assign` |
+| [TASK-211](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-211-beat-aligned-waveforms-and-phase-meter.md) | Stacked Beat-Aligned Waveforms, Phase Meter & Overviews | Pending | frontend_gui | `cargo test -p amp-adapter-gui waveform` |
+| [TASK-212](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-212-dj-controls-shortcuts-and-first-run-hint.md) | DJ Controls, Keyboard Map, Cheat Sheet & First-Run Hint | Pending | frontend_gui | `cargo test -p amp-adapter-gui dj_controls` |
+| [TASK-213](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-213-dj-verification-harness-and-mix-acceptance.md) | DJ Verification Harness & Live-Mix Acceptance | Pending | qa_and_hardening | `./scripts/verify_pure_rust.sh && cargo test --workspace dj` |
+
+### PLAN-056: Remote & Sharing Window: Host-Moderated Requests (Pending · P1 · M3.5 — Signature features)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-214](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-214-remote-and-sharing-window.md) | Remote & Sharing Window (Dockable, Playlist-Style): Requests, Devices, Shares | Pending | frontend_gui | `cargo test -p amp-adapter-gui remote_window` |
+| [TASK-215](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-215-remote-protocol-v2-track-requests.md) | Remote Protocol v2: RequestTrack with Allow-Listed References | Pending | security | `cargo test -p amp-adapter-remote` |
+| [TASK-216](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-216-host-request-moderation-to-playlist-and-decks.md) | Host Moderation: Accept to Playlist / Play Next / Deck, Reject, Drag & Trusted Devices | Pending | frontend_gui | `cargo test -p amp-adapter-gui moderation` |
+| [TASK-217](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-217-phone-web-client-search-and-request.md) | Phone Web Client: Search, Paste Link, Request Status | Pending | frontend_ui | `cargo test -p amp-adapter-remote web` |
+| [TASK-218](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-218-opt-in-phone-audio-upload.md) | Opt-In Phone Audio Upload (Off by Default) | Pending | security | `cargo test -p amp-adapter-remote upload` |
+| [TASK-219](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-219-shares-management-view.md) | Shares View: Manage What This Host Shares | Pending | frontend_gui | `cargo test -p amp-adapter-gui shares` |
+
+### PLAN-057: Remix Decks, Stems & Mix Recording (Post-1.0, Experimental) (Pending · P2 · M3.5 — Signature features (post-1.0))
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-220](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-220-four-deck-layout-and-deck-count.md) | Four-Deck Layout & Deck Count Setting | Pending | frontend_gui | `cargo test -p amp-core-engine dj_four_deck` |
+| [TASK-221](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-221-remix-loop-slots.md) | Remix Slots: Capture Beat-Synced Loops From Any Deck | Pending | audio_engine | `cargo test -p amp-core-engine dj_remix` |
+| [TASK-222](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-222-adr-pure-rust-stem-separation-spike.md) | ADR Spike: Pure-Rust Stem Separation (Go/No-Go) | Pending | dsp_engineering | `./scripts/verify_pure_rust.sh` |
+| [TASK-223](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md) | Stem Decks: Drums, Bass, Melody, Vocals per Track | Pending | audio_engine | `cargo test -p amp-core-engine dj_stems` |
+| [TASK-224](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md) | Record the Master Mix to WAV/FLAC | Pending | audio_engine | `cargo test -p amp-core-engine dj_record` |
 
 ---
 

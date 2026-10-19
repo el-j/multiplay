@@ -20,7 +20,7 @@ The experience people fall in love with: fast first launch, a real library with 
 4. **TASK-173** (P1): OS Media Keys & Now Playing (MPRIS / macOS / SMTC)
 5. **TASK-174** (P1): TUI as a Complete Player
 6. **TASK-175** (P1): GUI Feedback, Shortcuts, Seek-on-Release & Accessibility
-7. **TASK-176** (P2): DJ Mode: Experimental Flag, Own Engine Thread, Per-Deck Resampling
+7. **TASK-176** (P2): DJ Mode: Experimental Flag, Own Engine Thread, Per-Deck Resampling — superseded by PLAN-054/PLAN-055
 
 ## Tasks
 - [ ] [TASK-170: Remove Demo Data & Show Real Stream Info](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-170-remove-demo-data-show-real-track-info.md)
