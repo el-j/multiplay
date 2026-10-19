@@ -3,7 +3,7 @@
 //! keeps a low-latency output fed without underruns.
 
 use amp_core_engine::dj::engine::{
-    spawn_loader, CueRouting, DjEngine, DjOutputs, DjRuntime, TrackBuffer, CROSSFADER_LEFT,
+    spawn_loader, Band, CueRouting, DjEngine, DjOutputs, DjRuntime, TrackBuffer, CROSSFADER_LEFT,
     CROSSFADER_RIGHT,
 };
 use amp_ports::PcmStreamPort;
@@ -191,7 +191,13 @@ fn dj_render_never_allocates() {
         control.params().deck(d).set_key_lock(d % 2 == 1);
         control.beat_loop(d, 0.5 + d as f64, d == 3);
         control.mark_hot_cue(d, d);
+        let ch = control.params().deck(d).channel();
+        ch.set_kill(Band::Mid, d == 1);
+        ch.set_eq(Band::High, -3.0);
+        ch.set_filter(if d % 2 == 0 { -0.4 } else { 0.4 });
     }
+    control.params().master().set_eq_enabled(true);
+    control.params().master().set_eq_band(2, 4.0);
     let mut master = vec![0.0; 2_048];
     let mut cue = vec![0.0; 2_048];
     let n = allocations_during(|| {

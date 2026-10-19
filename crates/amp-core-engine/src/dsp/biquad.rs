@@ -60,6 +60,37 @@ impl BiquadFilter {
         Self::normalized(b0, -(1.0 + cos), b0, 1.0 + alpha, -2.0 * cos, 1.0 - alpha)
     }
 
+    /// Creates a high-shelf filter (Audio EQ Cookbook) boosting or cutting above `freq` Hz by
+    /// `db_gain` dB.
+    pub fn new_high_shelf(sample_rate: f32, freq: f32, q: f32, db_gain: f32) -> Self {
+        let a = 10.0f32.powf(db_gain / 40.0);
+        let (cos, alpha) = Self::omega(sample_rate, freq, q);
+        let sq = 2.0 * a.sqrt() * alpha;
+        Self::normalized(
+            a * ((a + 1.0) + (a - 1.0) * cos + sq),
+            -2.0 * a * ((a - 1.0) + (a + 1.0) * cos),
+            a * ((a + 1.0) + (a - 1.0) * cos - sq),
+            (a + 1.0) - (a - 1.0) * cos + sq,
+            2.0 * ((a - 1.0) - (a + 1.0) * cos),
+            (a + 1.0) - (a - 1.0) * cos - sq,
+        )
+    }
+
+    /// A filter with the given coefficients (`a0` already divided out).
+    pub fn from_coefficients(b0: f32, b1: f32, b2: f32, a1: f32, a2: f32) -> Self {
+        Self::normalized(b0, b1, b2, 1.0, a1, a2)
+    }
+
+    /// Takes `other`'s coefficients but keeps this filter's state, so a cutoff can move while
+    /// audio runs without a click.
+    pub fn retune(&mut self, other: &BiquadFilter) {
+        self.b0 = other.b0;
+        self.b1 = other.b1;
+        self.b2 = other.b2;
+        self.a1 = other.a1;
+        self.a2 = other.a2;
+    }
+
     fn omega(sample_rate: f32, freq: f32, q: f32) -> (f32, f32) {
         let w = 2.0 * PI * freq.clamp(1.0, sample_rate * 0.49) / sample_rate;
         (w.cos(), w.sin() / (2.0 * q.max(0.01)))
@@ -142,6 +173,13 @@ mod tests {
             }
         }
         20.0 * (peak_out / peak_in).log10()
+    }
+
+    #[test]
+    fn high_shelf_lifts_the_top_and_leaves_the_bottom() {
+        let f = BiquadFilter::new_high_shelf(48_000.0, 1_500.0, 0.707, 6.0);
+        assert!(gain_db(f, 50.0).abs() < 0.1);
+        assert!((gain_db(f, 15_000.0) - 6.0).abs() < 0.2);
     }
 
     #[test]

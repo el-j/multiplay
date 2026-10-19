@@ -149,3 +149,40 @@ fn dj_analysis_is_fast() {
     assert!(a.bpm.is_some());
     assert!(took.as_secs_f64() < 3.0, "5-minute track took {took:?}");
 }
+
+fn sine(rate: u32, hz: f64, amp: f64, secs: f64) -> Vec<f32> {
+    (0..(f64::from(rate) * secs) as usize)
+        .flat_map(|i| {
+            let v =
+                (amp * (2.0 * std::f64::consts::PI * hz * i as f64 / f64::from(rate)).sin()) as f32;
+            [v, v]
+        })
+        .collect()
+}
+
+#[test]
+fn dj_analysis_measures_integrated_loudness() {
+    // EBU R128 reference: a 1 kHz stereo sine at -20 dBFS reads -20 LUFS.
+    for rate in [44_100, 48_000] {
+        let a = analyze(rate, &sine(rate, 1_000.0, 0.1, 20.0));
+        let lufs = a.loudness_lufs.expect("loud enough to gate");
+        assert!((lufs + 20.0).abs() < 0.05, "{rate} Hz: {lufs:.2} LUFS");
+    }
+    let quiet = analyze(48_000, &sine(48_000, 1_000.0, 0.01, 20.0));
+    assert!((quiet.loudness_lufs.unwrap() + 40.0).abs() < 0.05);
+    assert_eq!(
+        analyze(48_000, &vec![0.0; 96_000]).loudness_lufs,
+        None,
+        "silence is gated out"
+    );
+}
+
+#[test]
+fn dj_analysis_loudness_ignores_silent_parts() {
+    // Ten seconds of tone and ten of near-silence read like the tone alone (relative gate).
+    let mut s = sine(48_000, 1_000.0, 0.1, 10.0);
+    s.extend(sine(48_000, 1_000.0, 0.0001, 10.0));
+    let lufs = analyze(48_000, &s).loudness_lufs.unwrap();
+    // Blocks straddling the change pass the relative gate and pull it down slightly.
+    assert!((lufs + 20.07).abs() < 0.05, "{lufs:.2}");
+}

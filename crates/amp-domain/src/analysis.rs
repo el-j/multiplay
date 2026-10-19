@@ -6,7 +6,7 @@ use crate::AudioSource;
 use serde::{Deserialize, Serialize};
 
 /// Bump when the analysis algorithm changes, so cached results are recomputed.
-pub const ANALYSIS_VERSION: u32 = 1;
+pub const ANALYSIS_VERSION: u32 = 2;
 
 /// Hot cue slots per track.
 pub const HOT_CUE_SLOTS: usize = 8;
@@ -33,6 +33,9 @@ pub struct TrackAnalysis {
     pub detail: Vec<[u8; 3]>,
     /// Detail columns per second.
     pub detail_rate: f32,
+    /// Integrated loudness (EBU R128) in LUFS, `None` for silence. Added in version 2.
+    #[serde(default)]
+    pub loudness_lufs: Option<f64>,
 }
 
 impl TrackAnalysis {
@@ -85,6 +88,7 @@ mod tests {
             overview: Vec::new(),
             detail: Vec::new(),
             detail_rate: 100.0,
+            loudness_lufs: None,
         }
     }
 

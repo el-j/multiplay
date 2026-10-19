@@ -76,6 +76,7 @@ mod tests {
             overview: vec![1, 2, 3],
             detail: vec![[10, 20, 30]],
             detail_rate: 100.0,
+            loudness_lufs: Some(-9.5),
         };
         {
             let db = RedbStorageAdapter::new(&path).unwrap();

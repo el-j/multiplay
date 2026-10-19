@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 mod cache;
+mod loudness;
 mod tempo;
 
 pub use cache::spawn_analysis;
@@ -60,6 +61,7 @@ struct Analyzer {
     bands: [BiquadFilter; 4],
     band_sums: [f32; 3],
     detail: Vec<[u8; 3]>,
+    loudness: loudness::Meter,
 }
 
 impl Analyzer {
@@ -85,10 +87,12 @@ impl Analyzer {
             ],
             band_sums: [0.0; 3],
             detail: Vec::with_capacity(frames / 400 + 1),
+            loudness: loudness::Meter::new(rate.max(1)),
         }
     }
 
     fn push(&mut self, l: f32, r: f32) {
+        self.loudness.push(l, r);
         let m = 0.5 * (l + r);
         let k = self.kick.process_sample(m);
         self.hop_full += m * m;
@@ -147,6 +151,7 @@ impl Analyzer {
                 .collect(),
             detail: self.detail,
             detail_rate: self.rate as f32 / self.column as f32,
+            loudness_lufs: self.loudness.integrated(),
         }
     }
 }

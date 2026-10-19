@@ -8,10 +8,16 @@
 #![forbid(unsafe_code)]
 
 use super::deck_commands::{self, DeckCommand};
-use super::params::{CrossfaderSide, DeckParams, DjParams, DjStatus, MAX_DECKS};
+use super::limiter::{Limiter, LookaheadDelay};
+use super::mixer_params::{curve_gains, Band};
+use super::params::{CrossfaderSide, DeckParams, DjParams, MAX_DECKS};
 use super::player::{DeckPlayer, Played};
+use super::status::measure;
+use super::status::DjStatus;
+use super::strip::{band_gain, ChannelStrip};
 use super::sync::{phase_error, pick_master, steered_speed, sync_speed, DeckBeat};
 use super::track_buffer::TrackBuffer;
+use crate::dsp::GraphicEqualizer;
 use std::sync::Arc;
 
 /// Frames mixed per inner block; bounds the deck scratch buffer.
@@ -42,6 +48,10 @@ pub struct DjEngine {
     status: Arc<DjStatus>,
     commands: rtrb::Consumer<DjCommand>,
     retired: rtrb::Producer<Arc<TrackBuffer>>,
+    strips: [ChannelStrip; MAX_DECKS],
+    master_eq: GraphicEqualizer,
+    limiter: Limiter,
+    cue_delay: LookaheadDelay,
 }
 
 /// Control side; owned by the UI or automation.
@@ -69,6 +79,10 @@ impl DjEngine {
             status: Arc::clone(&status),
             commands: cmd_rx,
             retired: old_tx,
+            strips: [ChannelStrip::new(sample_rate as f32); MAX_DECKS],
+            master_eq: GraphicEqualizer::new(sample_rate as f32),
+            limiter: Limiter::new(sample_rate),
+            cue_delay: LookaheadDelay::default(),
         };
         let control = DjControl {
             params,
@@ -105,14 +119,14 @@ impl DjEngine {
             self.mix_block(&mut master[at..at + n], &mut cue[at..at + n]);
             at += n;
         }
-        for s in master.iter_mut().chain(cue.iter_mut()) {
-            // Safety net until the master limiter lands (TASK-207).
+        for s in cue.iter_mut() {
+            // The headphone bus has no limiter of its own; never send it past full scale.
             *s = s.clamp(-1.0, 1.0);
         }
     }
 
     fn mix_block(&mut self, master: &mut [f32], cue: &mut [f32]) {
-        let (left, right) = crossfader_gains(self.params.crossfader());
+        let (left, right) = curve_gains(self.params.master().curve(), self.params.crossfader());
         let speeds = self.plan_speeds(left, right);
         let scratch = &mut self.scratch[..master.len()];
         for (d, &speed) in speeds.iter().enumerate().take(self.deck_count) {
@@ -125,8 +139,17 @@ impl DjEngine {
             if played == Played::Starved {
                 status.count_underrun();
             }
-            let gain = p.trim() * p.fader() * side_gain(p, left, right);
-            let cue_gain = if p.pfl() { p.trim() } else { 0.0 };
+            let ch = p.channel();
+            if played != Played::Silent {
+                let gains =
+                    [Band::Low, Band::Mid, Band::High].map(|b| band_gain(ch.eq(b), ch.kill(b)));
+                self.strips[d].process(scratch, gains, ch.filter());
+            }
+            let level = p.trim() * ch.auto_gain_linear();
+            let (peak, rms) = measure(scratch);
+            status.publish_meter((peak * level, rms * level));
+            let gain = level * p.fader() * side_gain(p, left, right);
+            let cue_gain = if p.pfl() { level } else { 0.0 };
             add_ramped(master, scratch, deck.gain, gain);
             add_ramped(cue, scratch, deck.cue_gain, cue_gain);
             deck.gain = gain;
@@ -135,6 +158,25 @@ impl DjEngine {
             status.publish(pos, loaded, deck.ended);
             status.publish_loops(&deck.loops, f64::from(deck.sample_rate()));
         }
+        self.master_section(master);
+        self.cue_delay.process(cue);
+    }
+
+    /// Classic EQ (when on) and the limiter on the master bus, then the master meter.
+    fn master_section(&mut self, master: &mut [f32]) {
+        let m = self.params.master();
+        let on = m.eq_enabled();
+        self.master_eq.set_enabled(on);
+        if on {
+            let (pre, bands) = m.eq();
+            self.master_eq.set_preamp_gain(pre);
+            for (i, db) in bands.into_iter().enumerate() {
+                self.master_eq.set_band_gain(i, db);
+            }
+            self.master_eq.process_interleaved(master);
+        }
+        let lowest = self.limiter.process(master);
+        self.status.publish_master(measure(master), lowest);
     }
 
     /// Speed of every deck for the next block: its own pitch and nudge, or, when synced, the
@@ -320,8 +362,7 @@ fn side_gain(p: &DeckParams, left: f32, right: f32) -> f32 {
 
 /// Equal-power crossfader gains for the left and right sides at `pos` in `[-1, 1]`.
 pub fn crossfader_gains(pos: f32) -> (f32, f32) {
-    let t = (pos.clamp(-1.0, 1.0) + 1.0) * 0.25 * std::f32::consts::PI;
-    (t.cos(), t.sin())
+    curve_gains(super::mixer_params::CrossfaderCurve::Smooth, pos)
 }
 
 /// Adds `src * gain` to `dst`, ramping the gain linearly from `from` to `to` across the block.

@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 
 use super::bus::{CueMix, CueRouting};
-use super::loops::{LoopState, HOT_CUES};
+use super::mixer_params::{ChannelControls, MasterControls};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
 /// Most decks the engine supports (two are shown today; the model holds four).
@@ -78,9 +78,14 @@ pub struct DeckParams {
     grid_bpm: AtomicF64,
     grid_anchor: AtomicF64,
     quantize: AtomicBool,
+    channel: ChannelControls,
 }
 
 impl DeckParams {
+    /// EQ, kills, filter and auto-gain of this deck.
+    pub fn channel(&self) -> &ChannelControls {
+        &self.channel
+    }
     fn new(side: CrossfaderSide) -> Self {
         Self {
             playing: AtomicBool::new(false),
@@ -95,6 +100,7 @@ impl DeckParams {
             grid_bpm: AtomicF64::default(),
             grid_anchor: AtomicF64::default(),
             quantize: AtomicBool::new(true),
+            channel: ChannelControls::default(),
         }
     }
     /// Snaps loop points and cues to the beat grid, and keeps the beat phase on cue jumps.
@@ -210,6 +216,7 @@ pub struct DjParams {
     cue_volume: AtomicF32,
     cue_routing: AtomicU8,
     master_deck: AtomicU8,
+    master: MasterControls,
 }
 
 impl Default for DjParams {
@@ -226,6 +233,7 @@ impl Default for DjParams {
             cue_volume: AtomicF32::new(0.8),
             cue_routing: AtomicU8::new(CueRouting::Off as u8),
             master_deck: AtomicU8::new(AUTO_MASTER),
+            master: MasterControls::default(),
         }
     }
 }
@@ -234,6 +242,10 @@ impl DjParams {
     /// Controls of deck `i` (`0` = A). Panics when `i >= MAX_DECKS`.
     pub fn deck(&self, i: usize) -> &DeckParams {
         &self.decks[i]
+    }
+    /// Crossfader curve and the classic EQ on the master bus.
+    pub fn master(&self) -> &MasterControls {
+        &self.master
     }
     /// Crossfader position, -1 (left) to +1 (right).
     pub fn set_crossfader(&self, v: f32) {
@@ -277,99 +289,6 @@ impl DjParams {
     /// Current headphone routing.
     pub fn cue_routing(&self) -> CueRouting {
         CueRouting::from_u8(self.cue_routing.load(Ordering::Relaxed))
-    }
-}
-
-/// What the render thread reports about one deck.
-#[derive(Debug, Default)]
-pub struct DeckStatus {
-    position_secs: AtomicF64,
-    loaded_secs: AtomicF64,
-    ended: AtomicBool,
-    underruns: AtomicU64,
-    bpm: AtomicF64,
-    master: AtomicBool,
-    loop_start: AtomicF64,
-    loop_end: AtomicF64,
-    loop_active: AtomicBool,
-    cues: [AtomicF64; HOT_CUES],
-}
-
-impl DeckStatus {
-    /// Playhead in seconds of the track.
-    pub fn position_secs(&self) -> f64 {
-        self.position_secs.get()
-    }
-    /// Seconds of the track decoded so far.
-    pub fn loaded_secs(&self) -> f64 {
-        self.loaded_secs.get()
-    }
-    /// True once the deck played to the end of its track.
-    pub fn ended(&self) -> bool {
-        self.ended.load(Ordering::Relaxed)
-    }
-    /// Tempo the deck is playing at (its grid tempo times its speed), 0 without a grid.
-    pub fn bpm(&self) -> f64 {
-        self.bpm.get()
-    }
-    /// True while this deck is the tempo master.
-    pub fn is_master(&self) -> bool {
-        self.master.load(Ordering::Relaxed)
-    }
-    /// The current (or last) loop as `(start, end)` seconds.
-    pub fn loop_range(&self) -> Option<(f64, f64)> {
-        let (s, e) = (self.loop_start.get(), self.loop_end.get());
-        (e > s).then_some((s, e))
-    }
-    /// True while the deck loops.
-    pub fn loop_active(&self) -> bool {
-        self.loop_active.load(Ordering::Relaxed)
-    }
-    /// Hot cue `slot` in seconds, if set.
-    pub fn hot_cue(&self, slot: usize) -> Option<f64> {
-        let v = self.cues.get(slot)?.get();
-        (v >= 0.0).then_some(v)
-    }
-    pub(crate) fn publish_loops(&self, l: &LoopState, rate: f64) {
-        let (s, e) = l
-            .range
-            .filter(|_| rate > 0.0)
-            .map_or((0.0, 0.0), |(s, e)| (s / rate, e / rate));
-        self.loop_start.set(s);
-        self.loop_end.set(e);
-        self.loop_active.store(l.active, Ordering::Relaxed);
-        for (slot, cue) in self.cues.iter().zip(l.cues) {
-            slot.set(cue.unwrap_or(-1.0));
-        }
-    }
-    pub(crate) fn publish_tempo(&self, bpm: f64, master: bool) {
-        self.bpm.set(bpm);
-        self.master.store(master, Ordering::Relaxed);
-    }
-    /// Output blocks in which the deck had to play silence because decoding lagged behind.
-    pub fn underruns(&self) -> u64 {
-        self.underruns.load(Ordering::Relaxed)
-    }
-    pub(crate) fn publish(&self, position: f64, loaded: f64, ended: bool) {
-        self.position_secs.set(position);
-        self.loaded_secs.set(loaded);
-        self.ended.store(ended, Ordering::Relaxed);
-    }
-    pub(crate) fn count_underrun(&self) {
-        self.underruns.fetch_add(1, Ordering::Relaxed);
-    }
-}
-
-/// Status of every deck.
-#[derive(Debug, Default)]
-pub struct DjStatus {
-    decks: [DeckStatus; MAX_DECKS],
-}
-
-impl DjStatus {
-    /// Status of deck `i`. Panics when `i >= MAX_DECKS`.
-    pub fn deck(&self, i: usize) -> &DeckStatus {
-        &self.decks[i]
     }
 }
 
