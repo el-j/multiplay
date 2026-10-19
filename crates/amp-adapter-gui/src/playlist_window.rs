@@ -175,6 +175,17 @@ fn badge(source: &AudioSource) -> (&'static str, Color32) {
 fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     let mut track_to_remove = None;
     let mut track_to_play = None;
+    let mut cycle_assign = None;
+    let dj = app.dj_active();
+    if dj {
+        assign_keys(app, ui);
+    }
+    let order: Vec<amp_domain::TrackId> = app.playlist.iter().map(|t| t.id).collect();
+    let next = if dj {
+        amp_domain::next_markers(&order, &app.deck_assign, &app.dj_played)
+    } else {
+        [None, None]
+    };
 
     for (i, track) in app.playlist.iter().enumerate() {
         if !track_matches(app, track) {
@@ -210,6 +221,19 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
                     ui.label(RichText::new(txt).size(9.0).color(color));
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    if dj {
+                        let a = app.deck_assign.get(&track.id).copied().unwrap_or_default();
+                        if deck_badge(ui, a, app.dj_played.contains(&track.id)).clicked() {
+                            cycle_assign = Some(track.id);
+                        }
+                        for (deck, color) in [(0, DECK_A), (1, DECK_B)] {
+                            if next[deck] == Some(i) {
+                                let tag = ["▸A", "▸B"][deck];
+                                ui.label(RichText::new(tag).size(9.0).strong().color(color))
+                                    .on_hover_text(format!("Next on deck {}", ["A", "B"][deck]));
+                            }
+                        }
+                    }
                     let marker = if is_selected { "▶" } else { " " };
                     ui.label(RichText::new(marker).color(Color32::from_rgb(0, 255, 140)));
                     ui.label(
@@ -229,7 +253,16 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         });
     }
 
-    if let Some(idx) = track_to_play {
+    if let Some(id) = cycle_assign {
+        let a = app.deck_assign.entry(id).or_default();
+        *a = a.cycle();
+        app.save_session();
+    }
+
+    if let (Some(idx), true) = (track_to_play, dj) {
+        // In DJ mode a click selects; tracks reach the decks by assignment or the load buttons.
+        app.selected_track_idx = idx;
+    } else if let Some(idx) = track_to_play {
         app.selected_track_idx = idx;
         app.audio_driver.play(app.playlist[idx].clone());
         let upcoming = app.playlist.get(idx + 1).cloned();
@@ -245,4 +278,51 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
             app.save_session();
         }
     }
+}
+
+const DECK_A: Color32 = Color32::from_rgb(0, 200, 255);
+const DECK_B: Color32 = Color32::from_rgb(255, 150, 40);
+
+/// The DJ deck badge of a row; click to cycle none → A → B → both.
+fn deck_badge(ui: &mut Ui, a: amp_domain::DeckAssignment, played: bool) -> egui::Response {
+    use amp_domain::DeckAssignment as D;
+    let color = match a {
+        D::None => Color32::from_rgb(90, 100, 115),
+        D::A => DECK_A,
+        D::B => DECK_B,
+        D::Both => Color32::from_rgb(200, 210, 120),
+    };
+    let color = if played {
+        color.gamma_multiply(0.45)
+    } else {
+        color
+    };
+    let text = RichText::new(format!("{:>2}", a.label()))
+        .monospace()
+        .size(10.0)
+        .strong()
+        .color(color);
+    ui.add(egui::Button::new(text).small().frame(false))
+        .on_hover_text("Deck: click to cycle A / B / both / none ([ ] \\ keys)")
+}
+
+/// `[` assigns the selected row to deck A, `]` to deck B, `\\` to both (again: none).
+fn assign_keys(app: &mut MultiplayGuiApp, ui: &Ui) {
+    use amp_domain::DeckAssignment as D;
+    let pressed = ui.ctx().input(|i| {
+        [
+            (egui::Key::OpenBracket, D::A),
+            (egui::Key::CloseBracket, D::B),
+            (egui::Key::Backslash, D::Both),
+        ]
+        .into_iter()
+        .find(|(k, _)| i.key_pressed(*k))
+        .map(|(_, a)| a)
+    });
+    let (Some(want), Some(track)) = (pressed, app.playlist.get(app.selected_track_idx)) else {
+        return;
+    };
+    let slot = app.deck_assign.entry(track.id).or_default();
+    *slot = if *slot == want { D::None } else { want };
+    app.save_session();
 }

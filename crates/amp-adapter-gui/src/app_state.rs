@@ -41,6 +41,10 @@ pub struct MultiplayGuiApp {
     pub dj: Option<crate::dj_session::DjSession>,
     /// Library database: DJ analysis cache and hot cues (opened on first use).
     pub library: Option<std::sync::Arc<amp_adapter_storage::RedbStorageAdapter>>,
+    /// DJ deck of each playlist track (TASK-210), saved with the session.
+    pub deck_assign: std::collections::HashMap<amp_domain::TrackId, amp_domain::DeckAssignment>,
+    /// Tracks already loaded onto a deck in this DJ session.
+    pub dj_played: HashSet<amp_domain::TrackId>,
     /// Main window size to restore when DJ mode ends.
     pub normal_main_size: Option<eframe::egui::Vec2>,
     pub settings_tab: GuiSettingsTab,
@@ -102,6 +106,8 @@ impl MultiplayGuiApp {
             dj: None,
             library: None,
             normal_main_size: None,
+            deck_assign: std::collections::HashMap::new(),
+            dj_played: HashSet::new(),
             settings_tab: GuiSettingsTab::default(),
             config: AppConfig::default(),
             volume: 0.85,
@@ -137,6 +143,7 @@ impl MultiplayGuiApp {
             self.eq_preamp = snap.eq_preamp;
             self.eq_gains = snap.eq_gains;
             self.eq_enabled = snap.eq_enabled;
+            self.deck_assign = snap.deck_assignments;
 
             self.audio_driver.set_volume(self.volume);
             self.audio_driver.set_eq_preamp(self.eq_preamp);
@@ -161,6 +168,7 @@ impl MultiplayGuiApp {
             eq_preamp: self.eq_preamp,
             eq_gains: self.eq_gains,
             eq_enabled: self.eq_enabled,
+            deck_assignments: self.deck_assign.clone(),
         };
         let _ = snap.save_to_file(&self.paths.session_file());
     }

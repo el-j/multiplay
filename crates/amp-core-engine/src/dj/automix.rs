@@ -16,7 +16,7 @@
 use super::engine::sync::beat_ratio;
 use super::engine::{DjControl, TrackBuffer, CROSSFADER_LEFT, CROSSFADER_RIGHT};
 use amp_domain::TrackAnalysis;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 /// Where a transition starts.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -65,6 +65,8 @@ pub struct AutoMixTrack {
     pub buffer: Arc<TrackBuffer>,
     /// Tempo, grid, loudness and length, when analysed.
     pub analysis: Option<TrackAnalysis>,
+    /// Filled when a background analysis finishes; picked up on a later `tick`.
+    pub pending: Option<Arc<OnceLock<TrackAnalysis>>>,
 }
 
 /// Where the next track for a deck comes from.
@@ -138,6 +140,8 @@ pub enum AutoMixState {
 struct Loaded {
     title: String,
     analysis: Option<TrackAnalysis>,
+    pending: Option<Arc<OnceLock<TrackAnalysis>>>,
+    buffer: Arc<TrackBuffer>,
     duration: f64,
 }
 
@@ -202,6 +206,7 @@ impl AutoMix {
         control: &mut DjControl,
         source: &mut dyn AutoMixSource,
     ) -> AutoMixState {
+        self.refresh(control);
         match self.state {
             AutoMixState::Playing { on_air } => {
                 let pos = control.status().deck(on_air).position_secs();
@@ -330,11 +335,10 @@ impl AutoMix {
         d.set_grid(grid.map_or(0.0, |g| g.0), grid.map_or(0.0, |g| g.1));
         d.channel()
             .set_auto_gain_db(lufs.map_or(0.0, |l| (self.config.target_lufs - l) as f32));
-        let duration = analysis.as_ref().map_or_else(
-            || t.buffer.loaded_frames() as f64 / f64::from(t.buffer.sample_rate().max(1)),
-            |a| a.duration_secs,
-        );
-        control.load(deck, t.buffer);
+        let duration = analysis
+            .as_ref()
+            .map_or_else(|| buffer_secs(&t.buffer), |a| a.duration_secs);
+        control.load(deck, Arc::clone(&t.buffer));
         // Cue at the first downbeat, so a synced start lines up bars as well as beats.
         if let Some((bpm, anchor)) = grid {
             let bar = 4.0 * 60.0 / bpm;
@@ -343,9 +347,74 @@ impl AutoMix {
         self.decks[deck] = Some(Loaded {
             title: t.title,
             analysis,
+            pending: t.pending,
+            buffer: t.buffer,
             duration,
         });
     }
+
+    /// Takes over a set in progress: `current` is already playing on `on_air` (it is not
+    /// reloaded); the other deck is loaded from `source`.
+    pub fn take_over(
+        &mut self,
+        control: &mut DjControl,
+        source: &mut dyn AutoMixSource,
+        on_air: usize,
+        current: AutoMixTrack,
+    ) {
+        let on_air = on_air.min(1);
+        let duration = current
+            .analysis
+            .as_ref()
+            .map_or_else(|| buffer_secs(&current.buffer), |a| a.duration_secs);
+        self.decks[on_air] = Some(Loaded {
+            title: current.title,
+            analysis: current.analysis,
+            pending: current.pending,
+            buffer: current.buffer,
+            duration,
+        });
+        control.params().set_master_deck(Some(on_air));
+        self.go_on_air(on_air);
+        let other = 1 - on_air;
+        if let Some(next) = source.next_for(other) {
+            self.load(control, other, next);
+        }
+    }
+
+    /// Adopts analyses that finished since the last tick (grid, loudness, length) and replans
+    /// the transition of the deck on air.
+    fn refresh(&mut self, control: &DjControl) {
+        for deck in 0..2 {
+            let Some(l) = self.decks[deck].as_mut() else {
+                continue;
+            };
+            if l.analysis.is_none() {
+                if let Some(a) = l.pending.as_ref().and_then(|c| c.get()).cloned() {
+                    let p = control.params().deck(deck);
+                    p.set_grid(a.bpm.unwrap_or(0.0), a.first_downbeat_secs);
+                    if let Some(lufs) = a.loudness_lufs {
+                        p.channel()
+                            .set_auto_gain_db((self.config.target_lufs - lufs) as f32);
+                    }
+                    l.duration = a.duration_secs;
+                    l.analysis = Some(a);
+                } else if l.buffer.is_complete() {
+                    l.duration = buffer_secs(&l.buffer);
+                }
+            }
+        }
+        if let AutoMixState::Playing { on_air } = self.state {
+            if let Some(l) = &self.decks[on_air] {
+                self.window = self.plan(l);
+            }
+        }
+    }
+}
+
+/// Seconds of audio in `b` so far (the whole track once decoding finished).
+fn buffer_secs(b: &TrackBuffer) -> f64 {
+    b.loaded_frames() as f64 / f64::from(b.sample_rate().max(1))
 }
 
 /// Crossfader positions for "only `deck`" and "only the other deck".

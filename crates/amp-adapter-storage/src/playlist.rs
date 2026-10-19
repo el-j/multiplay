@@ -2,8 +2,9 @@
 
 #![forbid(unsafe_code)]
 
-use amp_domain::{AudioSource, Track, TrackMetadata};
+use amp_domain::{AudioSource, DeckAssignment, Track, TrackId, TrackMetadata};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -17,6 +18,9 @@ pub struct SessionPlaylistSnapshot {
     pub eq_preamp: f32,
     pub eq_gains: [f32; 10],
     pub eq_enabled: bool,
+    /// DJ deck of each track (TASK-210). Missing in older files.
+    #[serde(default)]
+    pub deck_assignments: HashMap<TrackId, DeckAssignment>,
 }
 
 impl Default for SessionPlaylistSnapshot {
@@ -28,6 +32,7 @@ impl Default for SessionPlaylistSnapshot {
             eq_preamp: 0.0,
             eq_gains: [0.0; 10],
             eq_enabled: true,
+            deck_assignments: HashMap::new(),
         }
     }
 }

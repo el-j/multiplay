@@ -9,11 +9,17 @@ use crate::dj_link::DjRequest;
 use crate::track_loader::load_track_decoder;
 use amp_adapter_storage::RedbStorageAdapter;
 use amp_core_engine::dj::analysis::spawn_analysis;
+use amp_core_engine::dj::automix::{
+    AutoMix, AutoMixConfig, AutoMixSource, AutoMixState, AutoMixTrack,
+};
 use amp_core_engine::dj::engine::{
     DjControl, DjEngine, DjParams, DjStatus, TrackBuffer, CROSSFADER_LEFT, HOT_CUES,
 };
-use amp_domain::{analysis_key, HotCues, Track, TrackAnalysis};
-use amp_ports::{AnalysisCachePort, HotCueStorePort, PcmStreamPort};
+use amp_domain::{
+    analysis_key, next_for_deck, DeckAssignment, HotCues, Track, TrackAnalysis, TrackId,
+};
+use amp_ports::{AnalysisCachePort, HotCueStorePort, PcmStreamPort, StreamResolverPort};
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
 /// Loudness every deck is levelled to.
@@ -46,6 +52,7 @@ pub struct DjSession {
     decks: [Option<DeckSlot>; 2],
     active: bool,
     library: Option<Arc<RedbStorageAdapter>>,
+    automix: Option<AutoMix>,
 }
 
 impl std::fmt::Debug for DjSession {
@@ -74,6 +81,7 @@ impl DjSession {
             decks: [None, None],
             active: false,
             library,
+            automix: None,
         }
     }
 
@@ -167,32 +175,80 @@ impl DjSession {
             .lock()
             .map(|r| r.clone())
             .unwrap_or_default();
-        let source = track.clone();
-        let buffer = amp_core_engine::dj::engine::spawn_loader(move || {
-            load_track_decoder(&source, &resolvers).map(|d| Box::new(d) as Box<dyn PcmStreamPort>)
-        });
-        self.control.load(deck, Arc::clone(&buffer));
+        let prepared = prepare_track(&track, resolvers, self.library.clone());
+        self.control.load(deck, Arc::clone(&prepared.buffer));
+        let buffer = Arc::clone(&prepared.buffer);
+        self.adopt(deck, track, prepared);
+        buffer
+    }
+
+    /// Records `track` (already sent to the engine) as `deck`'s track and restores its hot cues.
+    fn adopt(&mut self, deck: usize, track: Track, prepared: Prepared) {
         self.params().deck(deck).set_grid(0.0, 0.0);
-        let key = analysis_key(&track.source);
-        let cache = self
-            .library
-            .clone()
-            .map(|l| l as Arc<dyn AnalysisCachePort>);
-        let analysis = spawn_analysis(key.clone(), Arc::clone(&buffer), cache);
         if let Some(lib) = &self.library {
-            for (slot, cue) in lib.load_hot_cues(&key).into_iter().enumerate() {
+            for (slot, cue) in lib.load_hot_cues(&prepared.key).into_iter().enumerate() {
                 self.control.set_hot_cue(deck, slot, cue);
             }
         }
         self.decks[deck] = Some(DeckSlot {
             track,
-            buffer: Arc::clone(&buffer),
-            analysis,
-            key,
+            buffer: prepared.buffer,
+            analysis: prepared.analysis,
+            key: prepared.key,
             applied: false,
             cues_dirty: false,
         });
-        buffer
+    }
+
+    /// True while auto mix runs.
+    pub fn automix_on(&self) -> bool {
+        self.automix.is_some()
+    }
+
+    /// Starts auto mix from the deck on air (or from the first assigned track when nothing
+    /// plays).
+    pub fn start_automix(&mut self, source: &mut PlaylistDeckSource<'_>) {
+        let mut auto = AutoMix::new(AutoMixConfig::default());
+        let on_air = self.on_air_deck();
+        let current = self
+            .deck(on_air)
+            .filter(|_| self.params().deck(on_air).playing())
+            .map(|s| AutoMixTrack {
+                title: s.track.metadata.title.clone(),
+                buffer: Arc::clone(&s.buffer),
+                analysis: s.analysis.get().cloned(),
+                pending: Some(Arc::clone(&s.analysis)),
+            });
+        match current {
+            Some(t) => auto.take_over(&mut self.control, source, on_air, t),
+            None => {
+                auto.start(&mut self.control, source);
+            }
+        }
+        self.automix = Some(auto);
+        self.adopt_loaded(source);
+    }
+
+    /// Stops auto mix; the decks keep playing as they are.
+    pub fn stop_automix(&mut self) {
+        self.automix = None;
+    }
+
+    /// Advances auto mix (call every UI frame while it runs).
+    pub fn tick_automix(&mut self, source: &mut PlaylistDeckSource<'_>) {
+        let Some(auto) = self.automix.as_mut() else {
+            return;
+        };
+        if auto.tick(&mut self.control, source) == AutoMixState::Finished {
+            self.automix = None;
+        }
+        self.adopt_loaded(source);
+    }
+
+    fn adopt_loaded(&mut self, source: &mut PlaylistDeckSource<'_>) {
+        for (deck, track, prepared) in source.loaded.drain(..) {
+            self.adopt(deck, track, prepared);
+        }
     }
 
     /// Stores the playhead in hot cue `slot` (saved to the library on the next `poll`).
@@ -245,3 +301,88 @@ impl DjSession {
 
 /// Hot cue slots per deck.
 pub const CUE_SLOTS: usize = HOT_CUES;
+
+/// A track being decoded and analysed for a deck.
+#[derive(Debug, Clone)]
+pub struct Prepared {
+    buffer: Arc<TrackBuffer>,
+    analysis: Arc<OnceLock<TrackAnalysis>>,
+    key: String,
+}
+
+/// Starts decoding `track` and analysing it (or reading the cached analysis).
+pub fn prepare_track(
+    track: &Track,
+    resolvers: Vec<Arc<dyn StreamResolverPort>>,
+    library: Option<Arc<RedbStorageAdapter>>,
+) -> Prepared {
+    let source = track.clone();
+    let buffer = amp_core_engine::dj::engine::spawn_loader(move || {
+        load_track_decoder(&source, &resolvers).map(|d| Box::new(d) as Box<dyn PcmStreamPort>)
+    });
+    let key = analysis_key(&track.source);
+    let cache = library.map(|l| l as Arc<dyn AnalysisCachePort>);
+    let analysis = spawn_analysis(key.clone(), Arc::clone(&buffer), cache);
+    Prepared {
+        buffer,
+        analysis,
+        key,
+    }
+}
+
+/// Auto mix's view of the playlist: each deck takes its next assigned, unplayed track.
+pub struct PlaylistDeckSource<'a> {
+    /// The playlist in order.
+    pub playlist: &'a [Track],
+    /// Deck assignment per track.
+    pub assign: &'a HashMap<TrackId, DeckAssignment>,
+    /// Tracks already loaded onto a deck; picked tracks are added.
+    pub played: &'a mut HashSet<TrackId>,
+    /// Stream resolvers for online sources.
+    pub resolvers: Vec<Arc<dyn StreamResolverPort>>,
+    /// Analysis cache and hot cues.
+    pub library: Option<Arc<RedbStorageAdapter>>,
+    loaded: Vec<(usize, Track, Prepared)>,
+}
+
+impl<'a> PlaylistDeckSource<'a> {
+    /// A source over the playlist.
+    pub fn new(
+        playlist: &'a [Track],
+        assign: &'a HashMap<TrackId, DeckAssignment>,
+        played: &'a mut HashSet<TrackId>,
+        resolvers: Vec<Arc<dyn StreamResolverPort>>,
+        library: Option<Arc<RedbStorageAdapter>>,
+    ) -> Self {
+        Self {
+            playlist,
+            assign,
+            played,
+            resolvers,
+            library,
+            loaded: Vec::new(),
+        }
+    }
+
+    /// Index of the next track for `deck`, without taking it.
+    pub fn peek(&self, deck: usize) -> Option<usize> {
+        let order: Vec<TrackId> = self.playlist.iter().map(|t| t.id).collect();
+        next_for_deck(&order, self.assign, self.played, deck)
+    }
+}
+
+impl AutoMixSource for PlaylistDeckSource<'_> {
+    fn next_for(&mut self, deck: usize) -> Option<AutoMixTrack> {
+        let track = self.playlist.get(self.peek(deck)?)?.clone();
+        self.played.insert(track.id);
+        let prepared = prepare_track(&track, self.resolvers.clone(), self.library.clone());
+        let t = AutoMixTrack {
+            title: track.metadata.title.clone(),
+            buffer: Arc::clone(&prepared.buffer),
+            analysis: prepared.analysis.get().cloned(),
+            pending: Some(Arc::clone(&prepared.analysis)),
+        };
+        self.loaded.push((deck, track, prepared));
+        Some(t)
+    }
+}

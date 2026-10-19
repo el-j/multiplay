@@ -42,6 +42,7 @@ fn track(bpm: f64, secs: f64, hum_hz: f64) -> AutoMixTrack {
             detail_rate: 100.0,
             loudness_lufs: Some(-14.0),
         }),
+        pending: None,
     }
 }
 
@@ -192,4 +193,56 @@ fn dj_automix_takes_the_next_unplayed_track_when_none_is_assigned() {
     let r = run(AutoMixConfig::default(), &mut source, 120.0);
     assert_eq!(r.played, vec!["120 BPM", "121 BPM", "122 BPM"]);
     assert!(r.finished_at.is_some());
+}
+
+#[test]
+fn dj_automix_takes_over_a_playing_deck_and_waits_for_late_analysis() {
+    use std::sync::{Arc, OnceLock};
+    // Tracks whose analysis is still running when they are loaded.
+    let late = |bpm: f64, hum: f64| {
+        let ready = track(bpm, 30.0, hum);
+        let cell = Arc::new(OnceLock::new());
+        let analysis = ready.analysis.clone().unwrap();
+        (
+            AutoMixTrack {
+                analysis: None,
+                pending: Some(Arc::clone(&cell)),
+                ..ready
+            },
+            cell,
+            analysis,
+        )
+    };
+    let (current, current_cell, current_analysis) = late(120.0, 110.0);
+    let (next, next_cell, next_analysis) = late(122.0, 130.0);
+    let mut source = PlaylistSource::new(vec![(next, Assignment::Any)]);
+
+    let (mut engine, mut control) = DjEngine::new(RATE, 2);
+    control.load(0, Arc::clone(&current.buffer));
+    control.params().set_crossfader(-1.0);
+    control.params().deck(0).set_playing(true);
+    let mut auto = AutoMix::new(AutoMixConfig::default());
+    auto.take_over(&mut control, &mut source, 0, current);
+
+    let (mut m, mut c) = (vec![0.0f32; 1_024], vec![0.0f32; 1_024]);
+    let mut synced = false;
+    let mut state = auto.state();
+    for block in 0..(80.0 * f64::from(RATE) / 512.0) as usize {
+        if block == 200 {
+            let _ = current_cell.set(current_analysis.clone());
+            let _ = next_cell.set(next_analysis.clone());
+        }
+        engine.render(&mut m, &mut c);
+        state = auto.tick(&mut control, &mut source);
+        synced |= matches!(state, AutoMixState::Mixing { synced: true, .. });
+        if state == AutoMixState::Finished {
+            break;
+        }
+    }
+    assert_eq!(auto.history(), ["120 BPM", "122 BPM"]);
+    assert!(
+        synced,
+        "the late analysis made a synced transition possible"
+    );
+    assert_eq!(state, AutoMixState::Finished);
 }

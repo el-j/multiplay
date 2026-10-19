@@ -45,6 +45,15 @@ impl MultiplayGuiApp {
         let entering = !dj.is_active();
         if entering {
             dj.enter(&self.audio_driver);
+            let current = self
+                .audio_driver
+                .current_track
+                .lock()
+                .ok()
+                .and_then(|t| t.clone());
+            if let Some(t) = current {
+                self.dj_played.insert(t.id);
+            }
         } else {
             dj.leave(&self.audio_driver);
         }

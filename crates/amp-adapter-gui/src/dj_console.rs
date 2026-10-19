@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 
 use crate::app_state::MultiplayGuiApp;
-use crate::dj_session::DjSession;
+use crate::dj_session::{DjSession, PlaylistDeckSource};
 use crate::responsive::{row_rtl, ROW};
 use eframe::egui::{self, Color32, Rect, RichText, Ui, Vec2};
 
@@ -17,7 +17,8 @@ const DECK_COLORS: [Color32; 2] = [
 
 /// Something the user asked for that needs the whole app.
 enum Action {
-    LoadSelected(usize),
+    LoadNext(usize),
+    ToggleAuto,
     Leave,
 }
 
@@ -52,17 +53,42 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
         mixer_column(ui, dj, &mut actions);
     });
     ui.allocate_rect(area, egui::Sense::hover());
+    let Some(mut dj) = app.dj.take() else {
+        return;
+    };
+    let resolvers = app
+        .audio_driver
+        .resolvers
+        .lock()
+        .map(|r| r.clone())
+        .unwrap_or_default();
+    let mut source = PlaylistDeckSource::new(
+        &app.playlist,
+        &app.deck_assign,
+        &mut app.dj_played,
+        resolvers,
+        app.library.clone(),
+    );
+    let mut leave = false;
     for a in actions {
         match a {
-            Action::LoadSelected(deck) => {
-                if let Some(track) = app.playlist.get(app.selected_track_idx).cloned() {
-                    if let Some(dj) = app.dj.as_mut() {
-                        dj.load(&app.audio_driver, deck, track);
-                    }
+            Action::LoadNext(deck) => {
+                // The deck's next assigned track, else the selected row.
+                let pick = source.peek(deck).or(Some(app.selected_track_idx));
+                if let Some(track) = pick.and_then(|i| app.playlist.get(i)).cloned() {
+                    source.played.insert(track.id);
+                    dj.load(&app.audio_driver, deck, track);
                 }
             }
-            Action::Leave => app.toggle_dj_mode(Some(ui.ctx())),
+            Action::ToggleAuto if dj.automix_on() => dj.stop_automix(),
+            Action::ToggleAuto => dj.start_automix(&mut source),
+            Action::Leave => leave = true,
         }
+    }
+    dj.tick_automix(&mut source);
+    app.dj = Some(dj);
+    if leave {
+        app.toggle_dj_mode(Some(ui.ctx()));
     }
 }
 
@@ -78,10 +104,10 @@ fn deck_strip(ui: &mut Ui, dj: &mut DjSession, deck: usize, actions: &mut Vec<Ac
     row_rtl(ui, |ui| {
         if ui
             .small_button("⏏")
-            .on_hover_text("Load the selected playlist track")
+            .on_hover_text("Load the next track assigned to this deck (or the selected one)")
             .clicked()
         {
-            actions.push(Action::LoadSelected(deck));
+            actions.push(Action::LoadNext(deck));
         }
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             ui.label(RichText::new(label).strong().color(color));
@@ -166,13 +192,23 @@ fn deck_strip(ui: &mut Ui, dj: &mut DjSession, deck: usize, actions: &mut Vec<Ac
 fn mixer_column(ui: &mut Ui, dj: &mut DjSession, actions: &mut Vec<Action>) {
     ui.spacing_mut().item_spacing = Vec2::new(4.0, 4.0);
     ui.vertical_centered(|ui| {
-        if ui
-            .small_button("Exit DJ")
-            .on_hover_text("Back to normal playback (Ctrl+J)")
-            .clicked()
-        {
-            actions.push(Action::Leave);
-        }
+        ui.horizontal(|ui| {
+            if ui
+                .small_button("Exit")
+                .on_hover_text("Back to normal playback (Ctrl+J)")
+                .clicked()
+            {
+                actions.push(Action::Leave);
+            }
+            let auto = dj.automix_on();
+            if ui
+                .selectable_label(auto, RichText::new("AUTO").size(10.0))
+                .on_hover_text("Auto mix through the assigned playlist")
+                .clicked()
+            {
+                actions.push(Action::ToggleAuto);
+            }
+        });
         let p = dj.params();
         for deck in 0..2 {
             let mut fader = p.deck(deck).fader();

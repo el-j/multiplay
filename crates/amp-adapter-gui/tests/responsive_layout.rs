@@ -167,3 +167,26 @@ fn responsive_dj_console_fits_from_its_minimum_up() {
         );
     }
 }
+
+#[test]
+fn responsive_playlist_with_deck_badges_fits() {
+    let (_root, mut app) = app_with_long_content();
+    app.toggle_dj_mode(None);
+    for (i, t) in app.playlist.iter().enumerate() {
+        let a = [
+            amp_domain::DeckAssignment::A,
+            amp_domain::DeckAssignment::B,
+            amp_domain::DeckAssignment::Both,
+        ][i % 3];
+        app.deck_assign.insert(t.id, a);
+    }
+    let min = min_inner_size(WindowId::Playlist);
+    for w in [min.x, 400.0, 700.0] {
+        let size = Vec2::new(w, min.y + 60.0);
+        let spill = overflow(&mut app, WindowId::Playlist, size);
+        assert!(
+            spill.x <= 0.5 && spill.y <= 0.5,
+            "DJ playlist overflows at {size:?} by {spill:?}"
+        );
+    }
+}

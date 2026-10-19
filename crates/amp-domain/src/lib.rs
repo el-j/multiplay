@@ -5,6 +5,7 @@
 
 pub mod analysis;
 pub mod config;
+pub mod deck_assign;
 pub mod jam_crdt;
 pub mod source_badge;
 
@@ -17,6 +18,7 @@ pub use config::{
     AppConfig, AudioHardwareConfig, ExperimentalConfig, LibraryConfig, P2PNetworkConfig,
     RemoteControlConfig, StreamingProvidersConfig, UiAndThemeConfig,
 };
+pub use deck_assign::{next_for_deck, next_markers, DeckAssignment};
 pub use jam_crdt::{CollaborativeQueue, JamItem, JamOperation, LamportTimestamp};
 pub use source_badge::{SourceFilterMask, SourceKind};
 
