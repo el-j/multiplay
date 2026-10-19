@@ -6,7 +6,9 @@
 
 use crate::app_state::MultiplayGuiApp;
 use crate::dj_session::{DjSession, PlaylistDeckSource};
+use crate::dj_waveform::{overview, paint_lane, paint_phase_meter, LaneView, Marks};
 use crate::responsive::{row_rtl, ROW};
+use amp_core_engine::dj::engine::sync::{phase_error, DeckBeat};
 use eframe::egui::{self, Color32, Rect, RichText, Ui, Vec2};
 
 const MIXER_W: f32 = 96.0;
@@ -28,7 +30,11 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
         return;
     };
     dj.poll();
-    let area = ui.available_rect_before_wrap();
+    let full = ui.available_rect_before_wrap();
+    let lanes_h = (full.height() * 0.3).clamp(34.0, 140.0);
+    let lanes = Rect::from_min_size(full.min, Vec2::new(full.width(), lanes_h));
+    paint_lanes(ui, dj, lanes);
+    let area = Rect::from_min_max(egui::pos2(full.left(), lanes.bottom() + 4.0), full.max);
     let strip_w = ((area.width() - MIXER_W - 8.0) / 2.0).max(60.0);
     let mut actions = Vec::new();
     for deck in 0..2 {
@@ -52,7 +58,7 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
         ui.set_clip_rect(mixer);
         mixer_column(ui, dj, &mut actions);
     });
-    ui.allocate_rect(area, egui::Sense::hover());
+    ui.allocate_rect(full, egui::Sense::hover());
     let Some(mut dj) = app.dj.take() else {
         return;
     };
@@ -130,27 +136,30 @@ fn deck_strip(ui: &mut Ui, dj: &mut DjSession, deck: usize, actions: &mut Vec<Ac
             "— BPM".into()
         };
         ui.label(RichText::new(tempo).monospace().size(10.0).color(color));
+        let pitch = dj.params().deck(deck).pitch_percent();
+        ui.label(
+            RichText::new(format!("{pitch:+.1}%"))
+                .monospace()
+                .size(10.0),
+        );
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
             let text = format!("{} / {}", clock(pos), clock(total));
             ui.add(egui::Label::new(RichText::new(text).monospace().size(10.0)).truncate());
         });
     });
-    // The waveform area takes the spare height (TASK-211 draws the waveforms here).
+    // The overview takes the spare height; click it to jump.
     let wave_h = (ui.available_height() - 2.0 * ROW - 8.0).max(16.0);
-    let (rect, _) = ui.allocate_exact_size(
-        Vec2::new(ui.available_width(), wave_h),
-        egui::Sense::hover(),
-    );
-    let progress = if total > 0.0 {
-        (pos / total).clamp(0.0, 1.0) as f32
-    } else {
-        0.0
+    let rect = Rect::from_min_size(ui.cursor().min, Vec2::new(ui.available_width(), wave_h));
+    let cues: [Option<f64>; 8] = std::array::from_fn(|i| s.hot_cue(i));
+    let marks = Marks {
+        cues: &cues,
+        loop_range: s.loop_range(),
+        loop_active: s.loop_active(),
     };
-    ui.painter()
-        .rect_filled(rect, 2.0, Color32::from_rgb(8, 10, 14));
-    let played = Rect::from_min_size(rect.min, Vec2::new(rect.width() * progress, rect.height()));
-    ui.painter()
-        .rect_filled(played, 2.0, color.gamma_multiply(0.25));
+    let analysis = dj.deck(deck).and_then(|d| d.analysis().cloned());
+    if let Some(t) = overview(ui, rect, analysis.as_ref(), pos, total, color, marks) {
+        dj.control().seek(deck, t);
+    }
 
     let p = dj.params().deck(deck);
     ui.horizontal(|ui| {
@@ -244,4 +253,68 @@ fn mixer_column(ui: &mut Ui, dj: &mut DjSession, actions: &mut Vec<Action>) {
 fn clock(secs: f64) -> String {
     let s = secs.max(0.0) as u64;
     format!("{}:{:02}", s / 60, s % 60)
+}
+
+/// The stacked detail lanes (deck A above deck B) with the phase meter between them.
+fn paint_lanes(ui: &Ui, dj: &DjSession, rect: Rect) {
+    let meter_h = 4.0;
+    let lane_h = (rect.height() - meter_h - 2.0) / 2.0;
+    let painter = ui.painter_at(rect);
+    let mut beats = [None, None];
+    for deck in 0..2 {
+        let y = if deck == 0 {
+            rect.top()
+        } else {
+            rect.bottom() - lane_h
+        };
+        let lane = Rect::from_min_size(egui::pos2(rect.left(), y), Vec2::new(rect.width(), lane_h));
+        let s = dj.status().deck(deck);
+        let analysis = dj.deck(deck).and_then(|d| d.analysis());
+        match analysis {
+            Some(a) => {
+                let bpm = a.bpm.unwrap_or(0.0);
+                let speed = if bpm > 0.0 && s.bpm() > 0.0 {
+                    s.bpm() / bpm
+                } else {
+                    f64::from(1.0 + dj.params().deck(deck).pitch_percent() / 100.0)
+                };
+                let view = LaneView {
+                    analysis: a,
+                    position: s.position_secs(),
+                    speed,
+                    color: DECK_COLORS[deck],
+                };
+                paint_lane(&painter, lane, &view);
+                if bpm > 0.0 && dj.params().deck(deck).playing() {
+                    beats[deck] = Some(DeckBeat {
+                        bpm,
+                        anchor: a.first_downbeat_secs,
+                        position: s.position_secs(),
+                        speed,
+                    });
+                }
+            }
+            None => {
+                painter.rect_filled(lane, 2.0, Color32::from_rgb(8, 10, 14));
+                let text = if dj.deck(deck).is_some() {
+                    "analysing…"
+                } else {
+                    ""
+                };
+                painter.text(
+                    lane.center(),
+                    egui::Align2::CENTER_CENTER,
+                    text,
+                    egui::FontId::proportional(10.0),
+                    Color32::from_gray(110),
+                );
+            }
+        }
+    }
+    let meter = Rect::from_center_size(rect.center(), Vec2::new(rect.width() * 0.3, meter_h));
+    let error = match beats {
+        [Some(a), Some(b)] => Some(phase_error(&a, &b)),
+        _ => None,
+    };
+    paint_phase_meter(&painter, meter, error);
 }

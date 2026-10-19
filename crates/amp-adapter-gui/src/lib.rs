@@ -15,6 +15,7 @@ pub mod dj_host;
 pub mod dj_link;
 pub mod dj_mode;
 pub mod dj_session;
+pub mod dj_waveform;
 pub mod docking;
 pub mod equalizer_widget;
 pub mod file_dialog;

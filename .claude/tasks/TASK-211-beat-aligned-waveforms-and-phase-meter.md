@@ -28,6 +28,18 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: `dj_waveform.rs` plus the console layout:
+  - **Detail lanes:** stacked scrolling three-band waveforms (deck A above deck B) across the top of the console, with beat and downbeat markers and a fixed playhead.
+  - **Shared time axis:** the lanes use heard time (track time divided by playing speed), so synced decks' beat markers coincide.
+  - **Phase meter:** between the lanes, showing B against A within half a beat; green within 2 %.
+  - **Overviews:** each deck strip has a whole-track overview with the played part dimmed, the playhead, coloured hot cues and the loop region (green when active). Clicking seeks.
+  - **Readouts:** heard BPM, pitch % and time/total per deck. Everything is drawn from the cached `TrackAnalysis`; there is no recompute per frame.
+- Evidence:
+  - `dj_waveform_synced_decks_show_beats_at_the_same_pixels`: a 124 BPM deck slowed to 120 and in phase puts every beat within 0.5 px of the 120 BPM deck's;
+  - playhead-centre and bar-spacing tests;
+  - `tests/dj_waveform_perf.rs` (release): both lanes plus overviews at 1000 px take 0.14 ms per frame (budget 4 ms);
+  - the console still fits from 520x232 up (responsive test).
+- Open: musical key readout (key analysis is P2 in TASK-204). A manual look at two synced tracks in the running app.
 
 ## Status
 - **Status:** Pending
