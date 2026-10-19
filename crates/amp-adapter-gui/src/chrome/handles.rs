@@ -37,7 +37,7 @@ pub fn resize_handles(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: Wi
     if app.dock_manager.is_shaded(window) {
         return;
     }
-    let size = ctx.screen_rect().size();
+    let size = ctx.content_rect().size();
     paint_grip(ctx, window, size);
     let busy = app.window_drag.is_some() || app.window_resize.is_some();
     if !busy {
@@ -158,7 +158,7 @@ pub fn apply_moves(
 fn paint_grip(ctx: &egui::Context, window: WindowId, size: Vec2) {
     let painter = ctx.layer_painter(LayerId::new(
         Order::Foreground,
-        egui::Id::new(("grip", window)),
+        egui::Id::unique(("grip", window)),
     ));
     let stroke = Stroke::new(1.0_f32, Color32::from_rgb(110, 118, 132));
     for i in 1..=3 {

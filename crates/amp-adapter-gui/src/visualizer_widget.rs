@@ -51,6 +51,7 @@ impl<'a> VisualizerWidget<'a> {
                 rect,
                 4.0,
                 Stroke::new(1.0_f32, Color32::from_rgb(30, 42, 54)),
+                eframe::egui::StrokeKind::Inside,
             );
 
             let padding = 4.0;

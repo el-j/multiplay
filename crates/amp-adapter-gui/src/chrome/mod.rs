@@ -61,19 +61,20 @@ const TEXT_INACTIVE: Color32 = Color32::from_rgb(140, 144, 156);
 /// `full` windows get minimize and shade buttons; overlays only close.
 pub fn title_bar(
     app: &mut MultiplayGuiApp,
-    ctx: &egui::Context,
+    ui: &mut egui::Ui,
     window: WindowId,
     title: &str,
     full: bool,
     snaps: bool,
 ) -> ChromeAction {
+    let ctx = &ui.ctx().clone();
     let scale = 1.0;
     let mut action = ChromeAction::None;
-    egui::TopBottomPanel::top(egui::Id::new(("chrome", title)))
-        .exact_height(TITLE_HEIGHT * scale)
-        .frame(egui::Frame::none())
+    egui::Panel::top(egui::Id::unique(("chrome", title)))
+        .exact_size(TITLE_HEIGHT * scale)
+        .frame(egui::Frame::NONE)
         .show_separator_line(false)
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             let strip = ui.max_rect();
             let layout = ChromeLayout::new(strip.width(), scale, full);
             let focused = ctx.input(|i| i.viewport().focused).unwrap_or(true);
@@ -81,7 +82,7 @@ pub fn title_bar(
 
             let resp = ui.interact(
                 strip,
-                egui::Id::new(("chrome_hit", title)),
+                egui::Id::unique(("chrome_hit", title)),
                 Sense::click_and_drag(),
             );
             let local = resp
@@ -277,7 +278,7 @@ fn paint_button(
         Vec2::new(b.w, b.h),
     );
     painter.rect_filled(r, 1.0, Color32::from_rgb(20, 22, 30));
-    painter.rect_stroke(r, 1.0, Stroke::new(1.0_f32, edge));
+    painter.rect_stroke(r, 1.0, Stroke::new(1.0_f32, edge), egui::StrokeKind::Inside);
     painter.text(
         r.center(),
         Align2::CENTER_CENTER,

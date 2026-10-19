@@ -14,7 +14,6 @@ fn main() -> eframe::Result<()> {
             .with_inner_size(Vec2::new(480.0, 210.0))
             .with_position(Pos2::new(120.0, 100.0))
             .with_active(true),
-        vsync: true,
         multisampling: 0,
         ..Default::default()
     };

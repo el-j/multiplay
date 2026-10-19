@@ -36,10 +36,7 @@ impl SkinTextureCache {
             ));
         }
 
-        let color_image = ColorImage {
-            size,
-            pixels: color_pixels,
-        };
+        let color_image = ColorImage::new(size, color_pixels);
 
         let handle = ctx.load_texture(format!("skin_{key}"), color_image, TextureOptions::NEAREST);
 

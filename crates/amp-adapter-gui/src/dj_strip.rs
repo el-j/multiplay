@@ -62,7 +62,7 @@ pub(crate) fn act(
 ) -> Response {
     p.st.rendered.push(a);
     let r = ui
-        .add(egui::SelectableLabel::new(on, label))
+        .add(egui::Button::selectable(on, label))
         .on_hover_text(hover(a));
     if r.clicked() {
         let shift = ui.input(|i| i.modifiers.shift);

@@ -2,24 +2,24 @@
 
 #![forbid(unsafe_code)]
 
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
+use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::FormatOptions;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
+use symphonia::core::units::Timestamp;
 
 use crate::source::GenericMediaSource;
 
 /// Stateful streaming audio decoder session for interactive track playback and seeking.
 pub struct AudioStreamDecoder {
-    reader: Box<dyn symphonia::core::formats::FormatReader>,
-    decoder: Box<dyn symphonia::core::codecs::Decoder>,
-    sample_buf: Option<SampleBuffer<f32>>,
+    reader: Box<dyn FormatReader>,
+    decoder: Box<dyn AudioDecoder>,
+    /// The last decoded packet, interleaved in the stream's own channel layout.
+    decoded: Vec<f32>,
     track_id: u32,
     sample_rate: u32,
-    channels: u16,
     duration_frames: Option<u64>,
     frames_played: u64,
     pending_samples: Vec<f32>,
@@ -49,47 +49,17 @@ impl AudioStreamDecoder {
     where
         S: MediaSource + 'static,
     {
-        let mss = MediaSourceStream::new(Box::new(source), Default::default());
-        let hint = Hint::new();
-
-        let format_opts = FormatOptions {
-            enable_gapless: true,
-            ..Default::default()
-        };
-        let meta_opts: MetadataOptions = Default::default();
-        let decode_opts: DecoderOptions = Default::default();
-
-        let probed = symphonia::default::get_probe()
-            .format(&hint, mss, &format_opts, &meta_opts)
-            .map_err(|e| format!("Unrecognized audio format: {e}"))?;
-
-        let reader = probed.format;
-        let track = reader
-            .tracks()
-            .iter()
-            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
-            .ok_or_else(|| "No playable audio tracks found".to_string())?;
-
-        let sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
-        let channels = track
-            .codec_params
-            .channels
-            .map(|c| c.count() as u16)
-            .unwrap_or(2);
-        let duration_frames = track.codec_params.n_frames;
-        let track_id = track.id;
-
-        let decoder = symphonia::default::get_codecs()
-            .make(&track.codec_params, &decode_opts)
-            .map_err(|e| format!("Unsupported codec: {e}"))?;
+        let opened = open_audio(source)?;
+        let (reader, decoder) = (opened.reader, opened.decoder);
+        let (track_id, sample_rate, duration_frames) =
+            (opened.track_id, opened.sample_rate, opened.duration_frames);
 
         Ok(Self {
             reader,
             decoder,
-            sample_buf: None,
+            decoded: Vec::new(),
             track_id,
             sample_rate,
-            channels,
             duration_frames,
             frames_played: 0,
             pending_samples: Vec::new(),
@@ -120,7 +90,11 @@ impl AudioStreamDecoder {
         // 2. Decode next packets until buffer is filled or EOF
         while written < output.len() {
             let packet = match self.reader.next_packet() {
-                Ok(pkt) => pkt,
+                Ok(Some(pkt)) => pkt,
+                Ok(None) => {
+                    eof_reached = true;
+                    break; // End of the track
+                }
                 Err(SymphoniaError::IoError(e))
                     if e.kind() == std::io::ErrorKind::UnexpectedEof =>
                 {
@@ -133,23 +107,20 @@ impl AudioStreamDecoder {
                 Err(e) => return Err(format!("Packet read error: {e}")),
             };
 
-            if packet.track_id() != self.track_id {
+            if packet.track_id != self.track_id {
                 continue;
             }
 
             match self.decoder.decode(&packet) {
                 Ok(audio_buf) => {
-                    if self.sample_buf.is_none() {
-                        let audio_spec = *audio_buf.spec();
-                        self.sample_buf =
-                            Some(SampleBuffer::new(audio_buf.capacity() as u64, audio_spec));
-                    }
+                    let buf_channels = audio_buf.spec().channels().count().max(1);
+                    let n = audio_buf.frames() * buf_channels;
+                    self.decoded.resize(n, 0.0);
+                    audio_buf.copy_to_slice_interleaved(&mut self.decoded[..]);
+                    {
+                        let samples = &self.decoded[..];
 
-                    if let Some(buf) = self.sample_buf.as_mut() {
-                        buf.copy_interleaved_ref(audio_buf);
-                        let samples = buf.samples();
-
-                        let channels = self.channels.max(1) as usize;
+                        let channels = buf_channels;
                         let frames = samples.len() / channels;
 
                         for f in 0..frames {
@@ -186,17 +157,17 @@ impl AudioStreamDecoder {
     /// Seeks to specified playback duration timestamp.
     pub fn seek(&mut self, target: std::time::Duration) -> Result<(), String> {
         let ts = (target.as_secs_f64() * self.sample_rate as f64).round() as u64;
-        let seek_to = symphonia::core::formats::SeekTo::TimeStamp {
-            ts,
+        let seek_to = SeekTo::Timestamp {
+            ts: Timestamp::new(ts as i64),
             track_id: self.track_id,
         };
         // The reader lands on a packet boundary at or before the target; the frames between
         // there and the target are decoded and dropped, so playback resumes on the exact frame.
         let landed = self
             .reader
-            .seek(symphonia::core::formats::SeekMode::Accurate, seek_to)
+            .seek(SeekMode::Accurate, seek_to)
             .map_err(|e| format!("Seek failed: {e}"))?;
-        self.skip_frames = landed.required_ts.saturating_sub(landed.actual_ts);
+        self.skip_frames = (landed.required_ts.get() - landed.actual_ts.get()).max(0) as u64;
 
         self.decoder.reset();
         self.pending_samples.clear();
@@ -249,6 +220,53 @@ pub fn downmix_frame(samples: &[f32], frame_idx: usize, channels: usize) -> (f32
     } else {
         (samples[base], samples[base + 1])
     }
+}
+
+/// A probed audio stream with its decoder.
+pub(crate) struct OpenedAudio {
+    pub reader: Box<dyn FormatReader>,
+    pub decoder: Box<dyn AudioDecoder>,
+    pub track_id: u32,
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub duration_frames: Option<u64>,
+}
+
+/// Probes `source`, picks its first decodable audio track and makes a (gapless) decoder.
+pub(crate) fn open_audio<S>(source: S) -> Result<OpenedAudio, String>
+where
+    S: MediaSource + 'static,
+{
+    let mss = MediaSourceStream::new(Box::new(source), Default::default());
+    let reader = symphonia::default::get_probe()
+        .probe(
+            &Hint::new(),
+            mss,
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .map_err(|e| format!("Unrecognized audio format: {e}"))?;
+    let track = reader
+        .first_track_known_codec(TrackType::Audio)
+        .ok_or_else(|| "No playable audio tracks found".to_string())?;
+    let params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .ok_or_else(|| "No playable audio tracks found".to_string())?
+        .clone();
+    let (track_id, duration_frames) = (track.id, track.num_frames);
+    let decoder = symphonia::default::get_codecs()
+        .make_audio_decoder(&params, &AudioDecoderOptions::default())
+        .map_err(|e| format!("Unsupported codec: {e}"))?;
+    Ok(OpenedAudio {
+        reader,
+        decoder,
+        track_id,
+        sample_rate: params.sample_rate.unwrap_or(44_100),
+        channels: params.channels.as_ref().map_or(2, |c| c.count() as u16),
+        duration_frames,
+    })
 }
 
 #[cfg(test)]

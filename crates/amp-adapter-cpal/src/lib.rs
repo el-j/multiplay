@@ -61,7 +61,7 @@ impl CpalAudioSink {
         let (device, config, resolved_name) = resolve_output_device(target_device_name)?;
         let source_channels = if native { config.channels } else { 2 };
 
-        let initial_rate = config.sample_rate.0;
+        let initial_rate = config.sample_rate;
         let initial_channels = config.channels;
 
         let sample_rate = Arc::new(AtomicU32::new(initial_rate));

@@ -18,6 +18,7 @@ pub struct HttpStreamResolver {
 impl HttpStreamResolver {
     /// Initializes an HTTP stream resolver with ICY internet radio header support.
     pub fn new() -> Result<Self, ProviderError> {
+        install_ring_provider();
         let mut default_headers = HeaderMap::new();
         default_headers.insert("Icy-MetaData", HeaderValue::from_static("1"));
         default_headers.insert(
@@ -61,9 +62,17 @@ impl HttpStreamResolver {
     }
 }
 
+/// Makes rustls' ring provider the process default (once). reqwest is built without a
+/// provider so that aws-lc-rs (C code) never enters the build; this supplies the crypto.
+pub fn install_ring_provider() {
+    // Fails only when a provider is already installed, which is fine.
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 impl Default for HttpStreamResolver {
     fn default() -> Self {
         Self::new().unwrap_or_else(|_| {
+            install_ring_provider();
             let client = reqwest::Client::new();
             Self { client }
         })

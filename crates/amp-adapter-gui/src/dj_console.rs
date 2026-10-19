@@ -51,13 +51,13 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             };
             let rect =
                 Rect::from_min_size(egui::pos2(x, area.top()), Vec2::new(strip_w, area.height()));
-            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+            ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
                 ui.set_clip_rect(rect);
                 deck_strip(&mut panel, ui, deck);
             });
         }
         let mixer = Rect::from_center_size(area.center(), Vec2::new(MIXER_W, area.height()));
-        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(mixer), |ui| {
+        ui.scope_builder(egui::UiBuilder::new().max_rect(mixer), |ui| {
             ui.set_clip_rect(mixer);
             mixer_column(&mut panel, ui, MIXER_W);
         });
@@ -119,7 +119,7 @@ fn keyboard(
     out: &mut Vec<UiOut>,
     now: Instant,
 ) {
-    if ui.ctx().wants_keyboard_input() {
+    if ui.ctx().egui_wants_keyboard_input() {
         return;
     }
     let map = keymap();
@@ -231,7 +231,7 @@ fn paint_lanes(ui: &Ui, dj: &DjSession, rect: Rect) {
 /// The three-step first-run hint over the waveforms. Returns true when dismissed.
 fn first_run_hint(ui: &mut Ui, over: Rect) -> bool {
     let mut done = false;
-    egui::Area::new(egui::Id::new("dj_first_run_hint"))
+    egui::Area::new(egui::Id::unique("dj_first_run_hint"))
         .fixed_pos(over.min)
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {
@@ -251,7 +251,7 @@ fn first_run_hint(ui: &mut Ui, over: Rect) -> bool {
 /// The keyboard cheat sheet. Returns true when closed.
 fn cheat_sheet(ui: &mut Ui, over: Rect) -> bool {
     let mut close = false;
-    egui::Area::new(egui::Id::new("dj_cheat_sheet"))
+    egui::Area::new(egui::Id::unique("dj_cheat_sheet"))
         .fixed_pos(over.min + Vec2::splat(4.0))
         .order(egui::Order::Foreground)
         .show(ui.ctx(), |ui| {

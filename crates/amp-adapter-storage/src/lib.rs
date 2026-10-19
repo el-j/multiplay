@@ -14,13 +14,13 @@ use async_trait::async_trait;
 
 pub use keyring::{KeyringStorageAdapter, SecretString};
 pub use playlist::{export_m3u8, import_m3u8, SessionPlaylistSnapshot};
-use redb::{Database, ReadableTable, TableDefinition};
+use redb::{Database, ReadableDatabase, ReadableTable, TableDefinition};
 pub use scanner::{collect_audio_files, extract_track_from_file, LibraryScanner};
 use std::path::Path;
 use std::sync::Arc;
 
-const TRACKS_TABLE: TableDefinition<&[u8; 16], &[u8]> = TableDefinition::new("tracks_v1");
-const INDEX_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("search_index_v1");
+const TRACKS_TABLE: TableDefinition<&[u8; 16], &[u8]> = TableDefinition::new("tracks_v2");
+const INDEX_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("search_index_v2");
 
 pub struct RedbStorageAdapter {
     db: Arc<Database>,
@@ -52,7 +52,7 @@ impl LibraryStoragePort for RedbStorageAdapter {
         let track_clone = track.clone();
 
         tokio::task::spawn_blocking(move || -> Result<(), String> {
-            let encoded_bytes = bincode::serialize(&track_clone)
+            let encoded_bytes = postcard::to_allocvec(&track_clone)
                 .map_err(|e| format!("Track serialization failure: {e}"))?;
 
             let write_txn = db
@@ -87,7 +87,7 @@ impl LibraryStoragePort for RedbStorageAdapter {
             let mut tracks = Vec::new();
             for item in table.iter().map_err(|e| e.to_string())? {
                 let (_, value) = item.map_err(|e| e.to_string())?;
-                let track: Track = bincode::deserialize(value.value())
+                let track: Track = postcard::from_bytes(value.value())
                     .map_err(|e| format!("Track deserialization failure: {e}"))?;
                 tracks.push(track);
             }

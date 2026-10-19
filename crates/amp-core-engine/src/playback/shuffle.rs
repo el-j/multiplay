@@ -46,7 +46,7 @@ impl SmartQueueManager {
             history: Vec::new(),
             shuffle_mode: ShuffleMode::Off,
             repeat_mode: RepeatMode::Off,
-            rng: SmallRng::from_entropy(),
+            rng: SmallRng::from_rng(&mut rand::rng()),
         }
     }
 

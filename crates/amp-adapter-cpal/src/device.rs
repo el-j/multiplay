@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 
 use cpal::traits::{DeviceTrait, HostTrait};
-use cpal::{BufferSize, Device, SampleRate, StreamConfig};
+use cpal::{BufferSize, Device, StreamConfig};
 
 /// Description of an audio hardware output device.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,12 +15,14 @@ pub struct AudioDeviceDescription {
 /// Lists all detected hardware audio output devices on the host.
 pub fn list_output_devices() -> Vec<AudioDeviceDescription> {
     let host = cpal::default_host();
-    let default_name = host.default_output_device().and_then(|d| d.name().ok());
+    let default_name = host
+        .default_output_device()
+        .and_then(|d| device_name(&d).ok());
     let mut result = Vec::new();
 
     if let Ok(devices) = host.devices() {
         for d in devices {
-            if let Ok(name) = d.name() {
+            if let Ok(name) = device_name(&d) {
                 let lower = name.to_lowercase();
                 if lower.contains("microphone") || lower.contains("input") {
                     continue;
@@ -50,7 +52,7 @@ pub fn resolve_output_device(
             .map_err(|e| format!("Device enumeration failed: {e}"))?;
         let mut found = None;
         for d in all_devs {
-            if let Ok(name) = d.name() {
+            if let Ok(name) = device_name(&d) {
                 if name == target {
                     found = Some((d, name));
                     break;
@@ -59,9 +61,7 @@ pub fn resolve_output_device(
         }
         found.ok_or_else(|| format!("Target audio device '{target}' not found"))?
     } else if let Some(def) = host.default_output_device() {
-        let name = def
-            .name()
-            .unwrap_or_else(|_| "Default Audio Device".to_string());
+        let name = device_name(&def).unwrap_or_else(|_| "Default Audio Device".to_string());
         (def, name)
     } else {
         let mut out_devs = host
@@ -70,9 +70,7 @@ pub fn resolve_output_device(
         let d = out_devs
             .next()
             .ok_or_else(|| "No hardware audio output devices found".to_string())?;
-        let name = d
-            .name()
-            .unwrap_or_else(|_| "Unknown Audio Device".to_string());
+        let name = device_name(&d).unwrap_or_else(|_| "Unknown Audio Device".to_string());
         (d, name)
     };
 
@@ -87,10 +85,15 @@ pub fn resolve_output_device(
         // Fallback standard 48kHz stereo configuration for built-in Mac speakers
         StreamConfig {
             channels: 2,
-            sample_rate: SampleRate(48000),
+            sample_rate: 48_000,
             buffer_size: BufferSize::Default,
         }
     };
 
     Ok((device, config, resolved_name))
+}
+
+/// The device's human-readable name (cpal 0.18 moved it into the device description).
+fn device_name(device: &Device) -> Result<String, cpal::Error> {
+    device.description().map(|d| d.name().to_string())
 }

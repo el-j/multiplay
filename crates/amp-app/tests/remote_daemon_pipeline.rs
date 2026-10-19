@@ -96,7 +96,7 @@ async fn test_remote_daemon_e2e_pipeline() {
 
     let vol = serde_json::to_string(&ClientMessage::new(RemoteAction::SetVolume(0.72))).unwrap();
     ws_tx
-        .send(Message::Text(vol))
+        .send(Message::Text(vol.into()))
         .await
         .expect("send ws volume");
     let received_cmd = tokio::time::timeout(Duration::from_millis(500), cmd_rx.recv())
@@ -106,7 +106,10 @@ async fn test_remote_daemon_e2e_pipeline() {
     assert!(matches!(received_cmd, PlayerCommand::SetVolume(v) if (v - 0.72).abs() < 0.01));
 
     let skip = serde_json::to_string(&ClientMessage::new(RemoteAction::VoteSkip)).unwrap();
-    ws_tx.send(Message::Text(skip)).await.expect("send ws skip");
+    ws_tx
+        .send(Message::Text(skip.into()))
+        .await
+        .expect("send ws skip");
     let received_skip = tokio::time::timeout(Duration::from_millis(500), cmd_rx.recv())
         .await
         .expect("timeout waiting for skip")

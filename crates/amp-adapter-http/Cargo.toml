@@ -12,7 +12,11 @@ amp-ports = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+# TLS via rustls with the ring provider (the documented C/asm exception). reqwest's own
+# `rustls` feature would pull aws-lc-rs, so it is built without a provider and ring is
+# installed at runtime.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "stream"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 futures-util = { version = "0.3", default-features = false }
 
 [dev-dependencies]

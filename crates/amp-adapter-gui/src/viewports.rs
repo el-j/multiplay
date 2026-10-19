@@ -24,7 +24,8 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
 
 /// Renders `window`'s content under its title strip, grows the window if anything still did
 /// not fit, and adds the resize handles.
-pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId) {
+pub fn show_body(app: &mut MultiplayGuiApp, ui: &mut Ui, window: WindowId) {
+    let ctx = &ui.ctx().clone();
     chrome::zoom::shortcut(ctx);
     if ctx.input_mut(|i| i.consume_shortcut(&chrome::overlay::SETTINGS)) {
         app.dock_manager.toggle_visible(WindowId::Settings);
@@ -35,11 +36,11 @@ pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowI
     let mut spill = Vec2::ZERO;
     egui::CentralPanel::default()
         .frame(
-            egui::Frame::none()
+            egui::Frame::NONE
                 .fill(Color32::from_rgb(14, 18, 22))
                 .inner_margin(8.0),
         )
-        .show(ctx, |ui| {
+        .show(ui, |ui| {
             let avail = ui.max_rect();
             window_body(app, window, ui);
             let used = ui.min_rect();
@@ -81,6 +82,10 @@ fn place_on_show(app: &mut MultiplayGuiApp, window: WindowId, screens: &[DockRec
 pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
     // Baseline guarantee: text never grows past its space; it ends in an ellipsis instead.
     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+    // The compact classic metrics every window is laid out for (egui 0.37 grew its defaults
+    // to 8x2 button padding and 20 pt rows).
+    ui.spacing_mut().button_padding = Vec2::new(4.0, 1.0);
+    ui.spacing_mut().interact_size.y = 18.0;
     match window {
         WindowId::Main => render_main_window_content(app, ui),
         WindowId::Equalizer => {
@@ -163,18 +168,19 @@ impl Satellite {
             return;
         }
         let builder = self.builder(app, &chrome::screens(ctx));
-        ctx.show_viewport_immediate(viewport_id(self.id), builder, |ctx, _class| {
+        ctx.show_viewport_immediate(viewport_id(self.id), builder, |ui, _class| {
+            let ctx = &ui.ctx().clone();
             if ctx.input(|i| i.viewport().close_requested()) {
                 app.dock_manager.set_visible(self.id, false);
             }
             chrome::track_geometry(app, ctx, self.id);
             let full = !self.overlay;
-            let action = chrome::title_bar(app, ctx, self.id, self.title, full, full);
+            let action = chrome::title_bar(app, ui, self.id, self.title, full, full);
             chrome::apply_action(app, ctx, self.id, action);
             if self.overlay && ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
                 app.dock_manager.set_visible(self.id, false);
             }
-            show_body(app, ctx, self.id);
+            show_body(app, ui, self.id);
         });
     }
 

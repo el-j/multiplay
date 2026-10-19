@@ -5,13 +5,8 @@
 use rtrb::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::FormatOptions;
-use symphonia::core::io::{MediaSource, MediaSourceStream};
-use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
+use symphonia::core::io::MediaSource;
 
 /// Specification metadata of a decoded audio stream.
 #[derive(Debug, Clone)]
@@ -34,47 +29,19 @@ impl PureDecoderEngine {
     where
         S: MediaSource + 'static,
     {
-        let mss = MediaSourceStream::new(Box::new(stream), Default::default());
-        let hint = Hint::new();
-
-        let format_opts = FormatOptions {
-            enable_gapless: true,
-            ..Default::default()
-        };
-        let meta_opts: MetadataOptions = Default::default();
-        let decode_opts: DecoderOptions = Default::default();
-
-        let probed = symphonia::default::get_probe()
-            .format(&hint, mss, &format_opts, &meta_opts)
-            .map_err(|e| format!("Unrecognized audio container: {e}"))?;
-
-        let mut reader = probed.format;
-        let track = reader
-            .tracks()
-            .iter()
-            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
-            .ok_or_else(|| "No playable audio tracks found".to_string())?;
-
+        let opened = crate::stream::open_audio(stream)?;
+        let (mut reader, mut decoder, track_id) = (opened.reader, opened.decoder, opened.track_id);
         let spec = DecodedStreamSpec {
-            sample_rate: track.codec_params.sample_rate.unwrap_or(44100),
-            channels: track
-                .codec_params
-                .channels
-                .map(|c| c.count() as u16)
-                .unwrap_or(2),
-            duration_frames: track.codec_params.n_frames,
+            sample_rate: opened.sample_rate,
+            channels: opened.channels,
+            duration_frames: opened.duration_frames,
         };
-
-        let mut decoder = symphonia::default::get_codecs()
-            .make(&track.codec_params, &decode_opts)
-            .map_err(|e| format!("Unsupported audio codec: {e}"))?;
-
-        let track_id = track.id;
-        let mut sample_buf: Option<SampleBuffer<f32>> = None;
+        let mut samples: Vec<f32> = Vec::new();
 
         while !stop_signal.load(Ordering::Relaxed) {
             let packet = match reader.next_packet() {
-                Ok(pkt) => pkt,
+                Ok(Some(pkt)) => pkt,
+                Ok(None) => break,
                 Err(SymphoniaError::IoError(e))
                     if e.kind() == std::io::ErrorKind::UnexpectedEof =>
                 {
@@ -88,28 +55,24 @@ impl PureDecoderEngine {
                 Err(e) => return Err(format!("Demux packet error: {e}")),
             };
 
-            if packet.track_id() != track_id {
+            if packet.track_id != track_id {
                 continue;
             }
 
             match decoder.decode(&packet) {
                 Ok(audio_buf) => {
-                    if sample_buf.is_none() {
-                        let audio_spec = *audio_buf.spec();
-                        sample_buf =
-                            Some(SampleBuffer::new(audio_buf.capacity() as u64, audio_spec));
-                    }
-
-                    if let Some(buf) = sample_buf.as_mut() {
-                        buf.copy_interleaved_ref(audio_buf);
-                        for &sample in buf.samples() {
-                            // Backpressure handling: yield thread if ring buffer is full
-                            while producer.push(sample).is_err() {
-                                if stop_signal.load(Ordering::Relaxed) {
-                                    return Ok(spec);
-                                }
-                                std::thread::yield_now();
+                    samples.resize(
+                        audio_buf.frames() * audio_buf.spec().channels().count(),
+                        0.0,
+                    );
+                    audio_buf.copy_to_slice_interleaved(&mut samples[..]);
+                    for &sample in &samples {
+                        // Backpressure handling: yield thread if ring buffer is full
+                        while producer.push(sample).is_err() {
+                            if stop_signal.load(Ordering::Relaxed) {
+                                return Ok(spec);
                             }
+                            std::thread::yield_now();
                         }
                     }
                 }

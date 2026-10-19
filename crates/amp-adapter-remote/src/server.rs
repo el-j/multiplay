@@ -266,11 +266,9 @@ async fn handle_connection(shared: Arc<Shared>, mut stream: TcpStream, peer: Soc
             Err(rejection) => Err(rejection.into_response()),
         }
     };
-    let ws_config = WebSocketConfig {
-        max_message_size: Some(shared.config.max_message_bytes),
-        max_frame_size: Some(shared.config.max_message_bytes),
-        ..Default::default()
-    };
+    let ws_config = WebSocketConfig::default()
+        .max_message_size(Some(shared.config.max_message_bytes))
+        .max_frame_size(Some(shared.config.max_message_bytes));
     let accept = tokio_tungstenite::accept_hdr_async_with_config(stream, callback, Some(ws_config));
     let ws = match tokio::time::timeout(timeout, accept).await {
         Ok(Ok(ws)) => ws,
@@ -285,7 +283,7 @@ async fn handle_connection(shared: Arc<Shared>, mut stream: TcpStream, peer: Soc
     if let Some(Granted::NewSession(session)) = granted {
         let msg =
             protocol::encode_server_message(&RemoteEventBroadcast::SessionGranted { session });
-        if tx.send(Message::Text(msg)).await.is_err() {
+        if tx.send(Message::Text(msg.into())).await.is_err() {
             shared.active_peers.fetch_sub(1, Ordering::SeqCst);
             return;
         }
@@ -298,7 +296,7 @@ async fn handle_connection(shared: Arc<Shared>, mut stream: TcpStream, peer: Soc
                     Ok(action) => RemoteDaemon::dispatch_action(action, &shared.event_bus),
                     Err(e) => {
                         let err = RemoteEventBroadcast::Error { message: e.to_string() };
-                        if tx.send(Message::Text(protocol::encode_server_message(&err))).await.is_err() {
+                        if tx.send(Message::Text(protocol::encode_server_message(&err).into())).await.is_err() {
                             break;
                         }
                     }
@@ -308,7 +306,7 @@ async fn handle_connection(shared: Arc<Shared>, mut stream: TcpStream, peer: Soc
             },
             event = broadcast_rx.recv() => match event {
                 Ok(event) => {
-                    if tx.send(Message::Text(protocol::encode_server_message(&event))).await.is_err() {
+                    if tx.send(Message::Text(protocol::encode_server_message(&event).into())).await.is_err() {
                         break;
                     }
                 }

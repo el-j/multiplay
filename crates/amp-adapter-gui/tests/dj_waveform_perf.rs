@@ -34,8 +34,8 @@ fn dj_waveform_frame_draws_under_4_ms() {
             ..Default::default()
         };
         let start = std::time::Instant::now();
-        let _ = ctx.run(input, |ctx| {
-            egui::CentralPanel::default().show(ctx, |ui| {
+        let mut output = ctx.run_ui(input, |ui| {
+            egui::CentralPanel::default().show(ui, |ui| {
                 let painter = ui.painter().clone();
                 let pos = 60.0 + f as f64 / 60.0;
                 for (i, an) in [&a, &b].into_iter().enumerate() {
@@ -69,6 +69,8 @@ fn dj_waveform_frame_draws_under_4_ms() {
                 );
             });
         });
+        // Offscreen: no renderer applies texture updates, so drop them explicitly.
+        output.textures_delta.clear();
         if f >= 20 {
             total += start.elapsed();
         }

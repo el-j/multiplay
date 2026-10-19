@@ -74,7 +74,7 @@ pub(crate) fn run_cpal_actor(
     let source_channels = usize::from(source_channels);
 
     let stream_res = device.build_output_stream(
-        &config,
+        config,
         move |output: &mut [f32], _: &cpal::OutputCallbackInfo| {
             fill_output(output, device_channels, source_channels, || {
                 consumer.pop().ok()

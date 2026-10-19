@@ -9,5 +9,5 @@ description = "Pure-Rust hardware audio sink adapter using CPAL and lock-free ri
 [dependencies]
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
-cpal = "0.15"
+cpal = "0.18"
 rtrb = { workspace = true }

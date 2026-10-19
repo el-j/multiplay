@@ -3,12 +3,24 @@
 
 #![forbid(unsafe_code)]
 
+use rubato::audioadapter_buffers::direct::{InterleavedSlice, SequentialSliceOfVecs};
 use rubato::{
-    Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction,
+    Async, FixedAsync, Indexing, Resampler, SincInterpolationParameters, SincInterpolationType,
+    WindowFunction,
 };
 
+/// Tells rubato how many frames of a short block are real (the rest is silence).
+fn partial(frames: usize, chunk: usize) -> Option<Indexing> {
+    (frames < chunk).then_some(Indexing {
+        input_offset: 0,
+        output_offset: 0,
+        partial_len: Some(frames),
+        active_channels_mask: None,
+    })
+}
+
 pub struct PureResampler {
-    resampler: SincFixedIn<f32>,
+    resampler: Async<f32>,
     input_channels: usize,
     chunk_size: usize,
     source_rate: usize,
@@ -25,18 +37,19 @@ impl PureResampler {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let params = SincInterpolationParameters {
             sinc_len: 256,
-            f_cutoff: 0.95,
+            f_cutoff: Some(0.95),
             interpolation: SincInterpolationType::Linear,
             oversampling_factor: 256,
             window: WindowFunction::BlackmanHarris2,
         };
 
-        let resampler = SincFixedIn::<f32>::new(
+        let resampler = Async::<f32>::new_sinc(
             target_rate as f64 / source_rate as f64,
             2.0,
-            params,
+            &params,
             chunk_size,
             channels,
+            FixedAsync::Input,
         )?;
 
         Ok(Self {
@@ -58,47 +71,45 @@ impl PureResampler {
         self.target_rate
     }
 
-    /// Processes planar channel input: `input[channel][sample_index]`.
+    /// Processes planar channel input `input[channel][sample_index]` (one chunk) and returns
+    /// planar output.
     pub fn process(&mut self, input: &[Vec<f32>]) -> Result<Vec<Vec<f32>>, String> {
-        self.resampler
-            .process(input, None)
-            .map_err(|e| format!("Resampling error: {e}"))
+        let frames = input.first().map_or(0, Vec::len);
+        let adapter = SequentialSliceOfVecs::new(input, self.input_channels, frames)
+            .map_err(|e| format!("Resampling input error: {e}"))?;
+        let indexing = partial(frames, self.chunk_size);
+        let out = self
+            .resampler
+            .process(&adapter, indexing.as_ref())
+            .map_err(|e| format!("Resampling error: {e}"))?
+            .take_data();
+        let ch = self.input_channels.max(1);
+        Ok((0..ch)
+            .map(|c| out.iter().skip(c).step_by(ch).copied().collect())
+            .collect())
     }
 
-    /// Helper to process a single block of up to `chunk_size` interleaved frames.
+    /// Resamples one block of up to `chunk_size` interleaved frames.
     fn process_interleaved_block(&mut self, samples: &[f32]) -> Result<Vec<f32>, String> {
         let frames = samples.len() / self.input_channels;
         if frames == 0 {
             return Ok(Vec::new());
         }
-
-        let mut planar = vec![vec![0.0f32; self.chunk_size]; self.input_channels];
-        for (i, frame) in samples.chunks_exact(self.input_channels).enumerate() {
-            if i >= self.chunk_size {
-                break;
-            }
-            for (ch, &s) in frame.iter().enumerate() {
-                planar[ch][i] = s;
-            }
+        let input = InterleavedSlice::new(samples, self.input_channels, frames)
+            .map_err(|e| format!("Resampling input error: {e}"))?;
+        let indexing = partial(frames, self.chunk_size);
+        let mut out = self
+            .resampler
+            .process(&input, indexing.as_ref())
+            .map_err(|e| format!("Resampling error: {e}"))?
+            .take_data();
+        // A short final block is padded with silence inside rubato; keep only its share.
+        if frames < self.chunk_size {
+            let keep = (frames as f64 * self.target_rate as f64 / self.source_rate as f64).round()
+                as usize;
+            out.truncate(keep * self.input_channels);
         }
-
-        let resampled_planar = self.process(&planar)?;
-        let expected_out_frames = if frames < self.chunk_size {
-            ((frames as f64 * self.target_rate as f64 / self.source_rate as f64).round() as usize)
-                .min(resampled_planar[0].len())
-        } else {
-            resampled_planar[0].len()
-        };
-
-        let mut interleaved = Vec::with_capacity(expected_out_frames * self.input_channels);
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..expected_out_frames {
-            for ch in 0..self.input_channels {
-                interleaved.push(resampled_planar[ch][i]);
-            }
-        }
-
-        Ok(interleaved)
+        Ok(out)
     }
 
     /// Processes arbitrary length interleaved audio samples, automatically chunking as needed.
@@ -155,6 +166,32 @@ mod tests {
             .expect("interleaved resample failed");
         assert!(!interleaved_out.is_empty());
         assert_eq!(interleaved_out.len() % 2, 0); // Always balanced stereo pairs
+    }
+
+    #[test]
+    fn resampled_tone_keeps_its_pitch() {
+        let mut r = PureResampler::new(44_100, 48_000, 2, 512).expect("resampler");
+        let input: Vec<f32> = (0..44_100 * 2)
+            .flat_map(|i| {
+                let v = (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44_100.0).sin() * 0.5;
+                [v, v]
+            })
+            .collect();
+        let out = r.process_interleaved(&input).expect("resample");
+        let left: Vec<f32> = out.iter().step_by(2).copied().skip(4_800).collect();
+        let crossings = left
+            .windows(2)
+            .filter(|w| w[0] < 0.0 && w[1] >= 0.0)
+            .count();
+        let hz = crossings as f32 * 48_000.0 / left.len() as f32;
+        assert!((hz - 440.0).abs() < 2.0, "{hz} Hz");
+        let frames = out.len() / 2;
+        assert!(
+            (frames as i64 - 96_000).abs() < 1_200,
+            "{frames} frames for 2 s"
+        );
+        let peak = left.iter().fold(0.0f32, |a, v| a.max(v.abs()));
+        assert!((peak - 0.5).abs() < 0.02, "level kept: {peak}");
     }
 
     #[test]
