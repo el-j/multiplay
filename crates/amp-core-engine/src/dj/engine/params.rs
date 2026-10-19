@@ -13,6 +13,7 @@ pub const MAX_DECKS: usize = 4;
 pub const CROSSFADER_LEFT: f32 = -1.0;
 /// Crossfader fully on the right side (deck B).
 pub const CROSSFADER_RIGHT: f32 = 1.0;
+const AUTO_MASTER: u8 = u8::MAX;
 /// Widest pitch range, in percent.
 pub const MAX_PITCH_PERCENT: f32 = 50.0;
 
@@ -70,6 +71,11 @@ pub struct DeckParams {
     trim: AtomicF32,
     pfl: AtomicBool,
     side: AtomicU8,
+    nudge: AtomicF32,
+    sync: AtomicBool,
+    key_lock: AtomicBool,
+    grid_bpm: AtomicF64,
+    grid_anchor: AtomicF64,
 }
 
 impl DeckParams {
@@ -81,7 +87,52 @@ impl DeckParams {
             trim: AtomicF32::new(1.0),
             pfl: AtomicBool::new(false),
             side: AtomicU8::new(side as u8),
+            nudge: AtomicF32::new(0.0),
+            sync: AtomicBool::new(false),
+            key_lock: AtomicBool::new(false),
+            grid_bpm: AtomicF64::default(),
+            grid_anchor: AtomicF64::default(),
         }
+    }
+    /// Temporary tempo bend while a nudge button is held, as a fraction (±0.04 = ±4 %).
+    pub fn set_nudge(&self, v: f32) {
+        self.nudge.set(v.clamp(-0.1, 0.1));
+    }
+    /// Current nudge.
+    pub fn nudge(&self) -> f32 {
+        self.nudge.get()
+    }
+    /// Locks tempo and beat phase to the master deck.
+    pub fn set_sync(&self, on: bool) {
+        self.sync.store(on, Ordering::Relaxed);
+    }
+    /// True when the deck follows the master deck.
+    pub fn sync(&self) -> bool {
+        self.sync.load(Ordering::Relaxed)
+    }
+    /// Keeps the musical pitch when the tempo changes.
+    pub fn set_key_lock(&self, on: bool) {
+        self.key_lock.store(on, Ordering::Relaxed);
+    }
+    /// True when key lock is on.
+    pub fn key_lock(&self) -> bool {
+        self.key_lock.load(Ordering::Relaxed)
+    }
+    /// The loaded track's beat grid: tempo and the time of a downbeat (from analysis).
+    /// A tempo of 0 means no grid.
+    pub fn set_grid(&self, bpm: f64, anchor_secs: f64) {
+        let bpm = if bpm.is_finite() && bpm > 0.0 {
+            bpm
+        } else {
+            0.0
+        };
+        self.grid_bpm.set(bpm);
+        self.grid_anchor.set(anchor_secs);
+    }
+    /// The beat grid as `(bpm, downbeat seconds)`, if the track has one.
+    pub fn grid(&self) -> Option<(f64, f64)> {
+        let bpm = self.grid_bpm.get();
+        (bpm > 0.0).then(|| (bpm, self.grid_anchor.get()))
     }
     /// Starts or pauses the deck.
     pub fn set_playing(&self, on: bool) {
@@ -147,6 +198,7 @@ pub struct DjParams {
     cue_mix: AtomicF32,
     cue_volume: AtomicF32,
     cue_routing: AtomicU8,
+    master_deck: AtomicU8,
 }
 
 impl Default for DjParams {
@@ -162,6 +214,7 @@ impl Default for DjParams {
             cue_mix: AtomicF32::new(0.0),
             cue_volume: AtomicF32::new(0.8),
             cue_routing: AtomicU8::new(CueRouting::Off as u8),
+            master_deck: AtomicU8::new(AUTO_MASTER),
         }
     }
 }
@@ -198,6 +251,18 @@ impl DjParams {
     pub fn set_cue_routing(&self, r: CueRouting) {
         self.cue_routing.store(r as u8, Ordering::Relaxed);
     }
+    /// Makes deck `i` the tempo master, or `None` for automatic (the loudest playing deck).
+    pub fn set_master_deck(&self, i: Option<usize>) {
+        let v = i
+            .filter(|i| *i < MAX_DECKS)
+            .map_or(AUTO_MASTER, |i| i as u8);
+        self.master_deck.store(v, Ordering::Relaxed);
+    }
+    /// The explicitly chosen master deck, `None` when automatic.
+    pub fn master_deck(&self) -> Option<usize> {
+        let v = self.master_deck.load(Ordering::Relaxed);
+        (v != AUTO_MASTER).then_some(usize::from(v))
+    }
     /// Current headphone routing.
     pub fn cue_routing(&self) -> CueRouting {
         CueRouting::from_u8(self.cue_routing.load(Ordering::Relaxed))
@@ -211,6 +276,8 @@ pub struct DeckStatus {
     loaded_secs: AtomicF64,
     ended: AtomicBool,
     underruns: AtomicU64,
+    bpm: AtomicF64,
+    master: AtomicBool,
 }
 
 impl DeckStatus {
@@ -225,6 +292,18 @@ impl DeckStatus {
     /// True once the deck played to the end of its track.
     pub fn ended(&self) -> bool {
         self.ended.load(Ordering::Relaxed)
+    }
+    /// Tempo the deck is playing at (its grid tempo times its speed), 0 without a grid.
+    pub fn bpm(&self) -> f64 {
+        self.bpm.get()
+    }
+    /// True while this deck is the tempo master.
+    pub fn is_master(&self) -> bool {
+        self.master.load(Ordering::Relaxed)
+    }
+    pub(crate) fn publish_tempo(&self, bpm: f64, master: bool) {
+        self.bpm.set(bpm);
+        self.master.store(master, Ordering::Relaxed);
     }
     /// Output blocks in which the deck had to play silence because decoding lagged behind.
     pub fn underruns(&self) -> u64 {

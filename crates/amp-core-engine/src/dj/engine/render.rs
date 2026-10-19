@@ -7,8 +7,9 @@
 
 #![forbid(unsafe_code)]
 
-use super::params::{CrossfaderSide, DjParams, DjStatus, MAX_DECKS};
+use super::params::{CrossfaderSide, DeckParams, DjParams, DjStatus, MAX_DECKS};
 use super::player::{DeckPlayer, Played};
+use super::sync::{phase_error, pick_master, steered_speed, sync_speed, DeckBeat};
 use super::track_buffer::TrackBuffer;
 use std::sync::Arc;
 
@@ -109,21 +110,19 @@ impl DjEngine {
 
     fn mix_block(&mut self, master: &mut [f32], cue: &mut [f32]) {
         let (left, right) = crossfader_gains(self.params.crossfader());
+        let speeds = self.plan_speeds(left, right);
         let scratch = &mut self.scratch[..master.len()];
-        for d in 0..self.deck_count {
+        for (d, &speed) in speeds.iter().enumerate().take(self.deck_count) {
             let p = self.params.deck(d);
             let deck = &mut self.decks[d];
-            let played = deck.render(scratch, self.sample_rate, p);
+            let playing = p.playing();
+            let played = deck.render(scratch, self.sample_rate, playing, speed, p.key_lock());
+            deck.was_playing = playing;
             let status = self.status.deck(d);
             if played == Played::Starved {
                 status.count_underrun();
             }
-            let side = match p.side() {
-                CrossfaderSide::Left => left,
-                CrossfaderSide::Right => right,
-                CrossfaderSide::Thru => 1.0,
-            };
-            let gain = p.trim() * p.fader() * side;
+            let gain = p.trim() * p.fader() * side_gain(p, left, right);
             let cue_gain = if p.pfl() { p.trim() } else { 0.0 };
             add_ramped(master, scratch, deck.gain, gain);
             add_ramped(cue, scratch, deck.cue_gain, cue_gain);
@@ -132,6 +131,57 @@ impl DjEngine {
             let (pos, loaded) = deck.times();
             status.publish(pos, loaded, deck.ended);
         }
+    }
+
+    /// Speed of every deck for the next block: its own pitch and nudge, or, when synced, the
+    /// master's tempo with a gentle steer onto the master's beat. A synced deck that starts
+    /// playing jumps straight into phase (it starts from silence, so the jump is inaudible).
+    fn plan_speeds(&mut self, left: f32, right: f32) -> [f64; MAX_DECKS] {
+        let mut beats: [Option<DeckBeat>; MAX_DECKS] = [None; MAX_DECKS];
+        let mut candidates = [(false, false, 0.0f32); MAX_DECKS];
+        let mut manual = [1.0f64; MAX_DECKS];
+        for d in 0..self.deck_count {
+            let p = self.params.deck(d);
+            let deck = &self.decks[d];
+            manual[d] = f64::from(1.0 + p.pitch_percent() / 100.0 + p.nudge()).max(0.0);
+            beats[d] = p.grid().map(|(bpm, anchor)| DeckBeat {
+                bpm,
+                anchor,
+                position: deck.times().0,
+                speed: manual[d],
+            });
+            let playing = p.playing() && deck.track.is_some() && !deck.ended;
+            let loud = p.trim() * p.fader() * side_gain(p, left, right);
+            candidates[d] = (playing, beats[d].is_some(), loud);
+        }
+        let lead = pick_master(self.params.master_deck(), &candidates[..self.deck_count]);
+        let mut speeds = manual;
+        for d in 0..self.deck_count {
+            let p = self.params.deck(d);
+            if let (Some(m), Some(me), true) = (lead, beats[d], p.sync()) {
+                if let (Some(mb), true) = (beats[m], m != d) {
+                    let base = sync_speed(&mb, me.bpm);
+                    let err = phase_error(&mb, &me);
+                    let starting = p.playing() && !self.decks[d].was_playing;
+                    speeds[d] = if starting || self.decks[d].resnap {
+                        // Snap back onto the beat, or forward when that would pass the start.
+                        let period = 60.0 / me.bpm;
+                        let mut delta = -err * period;
+                        if me.position + delta < 0.0 {
+                            delta += period;
+                        }
+                        self.decks[d].shift(delta);
+                        base
+                    } else {
+                        steered_speed(base, err, me.bpm)
+                    };
+                }
+            }
+            self.decks[d].resnap = false;
+            let heard = beats[d].map_or(0.0, |b| b.bpm * speeds[d]);
+            self.status.deck(d).publish_tempo(heard, lead == Some(d));
+        }
+        speeds
     }
 
     fn apply_commands(&mut self) {
@@ -197,6 +247,15 @@ impl DjControl {
     /// Frees tracks the render thread has let go of.
     pub fn collect_garbage(&mut self) {
         while self.retired.pop().is_ok() {}
+    }
+}
+
+/// The crossfader gain for deck `p` given the left and right side gains.
+fn side_gain(p: &DeckParams, left: f32, right: f32) -> f32 {
+    match p.side() {
+        CrossfaderSide::Left => left,
+        CrossfaderSide::Right => right,
+        CrossfaderSide::Thru => 1.0,
     }
 }
 

@@ -53,7 +53,16 @@ two streams into the normal player's output queue. That design cannot carry real
    card callback (`amp-adapter-cpal`) still only drains a ring buffer, so the audio callback
    rules are unchanged. Rendering straight inside the callback is a later option once latency
    below about 20 ms is needed.
-8. **Hidden until the DJ experience is accepted.** `experimental.dj_mode` in the config
+8. **Sync and key lock on the playhead (TASK-205).**
+   - **Sync.** Every block the engine picks the tempo master: the chosen deck, otherwise the
+     loudest playing deck with a beat grid. A synced deck plays at the master's heard tempo
+     (half and double time allowed) and steers by at most 3 % to close a beat-phase error
+     within about 0.25 s.
+   - **Snapping.** On play and on seek, a synced deck jumps straight onto the beat instead.
+   - **Key lock.** Key lock is WSOLA on the playhead: Hann grains of 2,048 frames with 50 %
+     overlap, read at native speed and placed at the new tempo. Each grain is shifted by up to
+     256 frames to where the audio best continues the previous one.
+9. **Hidden until the DJ experience is accepted.** `experimental.dj_mode` in the config
    (default off) gates the new DJ mode until PLAN-055 is accepted.
 
 ## Consequences

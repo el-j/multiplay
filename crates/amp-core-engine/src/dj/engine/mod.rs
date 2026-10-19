@@ -5,10 +5,12 @@
 #![forbid(unsafe_code)]
 
 pub mod bus;
+mod keylock;
 pub mod params;
 mod player;
 pub mod render;
 pub mod runtime;
+pub mod sync;
 pub mod track_buffer;
 
 pub use bus::{route, CueMix, CueRouting};
@@ -18,4 +20,5 @@ pub use params::{
 };
 pub use render::{crossfader_gains, DjCommand, DjControl, DjEngine};
 pub use runtime::{AudioOut, DjOutputs, DjRuntime};
+pub use sync::PitchRange;
 pub use track_buffer::{spawn_loader, TrackBuffer, TrackWriter, CHUNK_FRAMES};

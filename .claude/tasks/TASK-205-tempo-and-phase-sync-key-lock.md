@@ -29,6 +29,23 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: beat matching in the engine (`dj::engine::sync`, `keylock`, ADR-003 §8):
+  - **Master and sync.** Master deck is explicit or auto (loudest playing deck with a grid). A synced deck follows the master's heard tempo, with half/double time, and steers phase errors out within about 0.25 s at no more than 3 %.
+  - **Snapping.** On play and on seek, a synced deck lands on the beat at once, moving forward when moving back would pass the track start.
+  - **Pitch.** Ranges ±8/16/50 % (`PitchRange`); nudge (±10 %) while held.
+  - **Key lock.** WSOLA on the playhead, so tempo changes without pitch change.
+  - **Grids and status.** Grids come from TASK-204 analysis via `DeckParams::set_grid`; status reports each deck's heard BPM and master flag.
+  - **Quantize.** Snap times with `TrackAnalysis::nearest_beat`; the engine-side quantize of loops and cues comes with TASK-206.
+- Evidence (`cargo test -p amp-core-engine dj`, checked on rendered audio):
+  - a 124 BPM deck synced to a 120 BPM master (one on the cue bus, one on master) keeps every beat within 5 ms over 5 minutes;
+  - a synced deck starts in phase within 2 ms;
+  - after a seek it lands on the beat within 5 ms;
+  - after the master jumps a fifth of a beat, followers steer back within 5 ms;
+  - key lock at +8 % and -8 % keeps 440 Hz within 5 cents while playing 8 % faster or slower, and turning it off moves the pitch as expected;
+  - nudge bends the tempo exactly;
+  - render stays allocation-free with sync and key lock on.
+- Mutations: with steering disabled the master-jump test fails. Two of my own test bugs were found on the way: an onset detector that found nothing, which let a test pass vacuously, and a block-count rounding error. Both are fixed, and the gap helper now fails on empty input.
+- Open: grids in these tests are given exactly, so analysis accuracy is tested separately (TASK-204). Key lock quality on real music needs a listening check once the UI is wired (PLAN-055).
 
 ## Status
 - **Status:** Pending
