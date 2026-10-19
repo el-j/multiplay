@@ -213,8 +213,10 @@ fn spawn_realtime_drain(
             let start = std::time::Instant::now();
             let mut drained = 0usize;
             while !consumer.is_abandoned() {
-                let due = (start.elapsed().as_secs_f64() * per_sec) as usize;
-                let n = consumer.slots().min(due.saturating_sub(drained));
+                // Whole frames only, so channels never shift.
+                let ch = usize::from(channels.max(1));
+                let due = (start.elapsed().as_secs_f64() * per_sec) as usize / ch * ch;
+                let n = (consumer.slots() / ch * ch).min(due.saturating_sub(drained));
                 // What was not there in time is lost, as on a real card (an underrun).
                 drained = due;
                 if let Ok(chunk) = consumer.read_chunk(n) {
@@ -353,6 +355,24 @@ mod tests {
             "samples must be drained"
         );
         sink.stop().expect("null sink stop");
+    }
+
+    #[test]
+    fn capture_sink_keeps_frames_whole() {
+        let (_sink, mut producer, captured) = CpalAudioSink::new_capture(44_100, 2);
+        for i in 0..20_000 {
+            let _ = producer.push(if i % 2 == 0 { 1.0 } else { -1.0 });
+            if i % 997 == 0 {
+                std::thread::sleep(Duration::from_millis(3));
+            }
+        }
+        std::thread::sleep(Duration::from_millis(400));
+        let s = captured.samples();
+        assert!(s.len() >= 2 && s.len() % 2 == 0, "{} samples", s.len());
+        assert!(
+            s.chunks(2).all(|f| f == [1.0, -1.0]),
+            "left/right never swap"
+        );
     }
 
     #[test]
