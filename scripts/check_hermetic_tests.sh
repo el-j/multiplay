@@ -6,7 +6,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REAL_HOME="${HOME}"
 SANDBOX="$(mktemp -d)"
-trap 'rm -rf "${SANDBOX}"' EXIT
+# Best-effort: on Windows the OS keeps writing its own caches under the profile dir.
+trap 'rm -rf "${SANDBOX}" 2>/dev/null || true' EXIT
 
 export CARGO_HOME="${CARGO_HOME:-${REAL_HOME}/.cargo}"
 export RUSTUP_HOME="${RUSTUP_HOME:-${REAL_HOME}/.rustup}"
@@ -16,7 +17,7 @@ export USERPROFILE="${SANDBOX}"
 cd "${ROOT_DIR}"
 cargo test --workspace --locked "$@"
 
-leaked="$(find "${SANDBOX}" -mindepth 1 \( -path "${SANDBOX}/.multiplay*" -o -path "${SANDBOX}/.config/multiplay*" -o -path "${SANDBOX}/Music*" \) -print)"
+leaked="$(find "${SANDBOX}" -mindepth 1 \( -path "${SANDBOX}/.multiplay*" -o -path "${SANDBOX}/.config/multiplay*" -o -path "${SANDBOX}/Music*" \) -print 2>/dev/null || true)"
 if [[ -n "${leaked}" ]]; then
     echo "[FAIL] Tests wrote user state into HOME:" >&2
     echo "${leaked}" >&2
