@@ -28,6 +28,20 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: `dj::automix`, a control-side state machine (never on the audio thread) for decks A/B:
+  - **Transition start.** Configurable: `BeatsBeforeEnd`, `SecondsBeforeEnd`, or `Outro` (the last point after which the detail waveform stays below 60 % of the median). On a grid it starts on a downbeat.
+  - **Compatible tempos** (within 8 %, half or double allowed): the incoming deck syncs and starts on its first downbeat, so bars line up.
+  - **Otherwise** an equal-power crossfade.
+  - **After the mix** the new track keeps the tempo it came in at.
+  - **Freed deck.** Loaded with the next track assigned to it, else the next unplayed track (`PlaylistSource` with `Assignment::Deck/Any`). With nothing left, the last track plays out and the state becomes `Finished`.
+  - Tracks are levelled to a target loudness through auto-gain.
+- Evidence (`cargo test -p amp-core-engine dj_automix`):
+  - A four-track playlist (120/124/122/126 BPM, deck-assigned and Any) plays in order with 3 synced transitions. The longest quiet stretch is 0.011 s (only the very first block). Beat phase between the decks during transitions is 0.000 ms (limit 10 ms). The mix finished at 134.8 s.
+  - With sync disabled in transitions (mutation) the phase check reports 241.89 ms, so the measurement is real.
+  - 90 to 140 BPM uses an unsynced crossfade with no gap.
+  - A playlist with nothing assigned to deck B falls back to the next unplayed track.
+  - Outro detection is unit-tested.
+- Open: UI controls and playlist wiring come with PLAN-055 (TASK-209/210).
 
 ## Status
 - **Status:** Pending

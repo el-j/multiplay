@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analysis;
+pub mod automix;
 pub mod beat_detector;
 pub mod deck;
 pub mod engine;
