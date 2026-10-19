@@ -55,9 +55,9 @@ impl<'a> Widget for PlaylistWidget<'a> {
         }
 
         // Header
-        let header = " ═══ WINAMP PLAYLIST ═══════════════════════════════════════════════════════";
+        let header = " ═══ PLAYLIST ══════════════════════════════════════════════════════════════";
         buf.set_string(area.left(), area.top(), header, bg_style);
-        buf.set_string(area.left() + 5, area.top(), "WINAMP PLAYLIST", title_style);
+        buf.set_string(area.left() + 5, area.top(), "PLAYLIST", title_style);
 
         // Visible track rows
         let available_rows = area.height.saturating_sub(2) as usize;

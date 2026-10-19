@@ -57,9 +57,9 @@ impl<'a> Widget for EqualizerWidget<'a> {
         }
 
         // Line 0: Header
-        let header = " ═══ WINAMP EQUALIZER ══════════════════════════════════════════════════════";
+        let header = " ═══ EQUALIZER ═════════════════════════════════════════════════════════════";
         buf.set_string(area.left(), area.top(), header, bg_style);
-        buf.set_string(area.left() + 5, area.top(), "WINAMP EQUALIZER", title_style);
+        buf.set_string(area.left() + 5, area.top(), "EQUALIZER", title_style);
 
         // Line 1: Toggles & Preamp
         let toggle_txt = if self.is_enabled { " [ON] " } else { " [OFF] " };

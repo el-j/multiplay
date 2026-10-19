@@ -41,11 +41,7 @@ impl SkinTextureCache {
             pixels: color_pixels,
         };
 
-        let handle = ctx.load_texture(
-            format!("winamp_skin_{key}"),
-            color_image,
-            TextureOptions::NEAREST,
-        );
+        let handle = ctx.load_texture(format!("skin_{key}"), color_image, TextureOptions::NEAREST);
 
         self.textures.insert(key, handle.clone());
         Some(handle)

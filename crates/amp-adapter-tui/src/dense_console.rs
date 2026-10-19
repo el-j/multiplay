@@ -19,7 +19,7 @@ pub const FACEPLATE_HEIGHT: u16 = 7;
 const SPECTRUM_GLYPHS: [char; 5] = [' ', ' ', '▄', '▆', '█'];
 
 #[derive(Debug, Clone)]
-pub struct DenseWinampConsole<'a> {
+pub struct DenseConsole<'a> {
     pub title: &'a str,
     pub track_num: u32,
     pub elapsed: Duration,
@@ -33,7 +33,7 @@ pub struct DenseWinampConsole<'a> {
     pub is_stereo: bool,
 }
 
-impl<'a> DenseWinampConsole<'a> {
+impl<'a> DenseConsole<'a> {
     pub fn new(spectrum: &'a [f32; 16]) -> Self {
         Self {
             title: "1. No Track Loaded",
@@ -93,7 +93,7 @@ impl<'a> DenseWinampConsole<'a> {
     }
 }
 
-impl<'a> Widget for DenseWinampConsole<'a> {
+impl<'a> Widget for DenseConsole<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if area.width < FACEPLATE_WIDTH || area.height < FACEPLATE_HEIGHT {
             return;
@@ -129,7 +129,7 @@ impl<'a> Widget for DenseWinampConsole<'a> {
         let y0 = area.y;
 
         // Line 0: Top title bar
-        let title_line = format!(" WINAMP 1.x :: {:<60} [X]", self.title);
+        let title_line = format!(" MULTIPLAY :: {:<60} [X]", self.title);
         buf.set_string(x0, y0, &title_line[..FACEPLATE_WIDTH as usize], title_style);
 
         // Line 1: VFD Time & Format & Mini Spectrum
@@ -233,7 +233,7 @@ mod tests {
         let spectrum = [
             0.1, 0.3, 0.6, 0.9, 0.8, 0.5, 0.2, 0.0, 0.1, 0.4, 0.7, 0.9, 0.6, 0.3, 0.1, 0.0,
         ];
-        let console = DenseWinampConsole::new(&spectrum)
+        let console = DenseConsole::new(&spectrum)
             .title("Aphex Twin - Windowlicker")
             .track_num(3)
             .elapsed(Duration::from_secs(125))

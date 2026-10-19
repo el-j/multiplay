@@ -26,6 +26,8 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- 2026-10-19: user-visible "Winamp" branding removed: TUI titles (MULTIPLAY ::, EQUALIZER, PLAYLIST), `DenseWinampConsole` renamed `DenseConsole`, default theme "multiplay Classic", Settings "Compact mode" and "Skins (classic Winamp(R) .wsz format)" (nominative). `grep -rni winamp crates/*/src` now matches only skin-format code (`WinampTheme`, `WinampSkin`, .wsz parsing), comments and that one nominative label.
+- Open: objective 2 (original default skin and app icon).
 
 ## Status
 - **Status:** Pending

@@ -29,6 +29,8 @@
 
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
+- 2026-10-19: Settings opens centered on the screen (over the main window when the screen size is unknown; `chrome::overlay::centered`, 3 tests), each time it is opened. Ctrl+P / Cmd+P opens and closes it from any window; it closes with x, Esc, the new "Done" button, or the shortcut. It is not in the dock graph (`dockable_windows_skip_hidden_and_settings`), so opening and closing never moves other windows. It never reopens by itself after a restart (`layout_never_reopens_the_settings_overlay`). The last tab is kept for the session.
+- Open: objective 3 (pairing QR and device management move to the Remote window) waits for TASK-214. Centering is unit-tested only; I did not open the overlay by hand (no input automation in this session).
 
 ## Status
 - **Status:** Pending

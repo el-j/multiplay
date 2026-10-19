@@ -7,7 +7,7 @@ use amp_adapter_p2p::SecurePeerNode;
 use amp_adapter_soulseek::SoulseekAdapter;
 use amp_adapter_storage::RedbStorageAdapter;
 use amp_adapter_tui::{
-    DenseWinampConsole, DockingWindowManager, EqualizerWidget, PlaylistWidget, SearchViewModal,
+    DenseConsole, DockingWindowManager, EqualizerWidget, PlaylistWidget, SearchViewModal,
     SearchViewState, WindowId, FACEPLATE_HEIGHT, FACEPLATE_WIDTH,
 };
 use amp_adapter_youtube::PureYouTubeAdapter;
@@ -263,7 +263,7 @@ impl MultiplayApp {
         if let Some(main_win) = self.docking_mgr.get_window(WindowId::MainConsole) {
             if main_win.visible && area.width >= FACEPLATE_WIDTH && area.height >= FACEPLATE_HEIGHT
             {
-                let console = DenseWinampConsole::new(&self.spectrum)
+                let console = DenseConsole::new(&self.spectrum)
                     .title(&self.current_title)
                     .elapsed(self.elapsed)
                     .state(self.playback_state)

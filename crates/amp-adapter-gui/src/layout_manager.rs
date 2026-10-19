@@ -71,7 +71,9 @@ impl LayoutSnapshot {
         shade_restore.clear();
         for w in &self.windows {
             dm.set_rect(w.id, w.rect);
-            dm.set_visible(w.id, w.visible || w.id == WindowId::Main);
+            // Main is always shown; the settings overlay never reopens by itself.
+            let visible = (w.visible && w.id != WindowId::Settings) || w.id == WindowId::Main;
+            dm.set_visible(w.id, visible);
             dm.shaded.insert(w.id, w.shaded);
             if let (true, Some(h)) = (w.shaded, w.restore_height) {
                 shade_restore.insert(w.id, h);
@@ -214,6 +216,17 @@ mod tests {
             dm.get_rect(WindowId::Playlist)
         );
         let _ = std::fs::remove_dir_all(file.parent().unwrap());
+    }
+
+    #[test]
+    fn layout_never_reopens_the_settings_overlay() {
+        let mut dm = DockManager::default();
+        dm.set_visible(WindowId::Settings, true);
+        let snap = LayoutSnapshot::capture(&dm, &HashMap::new(), 1.0);
+        let mut back = DockManager::new_empty();
+        snap.apply(&mut back, &mut HashMap::new());
+        assert!(!back.is_visible(WindowId::Settings));
+        assert!(back.is_visible(WindowId::Main));
     }
 
     #[test]

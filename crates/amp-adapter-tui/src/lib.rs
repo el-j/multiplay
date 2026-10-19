@@ -11,7 +11,7 @@ pub mod search_view;
 pub mod settings_view;
 pub mod video_view;
 
-pub use dense_console::{DenseWinampConsole, FACEPLATE_HEIGHT, FACEPLATE_WIDTH};
+pub use dense_console::{DenseConsole, FACEPLATE_HEIGHT, FACEPLATE_WIDTH};
 pub use dj_console::{DeckViewModel, DjConsoleWidget};
 pub use docking::{DockingWindowManager, WindowId, WindowSlot, SNAP_THRESHOLD_CELLS};
 pub use equalizer_view::EqualizerWidget;

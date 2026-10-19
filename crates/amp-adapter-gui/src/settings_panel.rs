@@ -29,14 +29,25 @@ impl SettingsGuiPanel {
         theme: &mut amp_core_engine::WinampTheme,
         open_skin_dialog: &mut bool,
         remote: &mut crate::remote_manager::RemoteGuiManager,
-    ) {
+    ) -> bool {
+        let mut done = false;
         ui.group(|ui| {
-            ui.horizontal(|ui| {
-                ui.heading(
-                    RichText::new("⚙ PREFERENCES & SETTINGS")
-                        .color(Color32::from_rgb(0, 235, 136))
-                        .strong(),
-                );
+            crate::responsive::row_rtl(ui, |ui| {
+                done = ui
+                    .button(RichText::new("Done").strong())
+                    .on_hover_text("Close preferences (Esc)")
+                    .clicked();
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new("⚙ PREFERENCES")
+                                .size(14.0)
+                                .color(Color32::from_rgb(0, 235, 136))
+                                .strong(),
+                        )
+                        .truncate(),
+                    );
+                });
             });
 
             ui.add_space(4.0);
@@ -141,7 +152,7 @@ impl SettingsGuiPanel {
                 }
                 GuiSettingsTab::Appearance => {
                     ui.label(
-                        RichText::new("Winamp Classic Skin Engine (.wsz)")
+                        RichText::new("Skins (classic Winamp® .wsz format)")
                             .strong()
                             .color(Color32::from_rgb(0, 230, 140)),
                     );
@@ -191,7 +202,7 @@ impl SettingsGuiPanel {
                     });
 
                     ui.add_space(4.0);
-                    ui.checkbox(&mut config.ui.compact_mode, "Compact Winamp Mode");
+                    ui.checkbox(&mut config.ui.compact_mode, "Compact mode");
                     let mut double = ui.ctx().zoom_factor() > 1.5;
                     if ui.checkbox(&mut double, "Double size (Ctrl+D)").changed() {
                         ui.ctx()
@@ -282,6 +293,7 @@ impl SettingsGuiPanel {
                 }
             });
         });
+        done
     }
 }
 
@@ -307,7 +319,7 @@ mod tests {
 
         assert_eq!(tab, GuiSettingsTab::Appearance);
         assert_eq!(config.ui.visualizer_fps, 60);
-        assert_eq!(theme.name, "Classic Winamp 1.x");
+        assert_eq!(theme.name, "multiplay Classic");
         assert_eq!(theme.viscolor_gradient[0], (255, 0, 0));
         assert!(!open_dialog);
     }

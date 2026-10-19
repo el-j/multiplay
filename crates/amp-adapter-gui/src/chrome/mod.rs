@@ -6,6 +6,7 @@
 pub mod drag;
 pub mod handles;
 pub mod layout;
+pub mod overlay;
 pub mod resize;
 pub mod zoom;
 

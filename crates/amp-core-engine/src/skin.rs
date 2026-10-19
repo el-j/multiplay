@@ -29,7 +29,7 @@ pub struct WinampTheme {
 impl Default for WinampTheme {
     fn default() -> Self {
         Self {
-            name: "Classic Winamp 1.x".to_string(),
+            name: "multiplay Classic".to_string(),
             bg_color: (24, 24, 27),
             fg_color: (212, 212, 216),
             accent_color: (250, 204, 21),
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_skin_loader_default_theme() {
         let theme = WinampTheme::default();
-        assert_eq!(theme.name, "Classic Winamp 1.x");
+        assert_eq!(theme.name, "multiplay Classic");
         assert_eq!(theme.viscolor_gradient[0], (255, 0, 0));
         assert_eq!(theme.pledit_bg, (0, 0, 0));
         assert_eq!(theme.pledit_fg, (0, 255, 0));

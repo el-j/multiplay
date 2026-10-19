@@ -29,6 +29,9 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
 /// not fit, and adds the resize handles.
 pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowId) {
     chrome::zoom::shortcut(ctx);
+    if ctx.input_mut(|i| i.consume_shortcut(&chrome::overlay::SETTINGS)) {
+        app.dock_manager.toggle_visible(WindowId::Settings);
+    }
     if app.dock_manager.is_shaded(window) {
         return;
     }
@@ -54,12 +57,15 @@ pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowI
 
 /// Rect for a window that is being shown: at least its minimum size, and moved clear of every
 /// other visible window so it never opens on top of one.
-fn place_on_show(app: &mut MultiplayGuiApp, window: WindowId) -> DockRect {
+fn place_on_show(app: &mut MultiplayGuiApp, window: WindowId, screens: &[DockRect]) -> DockRect {
     let min = min_inner_size(window);
     let mut r = app.dock_manager.get_rect(window);
     r.width = r.width.max(min.x);
     r.height = r.height.max(min.y);
-    if window != WindowId::Settings {
+    if window == WindowId::Settings {
+        let main = app.dock_manager.get_rect(WindowId::Main);
+        r = chrome::overlay::centered(r.width, r.height, screens.first().copied(), main);
+    } else {
         let others: Vec<DockRect> = app
             .dock_manager
             .dockable_windows()
@@ -102,7 +108,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
         WindowId::Playlist => render_playlist_window_content(app, ui),
         WindowId::Settings => {
             let mut open_skin = false;
-            SettingsGuiPanel::show(
+            let done = SettingsGuiPanel::show(
                 ui,
                 &mut app.settings_tab,
                 &mut app.config,
@@ -112,6 +118,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             );
             if open_skin {
                 app.open_skin_dialog();
+            }
+            if done {
+                app.dock_manager.set_visible(WindowId::Settings, false);
             }
         }
         WindowId::DjConsole => {
@@ -158,7 +167,7 @@ impl Satellite {
             }
             return;
         }
-        let builder = self.builder(app);
+        let builder = self.builder(app, &chrome::screens(ctx));
         ctx.show_viewport_immediate(viewport_id(self.id), builder, |ctx, _class| {
             if ctx.input(|i| i.viewport().close_requested()) {
                 app.dock_manager.set_visible(self.id, false);
@@ -175,10 +184,10 @@ impl Satellite {
     }
 
     /// Position and size are only given on first spawn; afterwards the app moves the window.
-    fn builder(&self, app: &mut MultiplayGuiApp) -> ViewportBuilder {
+    fn builder(&self, app: &mut MultiplayGuiApp, screens: &[DockRect]) -> ViewportBuilder {
         let mut b = classic_viewport(self.title, false).with_taskbar(false);
         if !app.initialized_viewports.contains(&self.id) {
-            let r = place_on_show(app, self.id);
+            let r = place_on_show(app, self.id, screens);
             b = b
                 .with_inner_size(Vec2::new(r.width, r.height))
                 .with_position(Pos2::new(r.x, r.y));
