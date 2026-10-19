@@ -43,6 +43,14 @@ pub struct MultiplayGuiApp {
     pub library: Option<std::sync::Arc<amp_adapter_storage::RedbStorageAdapter>>,
     /// DJ deck of each playlist track (TASK-210), saved with the session.
     pub deck_assign: std::collections::HashMap<amp_domain::TrackId, amp_domain::DeckAssignment>,
+    /// The DJ headphone device and its sink (kept open while selected).
+    pub dj_phones: Option<(String, amp_adapter_cpal::CpalAudioSink)>,
+    /// Why the chosen DJ headphone device could not be used.
+    pub dj_phones_error: Option<String>,
+    /// DJ console state outside the engine (loop sizes, cue points, overlays).
+    pub dj_console: crate::dj_controls::ConsoleState,
+    /// The DJ first-run hint was dismissed (saved with the session).
+    pub dj_hint_done: bool,
     /// Tracks already loaded onto a deck in this DJ session.
     pub dj_played: HashSet<amp_domain::TrackId>,
     /// Main window size to restore when DJ mode ends.
@@ -108,6 +116,10 @@ impl MultiplayGuiApp {
             normal_main_size: None,
             deck_assign: std::collections::HashMap::new(),
             dj_played: HashSet::new(),
+            dj_console: Default::default(),
+            dj_phones: None,
+            dj_phones_error: None,
+            dj_hint_done: false,
             settings_tab: GuiSettingsTab::default(),
             config: AppConfig::default(),
             volume: 0.85,
@@ -144,6 +156,7 @@ impl MultiplayGuiApp {
             self.eq_gains = snap.eq_gains;
             self.eq_enabled = snap.eq_enabled;
             self.deck_assign = snap.deck_assignments;
+            self.dj_hint_done = snap.dj_hint_done;
 
             self.audio_driver.set_volume(self.volume);
             self.audio_driver.set_eq_preamp(self.eq_preamp);
@@ -169,6 +182,7 @@ impl MultiplayGuiApp {
             eq_gains: self.eq_gains,
             eq_enabled: self.eq_enabled,
             deck_assignments: self.deck_assign.clone(),
+            dj_hint_done: self.dj_hint_done,
         };
         let _ = snap.save_to_file(&self.paths.session_file());
     }

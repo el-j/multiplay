@@ -190,3 +190,16 @@ fn responsive_playlist_with_deck_badges_fits() {
         );
     }
 }
+
+#[test]
+fn responsive_every_dj_control_is_on_screen() {
+    use amp_adapter_gui::dj_controls::all_actions;
+    use amp_adapter_gui::dj_mode::CONSOLE_MIN;
+    let (_root, mut app) = app_with_long_content();
+    app.toggle_dj_mode(None);
+    let _ = overflow(&mut app, WindowId::Main, CONSOLE_MIN);
+    let drawn = app.dj_console.rendered.clone();
+    for a in all_actions() {
+        assert!(drawn.contains(&a), "{a:?} has no on-screen control");
+    }
+}

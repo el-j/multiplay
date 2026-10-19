@@ -21,6 +21,9 @@ pub struct SessionPlaylistSnapshot {
     /// DJ deck of each track (TASK-210). Missing in older files.
     #[serde(default)]
     pub deck_assignments: HashMap<TrackId, DeckAssignment>,
+    /// The DJ first-run hint was dismissed. Missing in older files.
+    #[serde(default)]
+    pub dj_hint_done: bool,
 }
 
 impl Default for SessionPlaylistSnapshot {
@@ -33,6 +36,7 @@ impl Default for SessionPlaylistSnapshot {
             eq_gains: [0.0; 10],
             eq_enabled: true,
             deck_assignments: HashMap::new(),
+            dj_hint_done: false,
         }
     }
 }

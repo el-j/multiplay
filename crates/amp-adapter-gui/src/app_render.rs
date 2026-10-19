@@ -31,6 +31,8 @@ impl eframe::App for MultiplayGuiApp {
             }
         }
 
+        self.sync_dj_headphones();
+
         // Double size / zoom: re-express the layout before any window geometry is read.
         chrome::zoom::sync(self, ctx);
 

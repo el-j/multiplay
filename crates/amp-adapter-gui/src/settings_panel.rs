@@ -18,6 +18,15 @@ pub enum GuiSettingsTab {
     Remote,
 }
 
+/// Output devices for the audio tab.
+#[derive(Debug, Clone, Copy)]
+pub struct OutputDevices<'a> {
+    /// Device names.
+    pub names: &'a [String],
+    /// Why the chosen DJ headphone device could not be used.
+    pub headphones_error: Option<&'a str>,
+}
+
 /// Settings panel renderer for native desktop application.
 pub struct SettingsGuiPanel;
 
@@ -29,7 +38,9 @@ impl SettingsGuiPanel {
         theme: &mut amp_core_engine::WinampTheme,
         open_skin_dialog: &mut bool,
         remote: &mut crate::remote_manager::RemoteGuiManager,
+        outputs: OutputDevices<'_>,
     ) -> bool {
+        let (devices, headphones_error) = (outputs.names, outputs.headphones_error);
         let mut done = false;
         ui.group(|ui| {
             crate::responsive::row_rtl(ui, |ui| {
@@ -103,6 +114,30 @@ impl SettingsGuiPanel {
                         &mut config.audio.crossfade_duration_ms,
                         0..=12000,
                     ));
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label("DJ headphones (cue):");
+                        let current = config
+                            .audio
+                            .dj_headphones_device
+                            .clone()
+                            .unwrap_or_else(|| "None".into());
+                        egui::ComboBox::from_id_salt("dj_phones_cb")
+                            .selected_text(current)
+                            .show_ui(ui, |ui| {
+                                if ui.selectable_label(config.audio.dj_headphones_device.is_none(), "None").clicked() {
+                                    config.audio.dj_headphones_device = None;
+                                }
+                                for d in devices {
+                                    let on = config.audio.dj_headphones_device.as_deref() == Some(d);
+                                    if ui.selectable_label(on, d).clicked() {
+                                        config.audio.dj_headphones_device = Some(d.clone());
+                                    }
+                                }
+                            });
+                    });
+                    if let Some(err) = headphones_error {
+                        ui.colored_label(Color32::from_rgb(240, 160, 60), err);
+                    }
                     ui.horizontal_wrapped(|ui| {
                         ui.label("Binaural Headphone Crossfeed:");
                         egui::ComboBox::from_id_salt("crossfeed_cb")

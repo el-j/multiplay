@@ -105,6 +105,12 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
         WindowId::Playlist => render_playlist_window_content(app, ui),
         WindowId::Settings => {
             let mut open_skin = false;
+            let devices: Vec<String> = app
+                .audio_driver
+                .available_devices
+                .iter()
+                .map(|d| d.name.clone())
+                .collect();
             let done = SettingsGuiPanel::show(
                 ui,
                 &mut app.settings_tab,
@@ -112,6 +118,10 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 &mut app.theme,
                 &mut open_skin,
                 &mut app.remote,
+                crate::settings_panel::OutputDevices {
+                    names: &devices,
+                    headphones_error: app.dj_phones_error.as_deref(),
+                },
             );
             if open_skin {
                 app.open_skin_dialog();

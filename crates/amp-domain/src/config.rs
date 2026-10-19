@@ -90,6 +90,9 @@ pub struct AudioHardwareConfig {
     pub loudness_normalization: bool,
     pub target_lufs: i32, // Stored as integer * 10 or dB (e.g. -14)
     pub headphone_crossfeed: String,
+    /// Output device for the DJ headphone (cue) mix, `None` for none. Missing in old files.
+    #[serde(default)]
+    pub dj_headphones_device: Option<String>,
 }
 
 impl Default for AudioHardwareConfig {
@@ -103,6 +106,7 @@ impl Default for AudioHardwareConfig {
             loudness_normalization: true,
             target_lufs: -14,
             headphone_crossfeed: "Off".to_string(),
+            dj_headphones_device: None,
         }
     }
 }

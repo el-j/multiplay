@@ -72,6 +72,42 @@ impl MultiplayGuiApp {
         crate::chrome::handles::resize_window(self, ctx, WindowId::Main, size.x, size.y);
     }
 
+    /// Opens (or closes) the DJ headphone device when the setting changed. The engine renders
+    /// at the main device's rate, so the headphone device must run at the same rate.
+    pub fn sync_dj_headphones(&mut self) {
+        let wanted = self.config.audio.dj_headphones_device.clone();
+        if wanted.as_deref() == self.dj_phones.as_ref().map(|p| p.0.as_str()) {
+            return;
+        }
+        self.audio_driver.dj.set_phones(None);
+        self.dj_phones = None;
+        self.dj_phones_error = None;
+        let Some(name) = wanted else {
+            return;
+        };
+        let opened = amp_adapter_cpal::CpalAudioSink::new_with_device(Some(&name));
+        match opened {
+            Ok((mut sink, producer)) => {
+                match headphones_rate_ok(self.audio_driver.sample_rate(), sink.sample_rate()) {
+                    Ok(()) => {
+                        use amp_ports::AudioSinkPort;
+                        let _ = sink.start();
+                        self.audio_driver.dj.set_phones(Some(producer));
+                        self.dj_phones = Some((name, sink));
+                    }
+                    Err(e) => {
+                        self.dj_phones_error = Some(e);
+                        self.config.audio.dj_headphones_device = None;
+                    }
+                }
+            }
+            Err(e) => {
+                self.dj_phones_error = Some(format!("Could not open {name}: {e}"));
+                self.config.audio.dj_headphones_device = None;
+            }
+        }
+    }
+
     /// The library database (analysis cache and hot cues), opened on first use.
     fn library(&mut self) -> Option<Arc<RedbStorageAdapter>> {
         if self.library.is_none() {
@@ -80,5 +116,29 @@ impl MultiplayGuiApp {
             self.library = RedbStorageAdapter::new(path).ok().map(Arc::new);
         }
         self.library.clone()
+    }
+}
+
+/// Whether a headphone device at `phones` Hz can carry the cue mix of an engine at `main` Hz.
+pub fn headphones_rate_ok(main: u32, phones: u32) -> Result<(), String> {
+    if main == phones {
+        Ok(())
+    } else {
+        Err(format!(
+            "This device runs at {phones} Hz but the main output at {main} Hz. \
+             Pick a device at {main} Hz (or change it in the system sound settings)."
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dj_headphones_must_match_the_main_rate() {
+        assert!(headphones_rate_ok(48_000, 48_000).is_ok());
+        let e = headphones_rate_ok(48_000, 44_100).unwrap_err();
+        assert!(e.contains("44100") && e.contains("48000"));
     }
 }
