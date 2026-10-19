@@ -204,12 +204,19 @@ fn spawn_realtime_drain(
     channels: u16,
     capture: Option<CapturedOutput>,
 ) {
-    let per_tick = (sample_rate as usize * channels.max(1) as usize) / 100;
+    let per_sec = sample_rate as f64 * channels.max(1) as f64;
     thread::Builder::new()
         .name("amp-null-sink".to_string())
         .spawn(move || {
+            // Drain by elapsed time, like a sound card, so a thread that oversleeps on a busy
+            // machine catches up instead of draining slower than real time.
+            let start = std::time::Instant::now();
+            let mut drained = 0usize;
             while !consumer.is_abandoned() {
-                let n = consumer.slots().min(per_tick);
+                let due = (start.elapsed().as_secs_f64() * per_sec) as usize;
+                let n = consumer.slots().min(due.saturating_sub(drained));
+                // What was not there in time is lost, as on a real card (an underrun).
+                drained = due;
                 if let Ok(chunk) = consumer.read_chunk(n) {
                     if let Some(capture) = &capture {
                         let (a, b) = chunk.as_slices();

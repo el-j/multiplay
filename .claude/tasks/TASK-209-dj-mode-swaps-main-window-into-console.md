@@ -41,6 +41,10 @@ Describe the release-build demo performed and link evidence (screenshot, screen 
   - **Measured alignment:** with the above, a 48 kHz splice is off by -1.4 samples and a 44.1 kHz one by 5.6 samples after resampler-delay compensation. The crossfade absorbs the rest.
 - Evidence: `tests/dj_toggle.rs`. A 440 Hz WAV plays through a capture sink while DJ mode is entered mid-track and left again. The recorded audio has no near-silent run longer than 3 samples, no curvature step at or above 0.01 (no click), 440 Hz ±20 in every 100 ms window, and level within ±12 %. It passed 3 runs in a row. `responsive_dj_console_fits_from_its_minimum_up` checks the console at 520x232 up to 1000x500.
 - Not yet verified by hand: the console's look and feel in the running app. The computer-use helper has no Accessibility or Screen Recording permission, so I did not drive the GUI.
+- 2026-10-19: CI found a race that local runs never hit: `dj_toggle` failed on the macOS runner with a 0.022 curvature step (local runs read 0.0025). A leave request that arrives before the entry crossfade has started was handled as a hand-back on top of an unfinished entry. Reproduced locally by leaving 50 ms after entering (0.034).
+  - **Fix:** a leave before the decks were ever heard cancels the entry, because the normal decoder never stopped. A leave during the crossfade, and an enter during a hand-back, now wait until the switch finishes.
+  - **New test:** `dj_mode_toggled_twice_quickly_stays_seamless`.
+  - **Fake sound card:** the null/capture sink drained a fixed 10 ms per tick, so it drained slower than real time whenever a busy runner overslept. It now drains by elapsed time and forgives underruns, like a real card, which is what made CI timing differ from local.
 
 ## Status
 - **Status:** Pending

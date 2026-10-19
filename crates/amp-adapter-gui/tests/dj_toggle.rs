@@ -54,6 +54,18 @@ impl Drop for Dir {
 
 #[test]
 fn dj_mode_toggles_mid_track_without_a_gap() {
+    toggle_and_check(1_500);
+}
+
+/// Leaving right after entering (before the decks were ever heard) must be just as clean:
+/// the switch in progress is cancelled or finishes first.
+#[test]
+fn dj_mode_toggled_twice_quickly_stays_seamless() {
+    toggle_and_check(50);
+}
+
+/// Plays a tone, enters DJ mode, stays `dwell_ms`, leaves, and checks the recorded audio.
+fn toggle_and_check(dwell_ms: u64) {
     let dir =
         Dir(std::env::temp_dir().join(format!("multiplay-dj-toggle-{}", uuid::Uuid::new_v4())));
     std::fs::create_dir_all(&dir.0).unwrap();
@@ -75,9 +87,9 @@ fn dj_mode_toggles_mid_track_without_a_gap() {
     let mut dj = DjSession::new(&driver, None);
     dj.enter(&driver);
     wait_until("the DJ engine to take over", 10, || driver.dj_active());
-    std::thread::sleep(Duration::from_millis(1_500));
+    std::thread::sleep(Duration::from_millis(dwell_ms));
     assert!(
-        dj.status().deck(0).position_secs() > 1.0,
+        dwell_ms < 1_000 || dj.status().deck(0).position_secs() > 1.0,
         "deck A carries on mid-track"
     );
 

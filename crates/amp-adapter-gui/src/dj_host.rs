@@ -65,6 +65,10 @@ pub(crate) struct DjHost {
     handback: Option<Handback>,
     /// Crossfade into the decks after entering: `(frames done, fade length)`.
     fade_in: Option<(usize, usize)>,
+    /// A request that waits for the switch in progress.
+    deferred: Option<DjRequest>,
+    /// Whether normal playback was playing when DJ mode was entered.
+    entry_was_playing: bool,
     visualizer: SpectrumVisualizer,
     sample_rate: u32,
 }
@@ -93,6 +97,8 @@ impl DjHost {
             decoded: vec![0.0; DECODE_FRAMES * 2],
             handback: None,
             fade_in: None,
+            deferred: None,
+            entry_was_playing: false,
             visualizer: SpectrumVisualizer::new(),
             sample_rate,
         }
@@ -105,14 +111,31 @@ impl DjHost {
 
     /// Picks up a request from the session.
     pub(crate) fn accept(&mut self, driver: &AudioPlaybackDriver) {
-        let Some(req) = driver.dj.take_request() else {
+        let Some(req) = self.deferred.take().or_else(|| driver.dj.take_request()) else {
             return;
         };
         if self.engine.is_none() {
             self.engine = driver.dj.take_engine();
         }
+        let crossfading_in = self.fade_in.is_some_and(|(done, _)| done > 0);
         match req {
+            // A switch in progress finishes first; the request waits for it.
+            r @ DjRequest::Enter { .. } if self.handback.is_some() || self.leave.is_some() => {
+                self.deferred = Some(r);
+            }
+            r @ DjRequest::Leave { .. } if crossfading_in => self.deferred = Some(r),
             DjRequest::Enter { deck_a } if !self.active => self.enter = Some(deck_a),
+            // Leaving before the decks were ever heard: the normal decoder never stopped, so
+            // just carry on with it.
+            DjRequest::Leave { .. } if self.fade_in.is_some() || self.enter.is_some() => {
+                self.enter = None;
+                self.fade_in = None;
+                self.stop_decks();
+                self.deactivate(driver);
+                driver
+                    .is_playing
+                    .store(self.entry_was_playing, Ordering::SeqCst);
+            }
             DjRequest::Leave {
                 track,
                 deck,
@@ -175,6 +198,7 @@ impl DjHost {
         };
         let has_track = self.enter.take().flatten().is_some();
         let was_playing = driver.is_playing.load(Ordering::SeqCst) && decoder.is_some();
+        self.entry_was_playing = driver.is_playing.load(Ordering::SeqCst);
         engine.apply_pending();
         let play = was_playing && has_track;
         // Start early by the frames that will be thrown away (minus the engine's own latency),
