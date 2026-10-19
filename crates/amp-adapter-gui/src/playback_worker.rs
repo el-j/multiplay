@@ -1,14 +1,14 @@
-//! Real-time audio playback worker thread and dual-deck mixing feeder.
-//! Manages Symphonia audio decoders, DSP chain, DJ crossfader, and CPAL ring-buffer backpressure.
+//! Real-time audio playback worker thread.
+//! Manages Symphonia audio decoders, the DSP chain, gapless/crossfade playback, DJ mode (via
+//! `dj_host`) and CPAL ring-buffer backpressure.
 
 #![forbid(unsafe_code)]
 
 use crate::audio_driver::AudioPlaybackDriver;
 use crate::audio_pusher::update_visualizer_and_push;
-use crate::dj_playback::process_dj_tick;
+use crate::dj_host::DjHost;
 use crate::track_loader::load_track_decoder;
 use amp_adapter_decoder::AudioStreamDecoder;
-use amp_core_engine::dj::DualDeckMixer;
 use amp_core_engine::PlaybackDspChain;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -16,47 +16,40 @@ use std::time::Duration;
 pub fn run_playback_loop(driver: AudioPlaybackDriver, sample_rate: u32) {
     let chunk_frames = 512;
     let mut dsp_chain = PlaybackDspChain::new(sample_rate, chunk_frames);
-    let mut dual_mixer = DualDeckMixer::new(sample_rate as f32, chunk_frames);
+    let mut dj = DjHost::new(sample_rate);
 
     let mut pcm_single = vec![0.0f32; chunk_frames * 2];
     let mut pcm_aux = vec![0.0f32; chunk_frames * 2];
     let mut pcm_blend = vec![0.0f32; chunk_frames * 2];
-    let mut pcm_deck_a = vec![0.0f32; chunk_frames * 2];
-    let mut pcm_deck_b = vec![0.0f32; chunk_frames * 2];
-    let mut pcm_mixed = vec![0.0f32; chunk_frames * 2];
 
     let mut single_decoder: Option<AudioStreamDecoder> = None;
     let mut next_decoder: Option<AudioStreamDecoder> = None;
     let mut crossfader: Option<amp_core_engine::dsp::Crossfader> = None;
-    let mut decoder_a: Option<AudioStreamDecoder> = None;
-    let mut decoder_b: Option<AudioStreamDecoder> = None;
 
     while !std::thread::panicking() {
-        let is_dj_enabled = driver.dj_audio.lock().unwrap().enabled;
-
-        if is_dj_enabled {
-            process_dj_tick(
-                &driver,
-                &mut dsp_chain,
-                &mut dual_mixer,
-                &mut decoder_a,
-                &mut decoder_b,
-                &mut pcm_deck_a,
-                &mut pcm_deck_b,
-                &mut pcm_mixed,
-            );
-        } else {
-            process_standard_tick(
-                &driver,
-                &mut dsp_chain,
-                &mut single_decoder,
-                &mut next_decoder,
-                &mut crossfader,
-                &mut pcm_single,
-                &mut pcm_aux,
-                &mut pcm_blend,
-                sample_rate,
-            );
+        dj.accept(&driver);
+        if dj.is_active() {
+            if let Some(dec) = dj.tick(&driver, &mut dsp_chain, &mut single_decoder) {
+                single_decoder = Some(dec);
+                next_decoder = None;
+                crossfader = None;
+            }
+            continue;
+        }
+        process_standard_tick(
+            &driver,
+            &mut dsp_chain,
+            &mut single_decoder,
+            &mut next_decoder,
+            &mut crossfader,
+            &mut pcm_single,
+            &mut pcm_aux,
+            &mut pcm_blend,
+            sample_rate,
+        );
+        if dj.try_enter(&driver, &mut single_decoder, &dsp_chain, sample_rate) {
+            next_decoder = None;
+            crossfader = None;
         }
     }
 }

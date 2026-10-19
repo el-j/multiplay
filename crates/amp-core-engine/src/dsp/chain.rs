@@ -62,6 +62,11 @@ impl PlaybackDspChain {
         self.limiter.set_config(config);
     }
 
+    /// Output frames by which the resampler delays the audio (0 when not resampling).
+    pub fn resampler_delay_frames(&self) -> usize {
+        self.resampler.as_ref().map_or(0, |r| r.output_delay())
+    }
+
     /// Returns whether the resampler is currently active.
     pub fn is_resampling(&self) -> bool {
         self.resampler.is_some()

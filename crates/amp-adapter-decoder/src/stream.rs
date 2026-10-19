@@ -24,6 +24,8 @@ pub struct AudioStreamDecoder {
     frames_played: u64,
     pending_samples: Vec<f32>,
     pending_idx: usize,
+    /// Frames still to drop after a seek landed before its target (sample-accurate seeking).
+    skip_frames: u64,
 }
 
 impl AudioStreamDecoder {
@@ -92,6 +94,7 @@ impl AudioStreamDecoder {
             frames_played: 0,
             pending_samples: Vec::new(),
             pending_idx: 0,
+            skip_frames: 0,
         })
     }
 
@@ -150,6 +153,10 @@ impl AudioStreamDecoder {
                         let frames = samples.len() / channels;
 
                         for f in 0..frames {
+                            if self.skip_frames > 0 {
+                                self.skip_frames -= 1;
+                                continue;
+                            }
                             let (l, r) = downmix_frame(samples, f, channels);
 
                             if written + 1 < output.len() {
@@ -178,14 +185,18 @@ impl AudioStreamDecoder {
 
     /// Seeks to specified playback duration timestamp.
     pub fn seek(&mut self, target: std::time::Duration) -> Result<(), String> {
-        let ts = (target.as_secs_f64() * self.sample_rate as f64) as u64;
+        let ts = (target.as_secs_f64() * self.sample_rate as f64).round() as u64;
         let seek_to = symphonia::core::formats::SeekTo::TimeStamp {
             ts,
             track_id: self.track_id,
         };
-        self.reader
-            .seek(symphonia::core::formats::SeekMode::Coarse, seek_to)
+        // The reader lands on a packet boundary at or before the target; the frames between
+        // there and the target are decoded and dropped, so playback resumes on the exact frame.
+        let landed = self
+            .reader
+            .seek(symphonia::core::formats::SeekMode::Accurate, seek_to)
             .map_err(|e| format!("Seek failed: {e}"))?;
+        self.skip_frames = landed.required_ts.saturating_sub(landed.actual_ts);
 
         self.decoder.reset();
         self.pending_samples.clear();

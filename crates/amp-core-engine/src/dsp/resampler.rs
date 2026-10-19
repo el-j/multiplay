@@ -116,6 +116,11 @@ impl PureResampler {
         Ok(all_out)
     }
 
+    /// Output frames by which the resampled audio lags its input.
+    pub fn output_delay(&self) -> usize {
+        self.resampler.output_delay()
+    }
+
     pub fn chunk_size(&self) -> usize {
         self.chunk_size
     }

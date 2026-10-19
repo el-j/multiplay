@@ -3,7 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-use crate::dj_audio::DjAudioSharedState;
+use crate::dj_link::DjLink;
 use crate::playback_worker::run_playback_loop;
 use amp_adapter_cpal::{AudioDeviceDescription, CpalAudioSink};
 use amp_domain::{PlaybackState, Track};
@@ -33,7 +33,9 @@ pub struct AudioPlaybackDriver {
     pub current_device_name: Arc<Mutex<String>>,
     pub available_devices: Vec<AudioDeviceDescription>,
     pub resolvers: Arc<Mutex<Vec<Arc<dyn StreamResolverPort>>>>,
-    pub dj_audio: Arc<Mutex<DjAudioSharedState>>,
+    /// Hand-over point for DJ mode (engine and enter/leave requests).
+    pub dj: Arc<DjLink>,
+    sample_rate: u32,
     audio_sink: Arc<Mutex<CpalAudioSink>>,
     pub(crate) producer: Arc<Mutex<Producer<f32>>>,
     pub(crate) track_change_signal: Arc<AtomicBool>,
@@ -51,6 +53,22 @@ impl AudioPlaybackDriver {
     pub fn new_headless() -> Result<Self, String> {
         let (audio_sink, producer) = CpalAudioSink::new_null(48_000, 2);
         Self::with_sink(audio_sink, producer, Vec::new())
+    }
+
+    /// Like [`Self::new_headless`], but records everything that reaches the (fake) sound card.
+    pub fn new_capture() -> Result<(Self, amp_adapter_cpal::CapturedOutput), String> {
+        let (audio_sink, producer, captured) = CpalAudioSink::new_capture(48_000, 2);
+        Ok((Self::with_sink(audio_sink, producer, Vec::new())?, captured))
+    }
+
+    /// Output sample rate of the sound card.
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// True while DJ mode produces the audio.
+    pub fn dj_active(&self) -> bool {
+        self.dj.is_active()
     }
 
     fn with_sink(
@@ -85,7 +103,8 @@ impl AudioPlaybackDriver {
             current_device_name: Arc::new(Mutex::new(device_name)),
             available_devices,
             resolvers: Arc::new(Mutex::new(vec![yt, http])),
-            dj_audio: Arc::new(Mutex::new(DjAudioSharedState::default())),
+            dj: Arc::new(DjLink::default()),
+            sample_rate,
             audio_sink: Arc::new(Mutex::new(audio_sink)),
             producer: Arc::new(Mutex::new(producer)),
             track_change_signal: Arc::new(AtomicBool::new(false)),

@@ -9,8 +9,8 @@
 
 #![forbid(unsafe_code)]
 
-/// Frames of lookahead (about 1.3 ms at 48 kHz).
-const LOOKAHEAD: usize = 64;
+/// Frames of lookahead (about 1.3 ms at 48 kHz): the master and cue buses lag by this much.
+pub const LOOKAHEAD: usize = 64;
 const HOLD: usize = LOOKAHEAD * 2;
 /// Highest output level (-0.18 dBFS).
 pub const CEILING: f32 = 0.98;

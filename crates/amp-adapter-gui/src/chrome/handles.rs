@@ -53,7 +53,9 @@ pub fn resize_handles(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: Wi
             if ctx.input(|i| i.pointer.primary_pressed()) {
                 if let Some(p) = pointer_screen(ctx) {
                     let start = app.dock_manager.get_rect(window);
-                    app.window_resize = Some(ResizeSession::start(window, right, bottom, p, start));
+                    let session = ResizeSession::start(window, right, bottom, p, start)
+                        .with_min(app.min_size(window));
+                    app.window_resize = Some(session);
                 }
             }
         }

@@ -51,7 +51,7 @@ impl eframe::App for MultiplayGuiApp {
                 self.dock_manager.set_rect(id, r);
             }
             self.geometry_settle = chrome::zoom::SETTLE_FRAMES;
-            let min = chrome::resize::min_inner_size(WindowId::Main);
+            let min = self.min_size(WindowId::Main);
             let mut r = self.dock_manager.get_rect(WindowId::Main);
             r.width = r.width.max(min.x);
             r.height = r.height.max(min.y);

@@ -138,6 +138,10 @@ pub(crate) struct ChannelStrip {
     bands: [Bands; 2],
     filter: KnobFilter,
     gains: [f32; 3],
+    /// Share of the processed signal (0 = untouched input). The crossover all-pass shifts phase
+    /// with frequency, so a flat strip is bypassed to keep the deck phase-exact (seamless
+    /// hand-over from normal playback); touching the EQ or filter blends the strip in.
+    wet: f32,
 }
 
 impl ChannelStrip {
@@ -146,6 +150,7 @@ impl ChannelStrip {
             bands: [Bands::new(rate); 2],
             filter: KnobFilter::new(rate),
             gains: [1.0; 3],
+            wet: 0.0,
         }
     }
 
@@ -153,16 +158,25 @@ impl ChannelStrip {
     /// block) and the filter at `knob`.
     pub(crate) fn process(&mut self, buf: &mut [f32], gains: [f32; 3], knob: f32) {
         self.filter.set(knob);
+        let flat = gains == [1.0; 3] && knob.abs() < FILTER_DEAD_ZONE;
+        let (wet_from, wet_to) = (self.wet, if flat { 0.0 } else { 1.0 });
         let frames = (buf.len() / 2).max(1) as f32;
         let from = self.gains;
         for (i, f) in buf.as_chunks_mut::<2>().0.iter_mut().enumerate() {
             let t = (i + 1) as f32 / frames;
             let g = [0, 1, 2].map(|b| from[b] + (gains[b] - from[b]) * t);
+            // The filters always run, so their state is warm when the strip blends in.
             let l = self.bands[0].run(f[0], g);
             let r = self.bands[1].run(f[1], g);
-            (f[0], f[1]) = self.filter.run(l, r);
+            let (l, r) = self.filter.run(l, r);
+            let w = wet_from + (wet_to - wet_from) * t;
+            if w > 0.0 {
+                f[0] += (l - f[0]) * w;
+                f[1] += (r - f[1]) * w;
+            }
         }
         self.gains = gains;
+        self.wet = wet_to;
     }
 }
 
@@ -198,6 +212,20 @@ mod tests {
         let tail = &buf[n..];
         let rms = (tail.iter().map(|v| v * v).sum::<f32>() / tail.len() as f32).sqrt();
         20.0 * (rms / std::f32::consts::FRAC_1_SQRT_2).log10()
+    }
+
+    #[test]
+    fn dj_mixer_flat_strip_passes_audio_through_untouched() {
+        let mut strip = ChannelStrip::new(RATE);
+        let input: Vec<f32> = (0..2_048)
+            .map(|i| ((i * 37) % 101) as f32 / 101.0 - 0.5)
+            .collect();
+        let mut buf = input.clone();
+        strip.process(&mut buf, [1.0; 3], 0.0);
+        assert_eq!(buf, input, "bit-exact while flat (phase-exact hand-over)");
+        let mut cut = input.clone();
+        strip.process(&mut cut, [1.0, 1.0, 0.0], 0.0);
+        assert_ne!(cut, input, "a kill blends the strip in");
     }
 
     #[test]

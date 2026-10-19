@@ -4,9 +4,7 @@
 #![forbid(unsafe_code)]
 
 use crate::app_state::MultiplayGuiApp;
-use crate::chrome::resize::min_inner_size;
 use crate::chrome::{self, classic_viewport, viewport_id};
-use crate::dj_panel::DjConsolePanel;
 use crate::docking::{separate_from, DockRect, WindowId};
 use crate::equalizer_widget::EqualizerPanel;
 use crate::main_window::render_main_window_content;
@@ -22,7 +20,6 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
     let mut settings = Satellite::new(WindowId::Settings, "Preferences");
     settings.overlay = true;
     settings.show(app, ctx);
-    Satellite::new(WindowId::DjConsole, "DJ Console").show(app, ctx);
 }
 
 /// Renders `window`'s content under its title strip, grows the window if anything still did
@@ -58,7 +55,7 @@ pub fn show_body(app: &mut MultiplayGuiApp, ctx: &egui::Context, window: WindowI
 /// Rect for a window that is being shown: at least its minimum size, and moved clear of every
 /// other visible window so it never opens on top of one.
 fn place_on_show(app: &mut MultiplayGuiApp, window: WindowId, screens: &[DockRect]) -> DockRect {
-    let min = min_inner_size(window);
+    let min = app.min_size(window);
     let mut r = app.dock_manager.get_rect(window);
     r.width = r.width.max(min.x);
     r.height = r.height.max(min.y);
@@ -123,20 +120,8 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 app.dock_manager.set_visible(WindowId::Settings, false);
             }
         }
-        WindowId::DjConsole => {
-            // Legacy console scrolls until the responsive DJ console replaces it (PLAN-055).
-            let selected_track = app.playlist.get(app.selected_track_idx).cloned();
-            egui::ScrollArea::both()
-                .auto_shrink([false, false])
-                .show(ui, |ui| {
-                    DjConsolePanel::show(
-                        ui,
-                        &mut app.dj_state,
-                        selected_track.as_ref(),
-                        &app.audio_driver,
-                    );
-                });
-        }
+        // DJ mode lives in the main window now; the old satellite console is never shown.
+        WindowId::DjConsole => {}
     }
 }
 

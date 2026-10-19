@@ -18,6 +18,13 @@ const BOTTOM_ROWS: f32 = 78.0;
 const ACCENT: Color32 = Color32::from_rgb(0, 235, 136);
 
 pub fn render_main_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
+    if ctrl_j(ui) {
+        app.toggle_dj_mode(Some(ui.ctx()));
+    }
+    if app.dj_active() {
+        crate::dj_console::render_dj_console(app, ui);
+        return;
+    }
     let narrow = ui.available_width() < NARROW;
     ui.spacing_mut().item_spacing.y = 4.0;
     track_row(app, ui, narrow);
@@ -237,10 +244,16 @@ fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
 
 fn toggles_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
+        if ui
+            .selectable_label(app.dj_active(), RichText::new("DJ").size(11.0))
+            .on_hover_text("DJ mode (Ctrl+J)")
+            .clicked()
+        {
+            app.toggle_dj_mode(Some(ui.ctx()));
+        }
         for (id, text, tip) in [
             (WindowId::Equalizer, "EQ", "Equalizer window"),
             (WindowId::Playlist, "PL", "Playlist window"),
-            (WindowId::DjConsole, "DJ", "DJ console"),
             (WindowId::Settings, "⚙", "Preferences"),
         ] {
             let on = app.dock_manager.is_visible(id);
@@ -253,4 +266,10 @@ fn toggles_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             }
         }
     });
+}
+
+/// Ctrl+J (Cmd+J on macOS) toggles DJ mode.
+fn ctrl_j(ui: &Ui) -> bool {
+    let shortcut = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::J);
+    ui.ctx().input_mut(|i| i.consume_shortcut(&shortcut))
 }

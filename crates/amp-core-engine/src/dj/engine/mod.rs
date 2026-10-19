@@ -21,6 +21,7 @@ pub mod track_buffer;
 
 pub use bus::{route, CueMix, CueRouting};
 pub use deck_commands::DeckCommand;
+pub use limiter::LOOKAHEAD as LATENCY_FRAMES;
 pub use loops::HOT_CUES;
 pub use mixer_params::{curve_gains, Band, ChannelControls, CrossfaderCurve, MasterControls};
 pub use params::{

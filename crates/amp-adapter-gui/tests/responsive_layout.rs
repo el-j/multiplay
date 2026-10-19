@@ -143,3 +143,27 @@ fn responsive_every_settings_tab_fits() {
         }
     }
 }
+
+#[test]
+fn responsive_dj_console_fits_from_its_minimum_up() {
+    use amp_adapter_gui::dj_mode::CONSOLE_MIN;
+    let (_root, mut app) = app_with_long_content();
+    app.toggle_dj_mode(None);
+    assert!(app.dj_active());
+    let track = app.playlist[0].clone();
+    if let Some(dj) = app.dj.as_mut() {
+        dj.load(&app.audio_driver, 1, track);
+    }
+    for size in [
+        CONSOLE_MIN,
+        eframe::egui::Vec2::new(550.0, 232.0),
+        eframe::egui::Vec2::new(700.0, 320.0),
+        eframe::egui::Vec2::new(1_000.0, 500.0),
+    ] {
+        let spill = overflow(&mut app, WindowId::Main, size);
+        assert!(
+            spill.x <= 0.5 && spill.y <= 0.5,
+            "DJ console overflows at {size:?} by {spill:?}"
+        );
+    }
+}

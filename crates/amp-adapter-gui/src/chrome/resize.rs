@@ -24,6 +24,7 @@ pub struct ResizeSession {
     pub bottom: bool,
     press: (f32, f32),
     start: DockRect,
+    min: Vec2,
 }
 
 impl ResizeSession {
@@ -40,7 +41,14 @@ impl ResizeSession {
             bottom,
             press,
             start,
+            min: min_inner_size(window),
         }
+    }
+
+    /// Uses `min` as the smallest size instead of the window's default minimum.
+    pub fn with_min(mut self, min: Vec2) -> Self {
+        self.min = min;
+        self
     }
 
     /// Size the window should take for the pointer at `pointer` (screen points): follows the
@@ -53,7 +61,7 @@ impl ResizeSession {
         screens: &[DockRect],
         distance: f32,
     ) -> (f32, f32) {
-        let min = min_inner_size(self.window);
+        let min = self.min;
         let mut w = self.start.width;
         let mut h = self.start.height;
         if self.right {

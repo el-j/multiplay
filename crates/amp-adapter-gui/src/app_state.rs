@@ -3,7 +3,6 @@
 #![forbid(unsafe_code)]
 
 use crate::audio_driver::AudioPlaybackDriver;
-use crate::dj_panel::DjConsoleState;
 use crate::docking::{DockManager, WindowId};
 use crate::settings_panel::GuiSettingsTab;
 use amp_adapter_storage::{
@@ -38,7 +37,12 @@ pub struct MultiplayGuiApp {
     pub startup_zoom: f32,
     /// Last layout written to disk.
     pub saved_layout: Option<crate::layout_manager::LayoutSnapshot>,
-    pub dj_state: DjConsoleState,
+    /// DJ mode session (created the first time DJ mode is turned on).
+    pub dj: Option<crate::dj_session::DjSession>,
+    /// Library database: DJ analysis cache and hot cues (opened on first use).
+    pub library: Option<std::sync::Arc<amp_adapter_storage::RedbStorageAdapter>>,
+    /// Main window size to restore when DJ mode ends.
+    pub normal_main_size: Option<eframe::egui::Vec2>,
     pub settings_tab: GuiSettingsTab,
     pub config: AppConfig,
     pub volume: f32,
@@ -95,7 +99,9 @@ impl MultiplayGuiApp {
             geometry_settle: 0,
             startup_zoom: 1.0,
             saved_layout: None,
-            dj_state: DjConsoleState::default(),
+            dj: None,
+            library: None,
+            normal_main_size: None,
             settings_tab: GuiSettingsTab::default(),
             config: AppConfig::default(),
             volume: 0.85,

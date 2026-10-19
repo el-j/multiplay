@@ -98,6 +98,20 @@ impl DjEngine {
         self.sample_rate
     }
 
+    /// Applies queued commands now (normally done at the start of `render`), so the owner can
+    /// act on their result before the next block.
+    pub fn apply_pending(&mut self) {
+        self.apply_commands();
+    }
+
+    /// Moves `deck` to `secs` immediately. For the engine's owner, e.g. when it takes over a
+    /// track mid-play; others use [`DjControl::seek`].
+    pub fn seek_now(&mut self, deck: usize, secs: f64) {
+        if let Some(d) = self.decks.get_mut(deck) {
+            d.seek(secs);
+        }
+    }
+
     /// The controls this engine reads.
     pub fn params(&self) -> Arc<DjParams> {
         Arc::clone(&self.params)
