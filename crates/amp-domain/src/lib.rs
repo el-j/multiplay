@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;
 
-pub use analysis::{analysis_key, TrackAnalysis, ANALYSIS_VERSION};
+pub use analysis::{analysis_key, HotCues, TrackAnalysis, ANALYSIS_VERSION, HOT_CUE_SLOTS};
 pub use config::{
     AppConfig, AudioHardwareConfig, ExperimentalConfig, LibraryConfig, P2PNetworkConfig,
     RemoteControlConfig, StreamingProvidersConfig, UiAndThemeConfig,

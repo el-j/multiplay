@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+use super::deck_commands::{self, DeckCommand};
 use super::params::{CrossfaderSide, DeckParams, DjParams, DjStatus, MAX_DECKS};
 use super::player::{DeckPlayer, Played};
 use super::sync::{phase_error, pick_master, steered_speed, sync_speed, DeckBeat};
@@ -26,6 +27,8 @@ pub enum DjCommand {
     Seek(usize, f64),
     /// Empty a deck.
     Eject(usize),
+    /// A loop or cue action for a deck.
+    Deck(usize, DeckCommand),
 }
 
 /// Render side; owned by the thread that produces audio.
@@ -130,6 +133,7 @@ impl DjEngine {
             deck.cue_gain = cue_gain;
             let (pos, loaded) = deck.times();
             status.publish(pos, loaded, deck.ended);
+            status.publish_loops(&deck.loops, f64::from(deck.sample_rate()));
         }
     }
 
@@ -193,6 +197,10 @@ impl DjEngine {
                     self.decks[d].seek(secs);
                     continue;
                 }
+                DjCommand::Deck(d, c) if d < MAX_DECKS => {
+                    deck_commands::apply(&mut self.decks[d], self.params.deck(d), c);
+                    continue;
+                }
                 _ => continue,
             };
             let _ = deck;
@@ -242,6 +250,57 @@ impl DjControl {
     pub fn eject(&mut self, deck: usize) -> bool {
         self.collect_garbage();
         self.commands.push(DjCommand::Eject(deck)).is_ok()
+    }
+
+    /// Sends a loop or cue action to `deck`.
+    pub fn deck_command(&mut self, deck: usize, cmd: DeckCommand) -> bool {
+        self.commands.push(DjCommand::Deck(deck, cmd)).is_ok()
+    }
+
+    /// Loops `beats` beats from the playhead (snapped to the grid with quantize); `roll` keeps
+    /// the track running underneath and resumes there on exit.
+    pub fn beat_loop(&mut self, deck: usize, beats: f64, roll: bool) -> bool {
+        self.deck_command(deck, DeckCommand::BeatLoop { beats, roll })
+    }
+
+    /// Loops between two track times in seconds.
+    pub fn loop_between(&mut self, deck: usize, start: f64, end: f64) -> bool {
+        self.deck_command(deck, DeckCommand::LoopBetween(start, end))
+    }
+
+    /// A-B loop button: sets A, then B.
+    pub fn ab(&mut self, deck: usize) -> bool {
+        self.deck_command(deck, DeckCommand::Ab)
+    }
+
+    /// Leaves the loop.
+    pub fn exit_loop(&mut self, deck: usize) -> bool {
+        self.deck_command(deck, DeckCommand::ExitLoop)
+    }
+
+    /// Re-enters the last loop at its start.
+    pub fn reloop(&mut self, deck: usize) -> bool {
+        self.deck_command(deck, DeckCommand::Reloop)
+    }
+
+    /// Halves (0.5) or doubles (2.0) the loop.
+    pub fn resize_loop(&mut self, deck: usize, factor: f64) -> bool {
+        self.deck_command(deck, DeckCommand::ResizeLoop(factor))
+    }
+
+    /// Sets or clears hot cue `slot` (seconds), e.g. from the library when a track loads.
+    pub fn set_hot_cue(&mut self, deck: usize, slot: usize, secs: Option<f64>) -> bool {
+        self.deck_command(deck, DeckCommand::SetHotCue(slot, secs))
+    }
+
+    /// Stores the playhead in hot cue `slot`.
+    pub fn mark_hot_cue(&mut self, deck: usize, slot: usize) -> bool {
+        self.deck_command(deck, DeckCommand::MarkHotCue(slot))
+    }
+
+    /// Jumps to hot cue `slot`.
+    pub fn jump_hot_cue(&mut self, deck: usize, slot: usize) -> bool {
+        self.deck_command(deck, DeckCommand::JumpHotCue(slot))
     }
 
     /// Frees tracks the render thread has let go of.

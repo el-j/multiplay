@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 use super::keylock::KeyLock;
+use super::loops::LoopState;
 use super::track_buffer::TrackBuffer;
 use std::sync::Arc;
 
@@ -25,6 +26,8 @@ pub(crate) struct DeckPlayer {
     pub(crate) was_playing: bool,
     /// Set by a seek: a synced deck jumps back onto the beat on its next block.
     pub(crate) resnap: bool,
+    /// Loops and hot cues.
+    pub(crate) loops: LoopState,
     key_lock: KeyLock,
     key_locked: bool,
 }
@@ -46,6 +49,7 @@ impl DeckPlayer {
     pub(crate) fn load(&mut self, track: Option<Arc<TrackBuffer>>) -> Option<Arc<TrackBuffer>> {
         self.position = 0.0;
         self.ended = false;
+        self.loops.reset();
         self.key_lock.reset();
         std::mem::replace(&mut self.track, track)
     }
@@ -59,6 +63,14 @@ impl DeckPlayer {
             self.resnap = true;
             self.key_lock.reset();
         }
+    }
+
+    /// Moves the playhead to source frame `frame` (a loop or cue jump; a synced deck re-snaps).
+    pub(crate) fn jump_to_frame(&mut self, frame: f64) {
+        self.position = frame.max(0.0);
+        self.ended = false;
+        self.resnap = true;
+        self.key_lock.reset();
     }
 
     /// Moves the playhead by `secs` (negative goes back), keeping it inside the track.
@@ -119,6 +131,7 @@ impl DeckPlayer {
         };
         let loaded = track.loaded_frames();
         let complete = track.is_complete();
+        let source_rate = f64::from(rate);
         for frame in out.as_chunks_mut::<2>().0 {
             let i = self.position.floor() as usize;
             if complete && i >= loaded {
@@ -132,11 +145,27 @@ impl DeckPlayer {
             let (l, r) = if locked {
                 self.key_lock.next_frame(track, self.position, native)
             } else {
-                read_frame(track, self.position)
+                let here = read_frame(track, self.position);
+                match self.loops.seam(self.position, source_rate) {
+                    Some((before_start, w)) => {
+                        let there = read_frame(track, before_start);
+                        (
+                            here.0 * (1.0 - w) + there.0 * w,
+                            here.1 * (1.0 - w) + there.1 * w,
+                        )
+                    }
+                    None => here,
+                }
             };
             frame[0] = l;
             frame[1] = r;
             self.position += step;
+            if let Some(shadow) = self.loops.shadow.as_mut() {
+                *shadow += step;
+            }
+            if self.loops.wrap(&mut self.position) && locked {
+                self.key_lock.reset();
+            }
         }
         Played::Full
     }

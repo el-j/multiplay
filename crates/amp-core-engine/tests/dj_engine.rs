@@ -189,6 +189,8 @@ fn dj_render_never_allocates() {
         control.params().deck(d).set_grid(120.0 + d as f64, 0.1);
         control.params().deck(d).set_sync(d > 0);
         control.params().deck(d).set_key_lock(d % 2 == 1);
+        control.beat_loop(d, 0.5 + d as f64, d == 3);
+        control.mark_hot_cue(d, d);
     }
     let mut master = vec![0.0; 2_048];
     let mut cue = vec![0.0; 2_048];

@@ -57,6 +57,14 @@ pub trait AnalysisCachePort: Send + Sync {
     fn store(&self, key: &str, analysis: &amp_domain::TrackAnalysis) -> Result<(), String>;
 }
 
+/// Driven port for a track's DJ hot cues, keyed by `amp_domain::analysis_key`.
+pub trait HotCueStorePort: Send + Sync {
+    /// The track's hot cues (all empty when none were saved).
+    fn load_hot_cues(&self, key: &str) -> amp_domain::HotCues;
+    /// Saves the track's hot cues.
+    fn store_hot_cues(&self, key: &str, cues: &amp_domain::HotCues) -> Result<(), String>;
+}
+
 /// Driven port for hardware audio output device sinks.
 pub trait AudioSinkPort: Send + Sync {
     fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), String>;

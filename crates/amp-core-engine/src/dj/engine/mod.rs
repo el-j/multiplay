@@ -5,7 +5,9 @@
 #![forbid(unsafe_code)]
 
 pub mod bus;
+pub mod deck_commands;
 mod keylock;
+pub mod loops;
 pub mod params;
 mod player;
 pub mod render;
@@ -14,6 +16,8 @@ pub mod sync;
 pub mod track_buffer;
 
 pub use bus::{route, CueMix, CueRouting};
+pub use deck_commands::DeckCommand;
+pub use loops::HOT_CUES;
 pub use params::{
     AtomicF32, CrossfaderSide, DeckParams, DeckStatus, DjParams, DjStatus, CROSSFADER_LEFT,
     CROSSFADER_RIGHT, MAX_DECKS, MAX_PITCH_PERCENT,

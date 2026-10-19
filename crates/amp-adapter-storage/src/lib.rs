@@ -37,6 +37,7 @@ impl RedbStorageAdapter {
             let _ = write_txn.open_table(TRACKS_TABLE)?;
             let _ = write_txn.open_table(INDEX_TABLE)?;
             let _ = write_txn.open_table(analysis::ANALYSIS_TABLE)?;
+            let _ = write_txn.open_table(analysis::HOT_CUE_TABLE)?;
         }
         write_txn.commit()?;
 

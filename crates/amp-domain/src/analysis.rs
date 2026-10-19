@@ -8,6 +8,12 @@ use serde::{Deserialize, Serialize};
 /// Bump when the analysis algorithm changes, so cached results are recomputed.
 pub const ANALYSIS_VERSION: u32 = 1;
 
+/// Hot cue slots per track.
+pub const HOT_CUE_SLOTS: usize = 8;
+
+/// A track's hot cues in seconds (`None` = empty slot).
+pub type HotCues = [Option<f64>; HOT_CUE_SLOTS];
+
 /// What the analyser found in a track.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TrackAnalysis {

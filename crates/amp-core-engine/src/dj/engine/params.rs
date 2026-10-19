@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 use super::bus::{CueMix, CueRouting};
+use super::loops::{LoopState, HOT_CUES};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
 /// Most decks the engine supports (two are shown today; the model holds four).
@@ -76,6 +77,7 @@ pub struct DeckParams {
     key_lock: AtomicBool,
     grid_bpm: AtomicF64,
     grid_anchor: AtomicF64,
+    quantize: AtomicBool,
 }
 
 impl DeckParams {
@@ -92,7 +94,16 @@ impl DeckParams {
             key_lock: AtomicBool::new(false),
             grid_bpm: AtomicF64::default(),
             grid_anchor: AtomicF64::default(),
+            quantize: AtomicBool::new(true),
         }
+    }
+    /// Snaps loop points and cues to the beat grid, and keeps the beat phase on cue jumps.
+    pub fn set_quantize(&self, on: bool) {
+        self.quantize.store(on, Ordering::Relaxed);
+    }
+    /// True when quantize is on (the default).
+    pub fn quantize(&self) -> bool {
+        self.quantize.load(Ordering::Relaxed)
     }
     /// Temporary tempo bend while a nudge button is held, as a fraction (±0.04 = ±4 %).
     pub fn set_nudge(&self, v: f32) {
@@ -278,6 +289,10 @@ pub struct DeckStatus {
     underruns: AtomicU64,
     bpm: AtomicF64,
     master: AtomicBool,
+    loop_start: AtomicF64,
+    loop_end: AtomicF64,
+    loop_active: AtomicBool,
+    cues: [AtomicF64; HOT_CUES],
 }
 
 impl DeckStatus {
@@ -300,6 +315,32 @@ impl DeckStatus {
     /// True while this deck is the tempo master.
     pub fn is_master(&self) -> bool {
         self.master.load(Ordering::Relaxed)
+    }
+    /// The current (or last) loop as `(start, end)` seconds.
+    pub fn loop_range(&self) -> Option<(f64, f64)> {
+        let (s, e) = (self.loop_start.get(), self.loop_end.get());
+        (e > s).then_some((s, e))
+    }
+    /// True while the deck loops.
+    pub fn loop_active(&self) -> bool {
+        self.loop_active.load(Ordering::Relaxed)
+    }
+    /// Hot cue `slot` in seconds, if set.
+    pub fn hot_cue(&self, slot: usize) -> Option<f64> {
+        let v = self.cues.get(slot)?.get();
+        (v >= 0.0).then_some(v)
+    }
+    pub(crate) fn publish_loops(&self, l: &LoopState, rate: f64) {
+        let (s, e) = l
+            .range
+            .filter(|_| rate > 0.0)
+            .map_or((0.0, 0.0), |(s, e)| (s / rate, e / rate));
+        self.loop_start.set(s);
+        self.loop_end.set(e);
+        self.loop_active.store(l.active, Ordering::Relaxed);
+        for (slot, cue) in self.cues.iter().zip(l.cues) {
+            slot.set(cue.unwrap_or(-1.0));
+        }
     }
     pub(crate) fn publish_tempo(&self, bpm: f64, master: bool) {
         self.bpm.set(bpm);
