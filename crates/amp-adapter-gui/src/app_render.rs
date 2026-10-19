@@ -4,10 +4,11 @@
 #![forbid(unsafe_code)]
 
 use crate::app_state::MultiplayGuiApp;
-use crate::docking::{DockRect, WindowId};
+use crate::chrome;
+use crate::docking::WindowId;
 use crate::main_window::render_main_window_content;
 use crate::viewports::render_satellite_windows;
-use eframe::egui::{self, Color32, Vec2};
+use eframe::egui::{self, Color32};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
@@ -31,36 +32,23 @@ impl eframe::App for MultiplayGuiApp {
             }
         }
 
-        // 3. Track Root Window (Main Player) Desktop Position & Propagate Group Movement
-        if let Some(outer) = ctx.input(|i| i.viewport().outer_rect) {
-            let old_main = self.dock_manager.get_rect(WindowId::Main);
-            let dx = outer.min.x - old_main.x;
-            let dy = outer.min.y - old_main.y;
-            let inner_size = ctx
-                .input(|i| i.viewport().inner_rect)
-                .map(|r| r.size())
-                .unwrap_or(Vec2::new(old_main.width, old_main.height));
-            self.dock_manager.set_rect(
-                WindowId::Main,
-                DockRect::new(outer.min.x, outer.min.y, inner_size.x, inner_size.y),
-            );
-            let pointer_down = ctx.input(|i| i.pointer.any_down());
-            if (dx.abs() > 1.0 || dy.abs() > 1.0) && !pointer_down {
-                self.dock_manager.move_window_group(WindowId::Main, dx, dy);
-                self.sync_child_viewport_positions(ctx);
-            }
-        }
+        // 3. Main window: self-drawn title strip; dragging it moves the docked group live
+        chrome::track_geometry(self, ctx, WindowId::Main);
+        let action = chrome::title_bar(self, ctx, WindowId::Main, "multiplay", true, true);
+        chrome::apply_action(self, ctx, WindowId::Main, action);
 
-        // 4. Render Main Player Content in Root Viewport
-        egui::CentralPanel::default()
-            .frame(
-                egui::Frame::none()
-                    .fill(Color32::from_rgb(14, 18, 22))
-                    .inner_margin(8.0),
-            )
-            .show(ctx, |ui| {
-                render_main_window_content(self, ui);
-            });
+        // 4. Render Main Player Content in Root Viewport (hidden while shaded)
+        if !self.dock_manager.is_shaded(WindowId::Main) {
+            egui::CentralPanel::default()
+                .frame(
+                    egui::Frame::none()
+                        .fill(Color32::from_rgb(14, 18, 22))
+                        .inner_margin(8.0),
+                )
+                .show(ctx, |ui| {
+                    render_main_window_content(self, ui);
+                });
+        }
 
         // 5. Render Modular Satellite OS Native Windows
         render_satellite_windows(self, ctx);

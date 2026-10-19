@@ -33,5 +33,9 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+- 2026-10-19 (macOS arm64): windows dragged on screen snapped flush while dragging: main (301,265,480x190), playlist at y=455 (=265+190), EQ at y=715 (=455+260), all x=301, zero gaps (CGWindowList bounds).
+- Implemented: pure `docking::snap` (snap_rect, touching, connected_group; 9 tests incl. a no-overlap sweep), `chrome::drag::DragSession` in screen space (4 tests: group drag, detach, live snap, group-to-screen-edge), release-time snap removed, snap distance 10 pt, docks rebuilt from contact after each drag (2 tests).
+- Open: monitor origins for multi-monitor screen-edge snapping (TASK-200); 60 Hz smoothness recording on macOS and Windows.
+
 ## Status
 - **Status:** Pending

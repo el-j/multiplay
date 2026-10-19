@@ -9,6 +9,7 @@ pub mod app_render;
 pub mod app_state;
 pub mod audio_driver;
 pub mod audio_pusher;
+pub mod chrome;
 pub mod dj_audio;
 pub mod dj_panel;
 pub mod dj_playback;

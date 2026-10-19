@@ -5,11 +5,13 @@
 
 pub mod geometry;
 pub mod manager;
+pub mod snap;
 
 pub use geometry::{
     DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD,
 };
 pub use manager::DockManager;
+pub use snap::{connected_group, snap_rect, touching};
 
 #[cfg(test)]
 mod tests {
@@ -100,5 +102,50 @@ mod tests {
             restored.dock_parent.get(&WindowId::Playlist),
             Some(&(WindowId::Main, DockEdge::Bottom))
         );
+    }
+
+    #[test]
+    fn dockable_windows_skip_hidden_and_settings() {
+        let mut dm = DockManager::default();
+        dm.set_visible(WindowId::Settings, true);
+        dm.set_visible(WindowId::Playlist, false);
+        let ids: Vec<_> = dm
+            .dockable_windows()
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        assert!(ids.contains(&WindowId::Main) && ids.contains(&WindowId::Equalizer));
+        assert!(!ids.contains(&WindowId::Settings) && !ids.contains(&WindowId::Playlist));
+    }
+
+    #[test]
+    fn docks_are_rebuilt_from_touching_edges() {
+        let mut dm = DockManager::new_empty();
+        for (id, rect) in [
+            (WindowId::Main, DockRect::new(0.0, 0.0, 275.0, 116.0)),
+            (WindowId::Equalizer, DockRect::new(0.0, 116.0, 275.0, 116.0)),
+            (
+                WindowId::Playlist,
+                DockRect::new(275.0, 116.0, 275.0, 232.0),
+            ),
+            (
+                WindowId::DjConsole,
+                DockRect::new(900.0, 900.0, 275.0, 116.0),
+            ),
+        ] {
+            dm.set_rect(id, rect);
+            dm.set_visible(id, true);
+        }
+        dm.dock(WindowId::DjConsole, WindowId::Main, DockEdge::Bottom);
+        dm.rebuild_docks_from_contact();
+        assert_eq!(
+            dm.dock_parent.get(&WindowId::Equalizer),
+            Some(&(WindowId::Main, DockEdge::Bottom))
+        );
+        assert_eq!(
+            dm.dock_parent.get(&WindowId::Playlist),
+            Some(&(WindowId::Equalizer, DockEdge::Right))
+        );
+        assert_eq!(dm.dock_parent.get(&WindowId::DjConsole), None);
     }
 }

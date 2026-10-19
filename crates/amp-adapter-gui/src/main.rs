@@ -4,17 +4,15 @@
 
 #![forbid(unsafe_code)]
 
+use amp_adapter_gui::chrome::classic_viewport;
 use amp_adapter_gui::MultiplayGuiApp;
-use eframe::egui::{Pos2, Vec2, ViewportBuilder};
+use eframe::egui::{Pos2, Vec2};
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
-        viewport: ViewportBuilder::default()
-            .with_title("WINAMP :: MAIN PLAYER")
+        viewport: classic_viewport("multiplay", false)
             .with_inner_size(Vec2::new(480.0, 190.0))
-            .with_min_inner_size(Vec2::new(380.0, 180.0))
             .with_position(Pos2::new(120.0, 100.0))
-            .with_resizable(true)
             .with_active(true),
         vsync: true,
         multisampling: 0,
@@ -22,7 +20,7 @@ fn main() -> eframe::Result<()> {
     };
 
     eframe::run_native(
-        "WINAMP :: MAIN PLAYER",
+        "multiplay",
         native_options,
         Box::new(|_cc| {
             let app = MultiplayGuiApp::new().expect("Failed to initialize MultiplayGuiApp");

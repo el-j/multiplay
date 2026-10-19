@@ -4,7 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_SNAP_THRESHOLD: f32 = 14.0;
+/// Classic magnetic snap distance in points (spec §4; configurable later).
+pub const DEFAULT_SNAP_THRESHOLD: f32 = 10.0;
 pub const DEFAULT_TEAR_OFF_THRESHOLD: f32 = 24.0;
 
 /// Identifier for distinct modular desktop windows.

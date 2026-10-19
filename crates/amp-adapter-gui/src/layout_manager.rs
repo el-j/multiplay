@@ -26,14 +26,7 @@ pub fn sync_child_viewport_positions(dock_manager: &DockManager, ctx: &eframe::e
     for (&child, &(parent, _)) in &dock_manager.dock_parent {
         if parent == WindowId::Main && dock_manager.is_visible(child) {
             let rect = dock_manager.get_rect(child);
-            let tag = match child {
-                WindowId::Equalizer => "win_eq",
-                WindowId::Playlist => "win_playlist",
-                WindowId::Settings => "win_settings",
-                WindowId::DjConsole => "win_dj",
-                WindowId::Main => continue,
-            };
-            let id = eframe::egui::ViewportId::from_hash_of(tag);
+            let id = crate::chrome::viewport_id(child);
             let pos = eframe::egui::Pos2::new(rect.x, rect.y);
             ctx.send_viewport_cmd_to(id, eframe::egui::ViewportCommand::OuterPosition(pos));
         }

@@ -35,5 +35,9 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+- 2026-10-19 (macOS arm64, debug build): all windows frameless with the self-drawn classic strip (grip ridges, centered title, minimize/shade/close; gold when focused, grey when not). No OS title bar, maximize or fullscreen. Owner screenshot shows main, playlist and EQ docked flush in a column.
+- Implemented: `chrome::classic_viewport`, `chrome::title_bar`, `chrome::apply_action` (close quits on main, hides satellites; minimize; shade to 14 pt), egui-free hit-testing `chrome::layout` (4 tests, 1x and 2x). ADR: `docs/adr/ADR-002-classic-windowing.md`. Window titles no longer say WINAMP.
+- Open: `.wsz` title sprites (needs classic 275 px widths, TASK-198); content strings still say WINAMP (TASK-194); Windows/X11 manual check (TASK-200).
+
 ## Status
 - **Status:** Pending

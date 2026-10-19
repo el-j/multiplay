@@ -5,6 +5,7 @@
 use super::geometry::{
     DockEdge, DockRect, WindowId, DEFAULT_SNAP_THRESHOLD, DEFAULT_TEAR_OFF_THRESHOLD,
 };
+use super::snap::{connected_group, touching, TOUCH_EPSILON};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -198,6 +199,36 @@ impl DockManager {
         }
     }
 
+    /// Visible windows that take part in docking (the settings overlay never does).
+    pub fn dockable_windows(&self) -> Vec<(WindowId, DockRect)> {
+        let mut out: Vec<_> = self
+            .windows
+            .iter()
+            .filter(|(id, _)| **id != WindowId::Settings && self.is_visible(**id))
+            .map(|(id, r)| (*id, *r))
+            .collect();
+        out.sort_by_key(|(id, _)| *id as u8);
+        out
+    }
+
+    /// Re-derives dock bonds from touching edges, walking outward from the main window.
+    pub fn rebuild_docks_from_contact(&mut self) {
+        let windows = self.dockable_windows();
+        let group = connected_group(WindowId::Main, &windows);
+        let rect = |id: WindowId| windows.iter().find(|(w, _)| *w == id).map(|(_, r)| *r);
+        self.dock_parent.clear();
+        for (i, &child) in group.iter().enumerate().skip(1) {
+            let Some(c) = rect(child) else { continue };
+            let parent = group[..i]
+                .iter()
+                .copied()
+                .find(|p| rect(*p).is_some_and(|r| touching(&r, &c)));
+            if let (Some(parent), Some(pr)) = (parent, parent.and_then(rect)) {
+                self.dock_parent.insert(child, (parent, edge_of(&pr, &c)));
+            }
+        }
+    }
+
     pub fn get_rect(&self, id: WindowId) -> DockRect {
         self.windows
             .get(&id)
@@ -207,5 +238,18 @@ impl DockManager {
 
     pub fn set_rect(&mut self, id: WindowId, rect: DockRect) {
         self.windows.insert(id, rect);
+    }
+}
+
+/// Side of `parent` that `child` is attached to.
+fn edge_of(parent: &DockRect, child: &DockRect) -> DockEdge {
+    if (child.top() - parent.bottom()).abs() <= TOUCH_EPSILON {
+        DockEdge::Bottom
+    } else if (child.bottom() - parent.top()).abs() <= TOUCH_EPSILON {
+        DockEdge::Top
+    } else if (child.left() - parent.right()).abs() <= TOUCH_EPSILON {
+        DockEdge::Right
+    } else {
+        DockEdge::Left
     }
 }
