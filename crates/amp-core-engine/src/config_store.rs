@@ -24,7 +24,7 @@ impl ConfigStore {
         let path = path.into();
         let loaded = if path.exists() {
             match fs::read_to_string(&path) {
-                Ok(content) => basic_toml::from_str::<AppConfig>(&content).unwrap_or_default(),
+                Ok(content) => toml::from_str::<AppConfig>(&content).unwrap_or_default(),
                 Err(_) => AppConfig::default(),
             }
         } else {
@@ -63,7 +63,7 @@ impl ConfigStore {
         mutate(&mut new_config);
 
         // 1. Serialize to TOML
-        let toml_str = basic_toml::to_string(&new_config).map_err(|e| e.to_string())?;
+        let toml_str = toml::to_string(&new_config).map_err(|e| e.to_string())?;
 
         // 2. Ensure parent directories exist
         if let Some(parent) = self.path.parent() {
