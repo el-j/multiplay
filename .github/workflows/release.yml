@@ -1,5 +1,8 @@
-name: Automated Cross-Platform Release & Publishing
+name: Release
 
+# Push a tag like `v0.1.0-beta.1` to publish a release. Tags with a `-` (beta, rc) become
+# pre-releases. Running the workflow by hand builds every package without publishing; the
+# downloads then sit on the run's summary page.
 on:
   push:
     tags:
@@ -9,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   CARGO_TERM_COLOR: always
   LINUX_DEPS: >-
@@ -16,111 +23,188 @@ env:
     libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev
 
 jobs:
-  build-release:
-    name: Build & Package (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: multiplay-macos-arm64.tar.gz
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: multiplay-macos-x86_64.tar.gz
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: multiplay-linux-x86_64.tar.gz
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: multiplay-windows-x86_64.zip
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      cargo: ${{ steps.v.outputs.cargo }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Install Linux build dependencies
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Build release binaries
-        run: cargo build --release --locked --target ${{ matrix.target }} -p amp-app -p amp-adapter-gui
-
-      # The GUI is the app bundle's main executable; the TUI ships next to it.
-      - name: Package macOS app bundle
-        if: runner.os == 'macOS'
-        run: |
-          set -euo pipefail
-          BIN=target/${{ matrix.target }}/release
-          APP=staging/Multiplay.app/Contents
-          mkdir -p "$APP/MacOS" "$APP/Resources" staging/bin
-          cp scripts/Info.plist "$APP/Info.plist"
-          cp "$BIN/multiplay-gui" "$APP/MacOS/Multiplay"
-          cp "$BIN/amp-app" staging/bin/multiplay-tui
-          cp README.md LICENSE staging/
-          chmod +x "$APP/MacOS/Multiplay" staging/bin/multiplay-tui
-          tar -czf ${{ matrix.artifact_name }} -C staging .
-
-      - name: Package Linux binaries
-        if: runner.os == 'Linux'
-        run: |
-          set -euo pipefail
-          BIN=target/${{ matrix.target }}/release
-          mkdir -p staging/bin
-          cp "$BIN/multiplay-gui" staging/bin/multiplay
-          cp "$BIN/amp-app" staging/bin/multiplay-tui
-          cp README.md LICENSE staging/
-          chmod +x staging/bin/*
-          tar -czf ${{ matrix.artifact_name }} -C staging .
-
-      - name: Package Windows binaries
-        if: runner.os == 'Windows'
+      - uses: actions/checkout@v7
+      # The tag must start with the workspace version: v0.1.0-beta.1 is fine for 0.1.0.
+      - id: v
         shell: bash
         run: |
           set -euo pipefail
-          BIN=target/${{ matrix.target }}/release
-          mkdir -p staging/bin
-          cp "$BIN/multiplay-gui.exe" staging/bin/multiplay.exe
-          cp "$BIN/amp-app.exe" staging/bin/multiplay-tui.exe
-          cp README.md LICENSE staging/
-          cd staging && 7z a ../${{ matrix.artifact_name }} *
+          CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$VERSION" != "$CARGO" && "$VERSION" != "$CARGO"-* ]]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match the workspace version $CARGO"
+              exit 1
+            fi
+          else
+            VERSION="$CARGO-dev.$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "cargo=$CARGO" >> "$GITHUB_OUTPUT"
+          echo "Building multiplay $VERSION"
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v7
+  # The full CI (policy, lints, cross-platform tests, cargo-deny) must pass on the tagged commit.
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  macos:
+    name: Package macOS (universal)
+    needs: [version, ci]
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          name: release-${{ matrix.target }}
-          path: ${{ matrix.artifact_name }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (Apple Silicon and Intel)
+        run: |
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --locked --target "$t" -p amp-app -p amp-adapter-gui
+          done
+
+      # One download for every Mac. Ad-hoc signed only (no Apple Developer ID yet), so the
+      # release notes explain the first-launch Gatekeeper step.
+      - name: Assemble Multiplay.app and the disk image
+        run: |
+          set -euo pipefail
+          A=target/aarch64-apple-darwin/release
+          X=target/x86_64-apple-darwin/release
+          DMG=staging/dmg
+          APP="$DMG/Multiplay.app/Contents"
+          mkdir -p "$APP/MacOS" "$APP/Resources"
+          cp scripts/Info.plist "$APP/Info.plist"
+          plutil -replace CFBundleShortVersionString -string "${{ needs.version.outputs.cargo }}" "$APP/Info.plist"
+          plutil -replace CFBundleVersion -string "${{ github.run_number }}" "$APP/Info.plist"
+          lipo -create "$A/multiplay-gui" "$X/multiplay-gui" -output "$APP/MacOS/Multiplay"
+          lipo -create "$A/amp-app" "$X/amp-app" -output "$DMG/multiplay-tui"
+          chmod +x "$APP/MacOS/Multiplay" "$DMG/multiplay-tui"
+          codesign --force --deep --sign - "$DMG/Multiplay.app"
+          codesign --force --sign - "$DMG/multiplay-tui"
+          codesign --verify --deep --strict "$DMG/Multiplay.app"
+          lipo -info "$APP/MacOS/Multiplay"
+          cp README.md LICENSE "$DMG/"
+          ln -s /Applications "$DMG/Applications"
+          mkdir -p dist
+          hdiutil create -volname "Multiplay $VERSION" -srcfolder "$DMG" -ov -format UDZO \
+            "dist/multiplay-$VERSION-macos-universal.dmg"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: multiplay-macos
+          path: dist/*
           if-no-files-found: error
 
-  publish-release:
-    name: Publish GitHub Release
-    needs: build-release
-    runs-on: ubuntu-latest
+  linux:
+    name: Package Linux (x86_64)
+    needs: [version, ci]
+    # The oldest supported runner, so the binary also starts on older glibc distros.
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - name: Download all release artifacts
-        uses: actions/download-artifact@v8
+      - uses: actions/checkout@v7
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release --locked -p amp-app -p amp-adapter-gui
+      - name: Package
+        run: |
+          set -euo pipefail
+          NAME="multiplay-$VERSION-linux-x86_64"
+          S="staging/$NAME"
+          mkdir -p "$S" dist
+          cp target/release/multiplay-gui "$S/multiplay"
+          cp target/release/amp-app "$S/multiplay-tui"
+          strip "$S/multiplay" "$S/multiplay-tui"
+          cp README.md LICENSE "$S/"
+          tar -czf "dist/$NAME.tar.gz" -C staging "$NAME"
+
+      - uses: actions/upload-artifact@v7
         with:
-          path: release-assets
+          name: multiplay-linux
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    name: Package Windows (x86_64)
+    needs: [version, ci]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      # Bundle the C runtime so the .exe runs without the Visual C++ redistributable.
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release --locked -p amp-app -p amp-adapter-gui
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="multiplay-$VERSION-windows-x86_64"
+          S="staging/$NAME"
+          mkdir -p "$S" dist
+          cp target/release/multiplay-gui.exe "$S/multiplay.exe"
+          cp target/release/amp-app.exe "$S/multiplay-tui.exe"
+          cp README.md LICENSE "$S/"
+          (cd staging && 7z a -tzip "../dist/$NAME.zip" "$NAME")
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: multiplay-windows
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: [version, macos, linux, windows]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
           merge-multiple: true
 
-      - name: Generate SHA-256 checksums
-        working-directory: release-assets
+      - name: Checksums and release notes
         run: |
-          sha256sum * > SHA256SUMS
-          cat SHA256SUMS
+          set -euo pipefail
+          (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+          sed "s/{{VERSION}}/$VERSION/g" .github/release-notes.md > release-notes.md
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      # Manual runs stop here: the packages are on the run page, nothing is published.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: multiplay-${{ env.VERSION }}-all
+          path: |
+            dist/*
+            release-notes.md
+
+      - uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            release-assets/*
+          name: Multiplay ${{ env.VERSION }}
+          body_path: release-notes.md
           generate_release_notes: true
-          draft: false
-          # Tags like v0.1.0-rc.1 are published as pre-releases.
+          files: dist/*
+          fail_on_unmatched_files: true
           prerelease: ${{ contains(github.ref_name, '-') }}

@@ -41,6 +41,12 @@ terminal (TUI) front end.
 
 ---
 
+## Download
+
+Beta builds for macOS (universal `.dmg`), Windows (`.zip`) and Linux (`.tar.gz`) are on the
+[Releases page](https://github.com/el-j/multiplay/releases). They are not code-signed yet; the
+release notes explain the one-time first-launch step on macOS and Windows.
+
 ## Quickstart
 
 Requires a recent stable Rust toolchain. On Linux you also need the ALSA development package

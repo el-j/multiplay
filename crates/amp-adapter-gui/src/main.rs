@@ -3,6 +3,8 @@
 //! Zero NodeJS, zero TypeScript, zero Electron.
 
 #![forbid(unsafe_code)]
+// Release builds on Windows are a GUI app: no console window opens behind it.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 use amp_adapter_gui::chrome::classic_viewport;
 use amp_adapter_gui::MultiplayGuiApp;
