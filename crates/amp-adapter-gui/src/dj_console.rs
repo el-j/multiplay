@@ -259,7 +259,7 @@ fn cheat_sheet(ui: &mut Ui, over: Rect) -> bool {
                 ui.set_max_size(over.size() - Vec2::splat(16.0));
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("DJ keys").strong());
-                    close = ui.small_button("✕").clicked();
+                    close = ui.small_button("🗙").clicked();
                 });
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     egui::Grid::new("dj_keys").striped(true).show(ui, |ui| {

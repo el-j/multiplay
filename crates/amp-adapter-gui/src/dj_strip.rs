@@ -220,7 +220,7 @@ pub(crate) fn deck_strip(p: &mut Panel<'_>, ui: &mut Ui, deck: usize) {
             p,
             ui,
             DjAction::ExitLoop(deck),
-            RichText::new("✕").size(10.0),
+            RichText::new("🗙").size(10.0),
             false,
         );
     });

@@ -119,12 +119,12 @@ fn switched_off(app: &mut MultiplayGuiApp, ui: &mut Ui, actions: &mut Vec<Window
     ui.add_space(4.0);
     if ui
         .button("Turn on for this computer")
-        .on_hover_text("Phones on your Wi-Fi need network access: Settings → Remote")
+        .on_hover_text("Phones on your Wi-Fi need network access: Settings ➡ Remote")
         .clicked()
     {
         actions.push(WindowAction::TurnOn);
     }
-    if ui.button("Settings → Remote…").clicked() {
+    if ui.button("Settings ➡ Remote…").clicked() {
         app.settings_tab = crate::settings_panel::GuiSettingsTab::Remote;
         app.dock_manager.set_visible(WindowId::Settings, true);
     }
@@ -137,7 +137,7 @@ fn status_line(app: &MultiplayGuiApp, ui: &mut Ui) {
         "this computer only"
     };
     let text = format!(
-        "● Listening on {scope} · {} connected",
+        "⚫ Listening on {scope} · {} connected",
         app.remote.active_peers_count()
     );
     ui.label(small(text, WARN));
@@ -187,7 +187,7 @@ fn request_row(
 ) {
     let ready = matches!(row.preview, Preview::Ready(_));
     ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-        let reject = RichText::new("✕").size(10.0).color(BAD);
+        let reject = RichText::new("🗙").size(10.0).color(BAD);
         if ui.small_button(reject).on_hover_text("Reject").clicked() {
             actions.push(WindowAction::Moderate(row.id, Moderation::Reject));
         }
@@ -337,7 +337,7 @@ fn device_row(ui: &mut Ui, d: &DeviceSummary, now: u64, actions: &mut Vec<Window
             } else {
                 (MUTED, format!("seen {}", ago(now, d.last_seen)))
             };
-            ui.label(RichText::new("●").size(10.0).color(dot));
+            ui.label(RichText::new("⚫").size(10.0).color(dot));
             ui.label(RichText::new(&d.name).size(11.0).strong());
             ui.label(small(seen, MUTED));
         });
@@ -361,7 +361,7 @@ fn pairing(app: &MultiplayGuiApp, ui: &mut Ui, actions: &mut Vec<WindowAction>) 
     heading(ui, "PAIR A PHONE");
     if !app.remote.allow_lan {
         ui.label(small(
-            "Only this computer can connect. Allow your network in Settings → Remote.",
+            "Only this computer can connect. Allow your network in Settings ➡ Remote.",
             WARN,
         ));
     }

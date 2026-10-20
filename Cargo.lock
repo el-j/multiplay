@@ -114,6 +114,7 @@ dependencies = [
  "amp-domain",
  "amp-ports",
  "eframe",
+ "egui",
  "if-addrs",
  "image",
  "proptest",

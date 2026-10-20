@@ -77,7 +77,7 @@ impl SettingsGuiPanel {
                 ui.selectable_value(active_tab, GuiSettingsTab::Accounts, "🌐 Accounts");
                 ui.selectable_value(active_tab, GuiSettingsTab::P2P, "🔗 P2P Network");
                 ui.selectable_value(active_tab, GuiSettingsTab::Appearance, "🎨 Appearance");
-                ui.selectable_value(active_tab, GuiSettingsTab::Plugins, "🧩 Plugins");
+                ui.selectable_value(active_tab, GuiSettingsTab::Plugins, "🔌 Plugins");
                 ui.selectable_value(active_tab, GuiSettingsTab::Remote, "📱 Remote Control");
             });
 

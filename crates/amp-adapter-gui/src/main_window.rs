@@ -48,9 +48,9 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     row_rtl(ui, |ui| {
         if app.remote.is_running {
             let text = if app.remote.allow_lan {
-                "● REMOTE (LAN)"
+                "⚫ REMOTE (LAN)"
             } else {
-                "● REMOTE"
+                "⚫ REMOTE"
             };
             ui.label(
                 RichText::new(text)

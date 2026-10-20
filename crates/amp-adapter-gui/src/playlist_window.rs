@@ -201,7 +201,7 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         };
         egui::Frame::NONE.fill(row_bg).show(ui, |ui| {
             row_rtl(ui, |ui| {
-                let remove = RichText::new("✕")
+                let remove = RichText::new("🗙")
                     .size(10.0)
                     .color(Color32::from_rgb(220, 80, 80));
                 if ui.small_button(remove).on_hover_text("Remove").clicked() {
@@ -232,7 +232,7 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
                         }
                         for (deck, color) in [(0, DECK_A), (1, DECK_B)] {
                             if next[deck] == Some(i) {
-                                let tag = ["▸A", "▸B"][deck];
+                                let tag = ["⏵A", "⏵B"][deck];
                                 ui.label(RichText::new(tag).size(9.0).strong().color(color))
                                     .on_hover_text(format!("Next on deck {}", ["A", "B"][deck]));
                             }
