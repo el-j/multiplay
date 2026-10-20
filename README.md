@@ -87,7 +87,12 @@ Every crate that links or builds native code must be justified in
 The phone remote is **off by default**. When enabled in Settings → Remote it listens on
 `127.0.0.1` only, unless you also allow devices on your network. Phones pair by scanning a
 single-use QR code; cross-site and DNS-rebinding requests are refused, failed attempts are
-throttled, and remotes can never make the player open a file path or URL. Builds before
+throttled, and **remotes never make the host open anything without approval**: a phone
+can only *request* a track (one from your library, an allow-listed YouTube link, or a search),
+and you accept or reject it in the Remote window (📱). Requests are rate limited per phone,
+file paths, IP addresses and unknown sites are refused, and nothing ever auto-plays. Phone
+uploads are a separate opt-in for the current session only (50 MB limit, decode-checked,
+deleted when remote control stops). Builds before
 this change started an unauthenticated server on `0.0.0.0:9002`. Please update.
 Report vulnerabilities privately as described in [`SECURITY.md`](SECURITY.md).
 

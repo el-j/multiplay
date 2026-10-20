@@ -12,12 +12,13 @@ use std::path::Path;
 
 /// Current on-disk schema. Files without a version are the pre-1.0 `DockManager` dump.
 pub const LAYOUT_VERSION: u32 = 1;
-const ALL: [WindowId; 5] = [
+const ALL: [WindowId; 6] = [
     WindowId::Main,
     WindowId::Equalizer,
     WindowId::Playlist,
     WindowId::Settings,
     WindowId::DjConsole,
+    WindowId::Remote,
 ];
 
 /// One window's saved state.

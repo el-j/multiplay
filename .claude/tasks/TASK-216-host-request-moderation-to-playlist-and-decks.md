@@ -31,5 +31,10 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- `remote_host.rs`/`remote_requests.rs`/`remote_lookup.rs`: previews via the host's own resolvers (new `TrackLookupPort`, YouTube implements it), add to end / play next / deck A-B / reject, drag rows onto playlist or deck, trusted auto-accept (never auto-play), "playing" sent when the track starts, playlist rows remember the requester (saved with the session).
+- Tests: `cargo test -p amp-adapter-gui moderation` (7: YouTube request accepted and resolved by a mocked host resolver, rejected never touches playlist, play next + deck, trusted auto-accept, unknown ids auto-rejected, phone search, upload).
+- Open: cross-window drag needs a manual check on each OS.
+
 ## Status
 - **Status:** Pending

@@ -1,128 +1,18 @@
 //! Negative and positive security tests for the remote-control daemon (TASK-117/118/119).
-//! Every test binds its own loopback listener on an ephemeral port; nothing touches the LAN.
+//! Track requests (protocol v2) are covered in `requests.rs`.
 
 #![forbid(unsafe_code)]
 
-use amp_adapter_remote::{RemoteDaemon, RemoteDaemonConfig};
+mod common;
+
+use amp_adapter_remote::RemoteDaemonConfig;
 use amp_core_engine::events::PlayerCommand;
-use amp_core_engine::EventBus;
-use futures_util::{SinkExt, StreamExt};
-use std::net::SocketAddr;
-use std::sync::Arc;
+use common::*;
+use futures_util::SinkExt;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc::UnboundedReceiver;
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-use tokio_tungstenite::tungstenite::http::HeaderValue;
-use tokio_tungstenite::tungstenite::{Error as WsError, Message};
-use tokio_tungstenite::WebSocketStream;
-
-type Ws = WebSocketStream<TcpStream>;
-
-struct Harness {
-    daemon: Arc<RemoteDaemon>,
-    addr: SocketAddr,
-    cmd_rx: UnboundedReceiver<PlayerCommand>,
-}
-
-async fn start_with(mut config: RemoteDaemonConfig) -> Harness {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let addr = listener.local_addr().expect("addr");
-    config.bind_addr = addr;
-    let (bus, cmd_rx) = EventBus::new(64);
-    let daemon = Arc::new(RemoteDaemon::new(config, Arc::new(bus)));
-    let runner = Arc::clone(&daemon);
-    tokio::spawn(async move {
-        let _ = runner.run_with_listener(listener).await;
-    });
-    Harness {
-        daemon,
-        addr,
-        cmd_rx,
-    }
-}
-
-async fn start() -> Harness {
-    start_with(RemoteDaemonConfig::loopback(0)).await
-}
-
-/// Opens a WebSocket to `/ws?{query}` with optional Origin and Host overrides.
-#[allow(clippy::result_large_err)] // tungstenite's error type
-async fn connect(
-    addr: SocketAddr,
-    query: &str,
-    origin: Option<&str>,
-    host: Option<&str>,
-) -> Result<Ws, WsError> {
-    let url = format!("ws://{addr}/ws?{query}");
-    let mut req = url.into_client_request()?;
-    let default_origin = format!("http://{addr}");
-    let origin = origin.unwrap_or(&default_origin);
-    if !origin.is_empty() {
-        req.headers_mut()
-            .insert("Origin", HeaderValue::from_str(origin).unwrap());
-    }
-    if let Some(host) = host {
-        req.headers_mut()
-            .insert("Host", HeaderValue::from_str(host).unwrap());
-    }
-    let tcp = TcpStream::connect(addr).await.expect("tcp connect");
-    let (ws, _) = tokio_tungstenite::client_async(req, tcp).await?;
-    Ok(ws)
-}
-
-fn http_status(err: WsError) -> u16 {
-    match err {
-        WsError::Http(resp) => resp.status().as_u16(),
-        other => panic!("expected HTTP rejection, got {other:?}"),
-    }
-}
-
-async fn next_text(ws: &mut Ws) -> String {
-    let msg = tokio::time::timeout(Duration::from_secs(2), ws.next())
-        .await
-        .expect("timeout waiting for server message")
-        .expect("stream ended")
-        .expect("ws error");
-    match msg {
-        Message::Text(t) => t.to_string(),
-        other => panic!("expected text frame, got {other:?}"),
-    }
-}
-
-/// Pairs with a fresh token and returns the socket plus the granted session secret.
-async fn pair(h: &Harness) -> (Ws, String) {
-    let token = h.daemon.issue_pairing_token(Duration::from_secs(60));
-    let mut ws = connect(h.addr, &format!("token={token}"), None, None)
-        .await
-        .expect("pairing with a valid token must succeed");
-    let granted: serde_json::Value = serde_json::from_str(&next_text(&mut ws).await).unwrap();
-    assert_eq!(granted["type"], "SessionGranted");
-    let session = granted["payload"]["session"].as_str().unwrap().to_string();
-    assert_eq!(
-        session.len(),
-        32,
-        "session secret must carry 128 bits as hex"
-    );
-    (ws, session)
-}
-
-async fn expect_no_command(rx: &mut UnboundedReceiver<PlayerCommand>) {
-    let res = tokio::time::timeout(Duration::from_millis(300), rx.recv()).await;
-    assert!(
-        res.is_err(),
-        "no command expected, got {:?}",
-        res.ok().flatten()
-    );
-}
-
-async fn expect_command(rx: &mut UnboundedReceiver<PlayerCommand>) -> PlayerCommand {
-    tokio::time::timeout(Duration::from_secs(2), rx.recv())
-        .await
-        .expect("timeout waiting for command")
-        .expect("bus closed")
-}
+use tokio::net::TcpStream;
+use tokio_tungstenite::tungstenite::Message;
 
 #[tokio::test]
 async fn unauthenticated_upgrade_is_rejected_with_401() {
@@ -285,17 +175,8 @@ async fn oversized_frame_closes_the_socket() {
         "9".repeat(100 * 1024)
     );
     let _ = ws.send(Message::Text(huge.into())).await;
-    let closed = tokio::time::timeout(Duration::from_secs(2), async {
-        loop {
-            match ws.next().await {
-                None | Some(Err(_)) | Some(Ok(Message::Close(_))) => return true,
-                Some(Ok(_)) => continue,
-            }
-        }
-    })
-    .await
-    .expect("socket should close after an oversized frame");
-    assert!(closed);
+    let closed = closes(&mut ws).await;
+    assert!(closed, "socket should close after an oversized frame");
     expect_no_command(&mut h.cmd_rx).await;
 }
 
@@ -348,17 +229,21 @@ async fn remote_cannot_enqueue_paths_or_urls() {
     }
     expect_no_command(&mut h.cmd_rx).await;
 
-    // Only ids are accepted; the host decides whether the id exists.
+    // Only ids are accepted, and even those only become a request the host must approve.
     let id = uuid::Uuid::new_v4();
     ws.send(Message::Text(
         format!(r#"{{"v":1,"type":"EnqueueById","payload":"{id}"}}"#).into(),
     ))
     .await
     .unwrap();
-    assert!(matches!(
-        expect_command(&mut h.cmd_rx).await,
-        PlayerCommand::EnqueueExisting(t) if t.0 == id
-    ));
+    match expect_request(&mut h.requests).await {
+        amp_adapter_remote::HostRequest::Track(req) => assert_eq!(
+            req.reference,
+            amp_adapter_remote::ValidReference::Library(amp_domain::TrackId(id))
+        ),
+        other => panic!("expected a track request, got {other:?}"),
+    }
+    expect_no_command(&mut h.cmd_rx).await;
 }
 
 #[tokio::test]

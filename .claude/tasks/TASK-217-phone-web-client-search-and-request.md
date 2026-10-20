@@ -29,5 +29,10 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- Phone page: search (library + providers through the host), paste link, "ask as typed", My requests with live status, upload button when allowed; textContent only; 16 px inputs; zoom no longer blocked.
+- Tests: `cargo test -p amp-adapter-remote web` (5: strict CSP over HTTP, no third-party resources, only same-origin upload fetch, no HTML sinks, v2 messages).
+- Browser run (Playwright, 390×844) against `cargo run -p amp-adapter-remote --example phone_demo`: pair, search, request (Waiting → Accepted → Playing), private-IP link refused with reason, `<b>` in a title shown as text. Open: real iOS Safari / Android Chrome check.
+
 ## Status
 - **Status:** Pending

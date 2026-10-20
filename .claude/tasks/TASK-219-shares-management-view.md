@@ -28,5 +28,8 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- Not built on purpose: the Soulseek adapter has no share index yet (PLAN-045), and this task says no facade UI. The Remote window has no Shares section until sharing is real.
+
 ## Status
 - **Status:** Pending

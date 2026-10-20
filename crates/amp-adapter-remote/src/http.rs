@@ -35,7 +35,7 @@ pub fn respond(request_line: &str) -> String {
     }
 }
 
-fn build(status: &str, content_type: &str, body: &str) -> String {
+pub(crate) fn build(status: &str, content_type: &str, body: &str) -> String {
     format!(
         "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\n{SECURITY_HEADERS}Connection: close\r\n\r\n{body}",
         body.len()

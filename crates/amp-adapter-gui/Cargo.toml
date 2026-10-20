@@ -21,7 +21,7 @@ amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
 amp-adapter-p2p = { path = "../amp-adapter-p2p" }
 amp-adapter-http = { path = "../amp-adapter-http" }
 eframe = { version = "0.37", default-features = false, features = ["default_fonts", "wgpu", "x11", "wayland"] }
-tokio = { workspace = true, features = ["net"] }
+tokio = { workspace = true, features = ["net", "rt", "time"] }
 rtrb = { workspace = true }
 uuid = { workspace = true }
 serde = { workspace = true }
@@ -34,3 +34,4 @@ image = { version = "0.25", default-features = false, features = ["bmp"] }
 
 [dev-dependencies]
 proptest = "1.12"
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }

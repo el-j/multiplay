@@ -1,4 +1,4 @@
-//! Satellite windows (equalizer, playlist, settings, DJ console) rendered as frameless native
+//! Satellite windows (equalizer, playlist, remote, settings) rendered as frameless native
 //! viewports with self-drawn classic chrome and live magnetic docking.
 
 #![forbid(unsafe_code)]
@@ -16,6 +16,7 @@ use eframe::egui::{self, Color32, Pos2, Ui, Vec2, ViewportBuilder};
 pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) {
     Satellite::new(WindowId::Equalizer, "Equalizer").show(app, ctx);
     Satellite::new(WindowId::Playlist, "Playlist").show(app, ctx);
+    Satellite::new(WindowId::Remote, "Remote").show(app, ctx);
     // Settings is an overlay: close button only, never snaps or docks (TASK-201).
     let mut settings = Satellite::new(WindowId::Settings, "Preferences");
     settings.overlay = true;
@@ -108,8 +109,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             }
         }
         WindowId::Playlist => render_playlist_window_content(app, ui),
+        WindowId::Remote => crate::remote_window::render(app, ui),
         WindowId::Settings => {
-            let mut open_skin = false;
+            let mut opens = crate::settings_panel::SettingsOpens::default();
             let devices: Vec<String> = app
                 .audio_driver
                 .available_devices
@@ -121,15 +123,18 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 &mut app.settings_tab,
                 &mut app.config,
                 &mut app.theme,
-                &mut open_skin,
+                &mut opens,
                 &mut app.remote,
                 crate::settings_panel::OutputDevices {
                     names: &devices,
                     headphones_error: app.dj_phones_error.as_deref(),
                 },
             );
-            if open_skin {
+            if opens.skin_dialog {
                 app.open_skin_dialog();
+            }
+            if opens.remote_window {
+                app.dock_manager.set_visible(WindowId::Remote, true);
             }
             if done {
                 app.dock_manager.set_visible(WindowId::Settings, false);

@@ -24,6 +24,9 @@ pub struct SessionPlaylistSnapshot {
     /// The DJ first-run hint was dismissed. Missing in older files.
     #[serde(default)]
     pub dj_hint_done: bool,
+    /// Name of the phone that requested each track (TASK-216). Missing in older files.
+    #[serde(default)]
+    pub requested_by: HashMap<TrackId, String>,
 }
 
 impl Default for SessionPlaylistSnapshot {
@@ -37,6 +40,7 @@ impl Default for SessionPlaylistSnapshot {
             eq_enabled: true,
             deck_assignments: HashMap::new(),
             dj_hint_done: false,
+            requested_by: HashMap::new(),
         }
     }
 }

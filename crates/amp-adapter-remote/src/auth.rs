@@ -2,15 +2,14 @@
 //!
 //! Pairing flow: the host shows a short-lived, single-use pairing token (QR code).
 //! A client that presents it is granted a 128-bit session secret, which the host
-//! stores only as a SHA-256 hash. The client reconnects with that secret until
-//! the user revokes all sessions.
+//! stores only as a SHA-256 hash ([`crate::devices`]). The client reconnects with that
+//! secret until the user revokes the device.
 
 #![forbid(unsafe_code)]
 
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::net::IpAddr;
-use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 /// Failed attempts allowed per address before back-off starts.
@@ -21,20 +20,20 @@ const MAX_TRACKED_ADDRESSES: usize = 4096;
 const MAX_PENDING_TOKENS: usize = 16;
 
 /// Hex-encodes `n` bytes from the OS cryptographic RNG.
-fn random_hex(n: usize) -> String {
+pub(crate) fn random_hex(n: usize) -> String {
     let mut buf = vec![0u8; n];
     getrandom::fill(&mut buf).expect("OS random number generator unavailable");
     buf.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn sha256_hex(input: &str) -> String {
+pub(crate) fn sha256_hex(input: &str) -> String {
     Sha256::digest(input.as_bytes())
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
 }
 
-fn is_hex(s: &str, len: usize) -> bool {
+pub(crate) fn is_hex(s: &str, len: usize) -> bool {
     s.len() == len && s.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
@@ -68,76 +67,6 @@ impl PairingTokens {
         match self.pending.remove(&token.to_uppercase()) {
             Some(expiry) => expiry > Instant::now(),
             None => false,
-        }
-    }
-}
-
-/// Session secrets granted to paired clients, stored as SHA-256 hashes.
-#[derive(Debug, Default)]
-pub struct SessionStore {
-    hashes: HashSet<String>,
-    path: Option<PathBuf>,
-}
-
-impl SessionStore {
-    /// Length of a session secret in hex characters (128 bits).
-    pub const LEN: usize = 32;
-
-    /// Loads hashes from `path` (a JSON array) or starts empty. `None` keeps sessions in memory.
-    #[must_use]
-    pub fn load(path: Option<PathBuf>) -> Self {
-        let hashes = path
-            .as_ref()
-            .and_then(|p| std::fs::read_to_string(p).ok())
-            .and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok())
-            .map(|v| v.into_iter().filter(|h| is_hex(h, 64)).collect())
-            .unwrap_or_default();
-        Self { hashes, path }
-    }
-
-    /// Issues and records a new session secret, returning the plaintext for the client.
-    pub fn issue(&mut self) -> String {
-        let secret = random_hex(Self::LEN / 2);
-        self.hashes.insert(sha256_hex(&secret));
-        self.persist();
-        secret
-    }
-
-    /// Returns true if `secret` was previously issued and not revoked.
-    #[must_use]
-    pub fn verify(&self, secret: &str) -> bool {
-        is_hex(secret, Self::LEN) && self.hashes.contains(&sha256_hex(&secret.to_lowercase()))
-    }
-
-    /// Revokes every session; paired devices must scan a new QR code.
-    pub fn revoke_all(&mut self) {
-        self.hashes.clear();
-        self.persist();
-    }
-
-    /// Number of active sessions.
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.hashes.len()
-    }
-
-    /// Returns true if no session is active.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.hashes.is_empty()
-    }
-
-    fn persist(&self) {
-        let Some(path) = &self.path else { return };
-        let list: Vec<&String> = self.hashes.iter().collect();
-        if let Ok(json) = serde_json::to_string(&list) {
-            if let Some(parent) = path.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let tmp = path.with_extension("tmp");
-            if std::fs::write(&tmp, json).is_ok() {
-                let _ = std::fs::rename(&tmp, path);
-            }
         }
     }
 }
@@ -202,23 +131,6 @@ mod tests {
         let expired = tokens.issue(Duration::ZERO);
         assert!(!tokens.consume(&expired));
         assert!(!tokens.consume("not-hex"));
-    }
-
-    #[test]
-    fn sessions_are_hashed_persisted_and_revocable() {
-        let dir = std::env::temp_dir().join(format!("multiplay-remote-test-{}", random_hex(8)));
-        let path = dir.join("sessions.json");
-        let mut store = SessionStore::load(Some(path.clone()));
-        let secret = store.issue();
-        assert!(store.verify(&secret));
-        assert!(!std::fs::read_to_string(&path).unwrap().contains(&secret));
-
-        let reloaded = SessionStore::load(Some(path.clone()));
-        assert!(reloaded.verify(&secret));
-
-        store.revoke_all();
-        assert!(!SessionStore::load(Some(path)).verify(&secret));
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

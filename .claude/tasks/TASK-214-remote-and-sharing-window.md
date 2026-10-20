@@ -31,5 +31,10 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- New dockable `WindowId::Remote` (📱 toggle next to EQ/PL, shows the waiting-request count); remembered in the layout; Requests, Devices (name from User-Agent, connected/last seen, auto-accept, revoke one / all) and pairing QR moved from Settings.
+- Tests: `cargo test -p amp-adapter-gui remote_window` (6: layout persistence, fits from minimum up incl. DJ mode, revoking one device closes only its socket, turn on / new code, reject action, drop targets); `responsive_layout` now covers the Remote window; remote crate `revoking_one_device_closes_only_its_session`.
+- Open: on-screen check of the window on a real desktop (screen capture unavailable in this session).
+
 ## Status
 - **Status:** Pending

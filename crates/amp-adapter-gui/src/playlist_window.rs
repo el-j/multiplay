@@ -219,6 +219,10 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
                 if !narrow {
                     let (txt, color) = badge(&track.source);
                     ui.label(RichText::new(txt).size(9.0).color(color));
+                    if let Some(who) = app.requested_by.get(&track.id) {
+                        ui.label(RichText::new("📱").size(9.0))
+                            .on_hover_text(format!("Requested by {who}"));
+                    }
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                     if dj {

@@ -121,6 +121,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tokio-tungstenite",
  "uuid",
 ]
 
@@ -155,6 +156,7 @@ dependencies = [
 name = "amp-adapter-remote"
 version = "0.1.0"
 dependencies = [
+ "amp-adapter-decoder",
  "amp-core-engine",
  "amp-domain",
  "amp-ports",
@@ -166,6 +168,7 @@ dependencies = [
  "sha2 0.11.1",
  "tokio",
  "tokio-tungstenite",
+ "url",
  "uuid",
 ]
 

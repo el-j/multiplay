@@ -31,7 +31,7 @@ where
         panic!("expected text frame");
     };
     let msg: ServerMessage = serde_json::from_str(&txt).expect("deserialize server message");
-    assert_eq!(msg.v, 1);
+    assert_eq!(msg.v, amp_adapter_remote::protocol::PROTOCOL_VERSION);
     msg.event
 }
 

@@ -16,6 +16,8 @@ pub enum WindowId {
     Playlist,
     Settings,
     DjConsole,
+    /// Remote & Sharing: phone requests, paired devices, pairing (TASK-214).
+    Remote,
 }
 
 /// 2D rectangular bounding box for floating windows.

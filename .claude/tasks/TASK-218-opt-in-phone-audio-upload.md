@@ -29,5 +29,9 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- `upload.rs`: `POST /api/upload`, 403 unless enabled for the session (Remote window checkbox, off at every start), session secret required, 50 MB, audio extensions only, decode-probed with the decoder, generated file names, `.part` then rename, deleted on daemon stop and stale files cleared on start; uploaded tracks are left out of the saved session.
+- Tests: `cargo test -p amp-adapter-remote upload` (4: disabled → 403, unauthenticated → 401, oversize/non-audio/malformed rejected with no files left, traversal-proof stored name + cleanup) and GUI `moderation_uploaded_file_joins_the_playlist_but_not_the_saved_session`; browser upload via the demo host worked.
+
 ## Status
 - **Status:** Pending

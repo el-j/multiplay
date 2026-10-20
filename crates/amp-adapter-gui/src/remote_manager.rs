@@ -6,7 +6,8 @@
 #![forbid(unsafe_code)]
 
 use amp_adapter_remote::{
-    QrPairingRenderer, RemoteDaemon, RemoteDaemonConfig, RemoteEventBroadcast, RemoteTrackInfo,
+    DeviceId, DeviceSummary, HostRequest, QrPairingRenderer, RemoteDaemon, RemoteDaemonConfig,
+    RemoteEventBroadcast, RemoteTrackInfo, RequestId, RequestStatus, SearchItem,
 };
 use amp_core_engine::events::PlayerCommand;
 use amp_core_engine::EventBus;
@@ -33,6 +34,12 @@ pub struct RemoteGuiManager {
     session_store: Option<PathBuf>,
     pub event_bus: Arc<EventBus>,
     cmd_rx: Arc<Mutex<mpsc::UnboundedReceiver<PlayerCommand>>>,
+    /// Track requests and searches from phones, for the Remote window.
+    requests: Option<mpsc::UnboundedReceiver<HostRequest>>,
+    /// Counts daemon starts; request ids are only unique within one run.
+    pub generation: u64,
+    /// Where phone uploads are kept while the daemon runs; `None` disables uploads.
+    pub upload_dir: Option<PathBuf>,
     pub is_running: bool,
 }
 
@@ -52,8 +59,64 @@ impl RemoteGuiManager {
             session_store,
             event_bus: Arc::new(bus),
             cmd_rx: Arc::new(Mutex::new(cmd_rx)),
+            requests: None,
+            generation: 0,
+            upload_dir: None,
             is_running: false,
         }
+    }
+
+    /// Next track request or search from a phone, if any.
+    pub fn poll_request(&mut self) -> Option<HostRequest> {
+        self.requests.as_mut()?.try_recv().ok()
+    }
+
+    /// Tells the requesting phone what happened to its request.
+    pub fn update_request(&self, id: RequestId, status: RequestStatus, title: Option<String>) {
+        if let Some(d) = &self.daemon {
+            d.update_request(id, status, title);
+        }
+    }
+
+    /// Answers a phone's search.
+    pub fn send_search_results(&self, device: &DeviceId, query: &str, items: Vec<SearchItem>) {
+        if let Some(d) = &self.daemon {
+            d.send_search_results(device, query, items);
+        }
+    }
+
+    /// True while phones may upload audio files (off at every start).
+    #[must_use]
+    pub fn uploads_enabled(&self) -> bool {
+        self.daemon.as_ref().is_some_and(|d| d.uploads_enabled())
+    }
+
+    /// Lets phones upload audio files until the daemon stops.
+    pub fn set_uploads_enabled(&self, enabled: bool) {
+        if let Some(d) = &self.daemon {
+            d.set_uploads_enabled(enabled);
+        }
+    }
+
+    /// Paired devices, oldest first (empty while the daemon is off).
+    #[must_use]
+    pub fn devices(&self) -> Vec<DeviceSummary> {
+        self.daemon
+            .as_ref()
+            .map(|d| d.devices())
+            .unwrap_or_default()
+    }
+
+    /// Forgets one device and disconnects it.
+    pub fn revoke_device(&self, id: &DeviceId) -> bool {
+        self.daemon.as_ref().is_some_and(|d| d.revoke_device(id))
+    }
+
+    /// Accept `id`'s requests without asking (or ask again).
+    pub fn set_trusted(&self, id: &DeviceId, trusted: bool) -> bool {
+        self.daemon
+            .as_ref()
+            .is_some_and(|d| d.set_trusted(id, trusted))
     }
 
     /// Polls for incoming commands sent from mobile remote clients.
@@ -106,6 +169,7 @@ impl RemoteGuiManager {
             RemoteDaemonConfig::loopback(self.port)
         };
         daemon_config.session_store = self.session_store.clone();
+        daemon_config.upload_dir = self.upload_dir.clone();
         let bind_addr = daemon_config.bind_addr;
 
         // Bind synchronously so a busy port is reported instead of silently ignored.
@@ -150,7 +214,10 @@ impl RemoteGuiManager {
         } else {
             Ipv4Addr::LOCALHOST.to_string()
         };
+        self.requests = daemon.take_request_receiver();
+        daemon.set_upload_probe(Arc::new(probe_audio));
         self.daemon = Some(daemon);
+        self.generation += 1;
         self.is_running = true;
         self.last_error = None;
         self.refresh_token();
@@ -161,6 +228,7 @@ impl RemoteGuiManager {
         if let Some(daemon) = self.daemon.take() {
             daemon.shutdown();
         }
+        self.requests = None;
         self.is_running = false;
         self.current_token.clear();
         self.qr_matrix = None;
@@ -213,6 +281,16 @@ impl RemoteGuiManager {
 impl Drop for RemoteGuiManager {
     fn drop(&mut self) {
         self.stop_daemon();
+    }
+}
+
+/// Accepts an uploaded file only if the decoder opens it and produces audio.
+fn probe_audio(path: &std::path::Path) -> Result<(), String> {
+    let mut decoder = amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())?;
+    let mut buf = vec![0.0f32; 4096];
+    match decoder.read_interleaved_samples(&mut buf)? {
+        0 => Err("no audio in the file".into()),
+        _ => Ok(()),
     }
 }
 

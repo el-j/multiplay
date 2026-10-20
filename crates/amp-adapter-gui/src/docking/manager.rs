@@ -42,6 +42,7 @@ impl Default for DockManager {
             WindowId::DjConsole,
             DockRect::new(610.0, 530.0, 480.0, 220.0),
         );
+        windows.insert(WindowId::Remote, DockRect::new(610.0, 310.0, 360.0, 320.0));
 
         let mut visibility = HashMap::new();
         visibility.insert(WindowId::Main, true);
@@ -49,6 +50,7 @@ impl Default for DockManager {
         visibility.insert(WindowId::Playlist, true);
         visibility.insert(WindowId::Settings, false);
         visibility.insert(WindowId::DjConsole, false);
+        visibility.insert(WindowId::Remote, false);
 
         let mut dock_parent = HashMap::new();
         dock_parent.insert(WindowId::Equalizer, (WindowId::Main, DockEdge::Bottom));

@@ -78,6 +78,7 @@ impl eframe::App for MultiplayGuiApp {
 
         // 6. Process Inbound Mobile Remote Commands
         self.handle_remote_commands();
+        self.handle_remote_requests();
 
         // 7. Broadcast Real-Time Player State to Mobile Remote Clients
         self.broadcast_remote_state();
