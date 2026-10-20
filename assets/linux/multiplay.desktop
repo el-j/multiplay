@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Multiplay
+GenericName=Music Player
+Comment=Lightweight audiophile music player with DJ mode
+Exec=multiplay
+Icon=multiplay
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=music;audio;player;dj;playlist;
+StartupWMClass=multiplay

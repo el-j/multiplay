@@ -12,7 +12,9 @@ use eframe::egui::{Pos2, Vec2};
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
+        // The app id ties the window to `multiplay.desktop` (and its icon) on Wayland and X11.
         viewport: classic_viewport("multiplay", false)
+            .with_app_id("multiplay")
             .with_inner_size(Vec2::new(480.0, 210.0))
             .with_position(Pos2::new(120.0, 100.0))
             .with_active(true),

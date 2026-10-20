@@ -59,8 +59,17 @@ jobs:
     name: Package macOS (universal)
     needs: [version, ci]
     runs-on: macos-latest
+    outputs:
+      signing: ${{ steps.notarize.outputs.signing }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      # Optional. Without these the app is ad-hoc signed and the release notes explain the
+      # first-launch step; see docs/RELEASING.md for how to get them.
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -74,9 +83,7 @@ jobs:
             cargo build --release --locked --target "$t" -p amp-app -p amp-adapter-gui
           done
 
-      # One download for every Mac. Ad-hoc signed only (no Apple Developer ID yet), so the
-      # release notes explain the first-launch Gatekeeper step.
-      - name: Assemble Multiplay.app and the disk image
+      - name: Assemble Multiplay.app (universal)
         run: |
           set -euo pipefail
           A=target/aarch64-apple-darwin/release
@@ -87,18 +94,77 @@ jobs:
           cp scripts/Info.plist "$APP/Info.plist"
           plutil -replace CFBundleShortVersionString -string "${{ needs.version.outputs.cargo }}" "$APP/Info.plist"
           plutil -replace CFBundleVersion -string "${{ github.run_number }}" "$APP/Info.plist"
+          cp assets/icon/multiplay.icns "$APP/Resources/Multiplay.icns"
           lipo -create "$A/multiplay-gui" "$X/multiplay-gui" -output "$APP/MacOS/Multiplay"
           lipo -create "$A/amp-app" "$X/amp-app" -output "$DMG/multiplay-tui"
           chmod +x "$APP/MacOS/Multiplay" "$DMG/multiplay-tui"
-          codesign --force --deep --sign - "$DMG/Multiplay.app"
-          codesign --force --sign - "$DMG/multiplay-tui"
-          codesign --verify --deep --strict "$DMG/Multiplay.app"
           lipo -info "$APP/MacOS/Multiplay"
           cp README.md LICENSE "$DMG/"
           ln -s /Applications "$DMG/Applications"
+
+      - name: Import Developer ID certificate
+        if: env.MACOS_CERTIFICATE != ''
+        run: |
+          set -euo pipefail
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          KC_PASS=$(openssl rand -hex 24)
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" login.keychain
+          IDENTITY=$(security find-identity -v -p codesigning "$KC" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)
+          [ -n "$IDENTITY" ] || { echo "::error::No 'Developer ID Application' identity in MACOS_CERTIFICATE"; exit 1; }
+          echo "MACOS_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      # Developer ID with the hardened runtime when a certificate is configured, ad-hoc otherwise.
+      - name: Sign
+        run: |
+          set -euo pipefail
+          DMG=staging/dmg
+          if [ -n "${MACOS_IDENTITY:-}" ]; then
+            SIGN=(--force --options runtime --timestamp --sign "$MACOS_IDENTITY")
+          else
+            SIGN=(--force --sign -)
+          fi
+          codesign "${SIGN[@]}" "$DMG/multiplay-tui"
+          codesign "${SIGN[@]}" "$DMG/Multiplay.app"
+          codesign --verify --deep --strict --verbose=2 "$DMG/Multiplay.app"
+
+      - name: Build the disk image
+        run: |
+          set -euo pipefail
           mkdir -p dist
-          hdiutil create -volname "Multiplay $VERSION" -srcfolder "$DMG" -ov -format UDZO \
-            "dist/multiplay-$VERSION-macos-universal.dmg"
+          OUT="dist/multiplay-$VERSION-macos-universal.dmg"
+          hdiutil create -volname "Multiplay $VERSION" -srcfolder staging/dmg -ov -format UDZO "$OUT"
+          if [ -n "${MACOS_IDENTITY:-}" ]; then
+            codesign --force --timestamp --sign "$MACOS_IDENTITY" "$OUT"
+          fi
+
+      - name: Notarize
+        id: notarize
+        run: |
+          set -euo pipefail
+          OUT="dist/multiplay-$VERSION-macos-universal.dmg"
+          if [ -z "${MACOS_IDENTITY:-}" ]; then
+            echo "signing=adhoc" >> "$GITHUB_OUTPUT"
+          elif [ -z "$APPLE_ID" ] || [ -z "$APPLE_TEAM_ID" ] || [ -z "$APPLE_APP_PASSWORD" ]; then
+            echo "::warning::Signed with Developer ID but not notarized (APPLE_ID, APPLE_TEAM_ID or APPLE_APP_PASSWORD missing)"
+            echo "signing=signed" >> "$GITHUB_OUTPUT"
+          else
+            xcrun notarytool submit "$OUT" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_PASSWORD" --wait --timeout 30m
+            xcrun stapler staple "$OUT"
+            spctl --assess --type open --context context:primary-signature --verbose "$OUT"
+            echo "signing=notarized" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove the signing keychain
+        if: always() && env.MACOS_CERTIFICATE != ''
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
 
       - uses: actions/upload-artifact@v7
         with:
@@ -107,35 +173,80 @@ jobs:
           if-no-files-found: error
 
   linux:
-    name: Package Linux (x86_64)
+    name: Package Linux (${{ matrix.arch }})
     needs: [version, ci]
-    # The oldest supported runner, so the binary also starts on older glibc distros.
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest supported runners, so the binaries also start on older glibc distros.
+          - arch: x86_64
+            runner: ubuntu-22.04
+            # appimagetool 1.9.1 and the type2 runtime 20251108, pinned by checksum.
+            tool_sha: ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+            runtime_sha: 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+            tool_sha: f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+            runtime_sha: 00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444
+    runs-on: ${{ matrix.runner }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v7
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS desktop-file-utils
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --locked -p amp-app -p amp-adapter-gui
-      - name: Package
+
+      - name: Package the tarball
         run: |
           set -euo pipefail
-          NAME="multiplay-$VERSION-linux-x86_64"
+          desktop-file-validate assets/linux/multiplay.desktop
+          NAME="multiplay-$VERSION-linux-$ARCH"
           S="staging/$NAME"
           mkdir -p "$S" dist
           cp target/release/multiplay-gui "$S/multiplay"
           cp target/release/amp-app "$S/multiplay-tui"
           strip "$S/multiplay" "$S/multiplay-tui"
+          cp assets/linux/multiplay.desktop "$S/"
+          cp assets/icon/multiplay-256.png "$S/multiplay.png"
           cp README.md LICENSE "$S/"
           tar -czf "dist/$NAME.tar.gz" -C staging "$NAME"
+          echo "STAGED=$S" >> "$GITHUB_ENV"
+
+      - name: Package the AppImage
+        run: |
+          set -euo pipefail
+          BASE=https://github.com/AppImage
+          curl -sSfL -o appimagetool "$BASE/appimagetool/releases/download/1.9.1/appimagetool-$ARCH.AppImage"
+          curl -sSfL -o runtime "$BASE/type2-runtime/releases/download/20251108/runtime-$ARCH"
+          echo "${{ matrix.tool_sha }}  appimagetool" | sha256sum -c -
+          echo "${{ matrix.runtime_sha }}  runtime" | sha256sum -c -
+          chmod +x appimagetool
+          D=AppDir
+          ICONS="$D/usr/share/icons/hicolor"
+          mkdir -p "$D/usr/bin" "$D/usr/share/applications"
+          cp "$STAGED/multiplay" "$STAGED/multiplay-tui" "$D/usr/bin/"
+          cp assets/linux/multiplay.desktop "$D/"
+          cp assets/linux/multiplay.desktop "$D/usr/share/applications/"
+          for s in 16 24 32 48 64 128 256 512; do
+            mkdir -p "$ICONS/${s}x${s}/apps"
+            cp "assets/icon/multiplay-$s.png" "$ICONS/${s}x${s}/apps/multiplay.png"
+          done
+          cp assets/icon/multiplay-256.png "$D/multiplay.png"
+          ln -s multiplay.png "$D/.DirIcon"
+          ln -s usr/bin/multiplay "$D/AppRun"
+          APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool --no-appstream --runtime-file runtime \
+            "$D" "dist/multiplay-$VERSION-linux-$ARCH.AppImage"
+          chmod +x dist/*.AppImage
 
       - uses: actions/upload-artifact@v7
         with:
-          name: multiplay-linux
+          name: multiplay-linux-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
@@ -143,26 +254,55 @@ jobs:
     name: Package Windows (x86_64)
     needs: [version, ci]
     runs-on: windows-latest
+    outputs:
+      signing: ${{ steps.stage.outputs.signing }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
       # Bundle the C runtime so the .exe runs without the Visual C++ redistributable.
       RUSTFLAGS: -C target-feature=+crt-static
+      # Optional Azure Artifact Signing (formerly Trusted Signing); see docs/RELEASING.md.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --release --locked -p amp-app -p amp-adapter-gui
-      - name: Package
+
+      - name: Stage
+        id: stage
         shell: bash
         run: |
           set -euo pipefail
           NAME="multiplay-$VERSION-windows-x86_64"
           S="staging/$NAME"
-          mkdir -p "$S" dist
+          mkdir -p "$S"
           cp target/release/multiplay-gui.exe "$S/multiplay.exe"
           cp target/release/amp-app.exe "$S/multiplay-tui.exe"
           cp README.md LICENSE "$S/"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+          echo "signing=$([ -n "$AZURE_CLIENT_ID" ] && echo signed || echo unsigned)" >> "$GITHUB_OUTPUT"
+
+      - name: Sign (Azure Artifact Signing)
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/artifact-signing-action@v2
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+          files-folder: ${{ github.workspace }}\staging\${{ env.NAME }}
+          files-folder-filter: exe
+          description: Multiplay
+          description-url: https://github.com/el-j/multiplay
+
+      - name: Zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
           (cd staging && 7z a -tzip "../dist/$NAME.zip" "$NAME")
 
       - uses: actions/upload-artifact@v7
@@ -177,6 +317,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      MACOS_SIGNING: ${{ needs.macos.outputs.signing }}
+      WINDOWS_SIGNING: ${{ needs.windows.outputs.signing }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -184,11 +326,20 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # The first-launch workarounds are only kept for platforms that shipped unsigned.
       - name: Checksums and release notes
         run: |
           set -euo pipefail
           (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
-          sed "s/{{VERSION}}/$VERSION/g" .github/release-notes.md > release-notes.md
+          NOTES=$(sed "s/{{VERSION}}/$VERSION/g" .github/release-notes.md)
+          if [ "$MACOS_SIGNING" = notarized ]; then
+            NOTES=$(sed '/<!-- unsigned-macos -->/,/<!-- \/unsigned-macos -->/d' <<<"$NOTES")
+          fi
+          if [ "$WINDOWS_SIGNING" = signed ]; then
+            NOTES=$(sed '/<!-- unsigned-windows -->/,/<!-- \/unsigned-windows -->/d' <<<"$NOTES")
+          fi
+          printf '%s\n' "$NOTES" > release-notes.md
+          echo "macOS: $MACOS_SIGNING, Windows: $WINDOWS_SIGNING"
 
       # Manual runs stop here: the packages are on the run page, nothing is published.
       - uses: actions/upload-artifact@v7

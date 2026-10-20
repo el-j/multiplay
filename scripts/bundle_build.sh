@@ -44,6 +44,7 @@ fi
 if [ -f "$WORKSPACE_ROOT/scripts/Info.plist" ]; then
     cp "$WORKSPACE_ROOT/scripts/Info.plist" "$BUILD_DIR/macos/Multiplay.app/Contents/Info.plist"
 fi
+cp "$WORKSPACE_ROOT/assets/icon/multiplay.icns" "$BUILD_DIR/macos/Multiplay.app/Contents/Resources/Multiplay.icns"
 
 # 5. Create Multiplay.command inside build/macos/
 cat << 'EOF' > "$BUILD_DIR/macos/Multiplay.command"

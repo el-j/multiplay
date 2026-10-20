@@ -48,6 +48,7 @@ pub fn classic_viewport(title: &str, resizable: bool) -> ViewportBuilder {
         .with_resizable(resizable)
         .with_maximize_button(false)
         .with_transparent(false)
+        .with_icon(crate::app_icon::shared_window_icon())
 }
 
 const STRIP_ACTIVE: Color32 = Color32::from_rgb(38, 46, 72);

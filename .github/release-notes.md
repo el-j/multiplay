@@ -8,33 +8,46 @@
 |---|---|
 | macOS 11+ (Apple Silicon and Intel) | `multiplay-{{VERSION}}-macos-universal.dmg` |
 | Windows 10/11 (64-bit) | `multiplay-{{VERSION}}-windows-x86_64.zip` |
-| Linux (x86_64, glibc 2.35+) | `multiplay-{{VERSION}}-linux-x86_64.tar.gz` |
+| Linux x86_64 | `multiplay-{{VERSION}}-linux-x86_64.AppImage` or `.tar.gz` |
+| Linux ARM64 (e.g. Raspberry Pi 4/5 with a 64-bit OS) | `multiplay-{{VERSION}}-linux-aarch64.AppImage` or `.tar.gz` |
 
 Each package has the desktop app (`multiplay`) and the terminal version (`multiplay-tui`).
 
 ### macOS
 
-Open the `.dmg` and drag **Multiplay** to **Applications**. The beta is not notarized by
-Apple yet, so the first launch is blocked: open **System Settings → Privacy & Security** and
-click **Open Anyway** next to the Multiplay message. Or, in Terminal:
+Open the `.dmg` and drag **Multiplay** to **Applications**.
+<!-- unsigned-macos -->
+
+This beta is not notarized by Apple yet, so macOS blocks the first launch. Open
+**System Settings → Privacy & Security** and click **Open Anyway** next to the Multiplay
+message. Or, in Terminal:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/Multiplay.app
 ```
+<!-- /unsigned-macos -->
 
 ### Windows
 
-Unzip and run `multiplay.exe`. The beta is not code-signed yet, so SmartScreen may warn:
-click **More info → Run anyway**.
+Unzip and run `multiplay.exe`.
+<!-- unsigned-windows -->
+
+This beta is not code-signed yet, so SmartScreen may warn: click **More info → Run anyway**.
+<!-- /unsigned-windows -->
 
 ### Linux
 
+The AppImage runs on most distributions (glibc 2.35 or newer, e.g. Ubuntu 22.04+, Debian 12+,
+Fedora 36+):
+
 ```sh
-tar -xzf multiplay-{{VERSION}}-linux-x86_64.tar.gz
-./multiplay-{{VERSION}}-linux-x86_64/multiplay
+chmod +x multiplay-{{VERSION}}-linux-x86_64.AppImage
+./multiplay-{{VERSION}}-linux-x86_64.AppImage
 ```
 
-Needs ALSA (`libasound2`) and an X11 or Wayland desktop.
+If it does not start because FUSE is missing, add `--appimage-extract-and-run`. The tarball
+has the plain binaries plus `multiplay.desktop` and `multiplay.png` for a menu entry. Both need
+ALSA (`libasound2`) and an X11 or Wayland desktop.
 
 ### Verify the download
 
