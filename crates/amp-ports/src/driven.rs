@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use amp_domain::{AudioSource, Track, TrackId};
+use amp_domain::{AudioSource, Track, TrackId, TrackMetadata};
 use async_trait::async_trait;
 use std::io::{Read, Seek};
 use std::time::Duration;
@@ -30,6 +30,14 @@ pub trait StreamResolverPort: Send + Sync {
         &self,
         source: &AudioSource,
     ) -> Result<Box<dyn AudioSourceStream>, ProviderError>;
+}
+
+/// Driven port for looking up a source's title, artist and duration without streaming it, so a
+/// host can preview a remote's request before accepting it (TASK-216).
+#[async_trait]
+pub trait TrackLookupPort: Send + Sync {
+    fn can_lookup(&self, source: &AudioSource) -> bool;
+    async fn lookup(&self, source: &AudioSource) -> Result<TrackMetadata, ProviderError>;
 }
 
 /// Driven port for searching external online or network audio providers.

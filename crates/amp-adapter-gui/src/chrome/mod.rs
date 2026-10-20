@@ -36,6 +36,7 @@ pub fn viewport_id(window: WindowId) -> ViewportId {
         WindowId::Playlist => ViewportId::from_hash_of("win_playlist"),
         WindowId::Settings => ViewportId::from_hash_of("win_settings"),
         WindowId::DjConsole => ViewportId::from_hash_of("win_dj"),
+        WindowId::Remote => ViewportId::from_hash_of("win_remote"),
     }
 }
 

@@ -5,6 +5,13 @@
 use amp_domain::AppConfig;
 use eframe::egui::{self, Color32, RichText, Ui};
 
+/// Windows and dialogs the settings panel asks the app to open after drawing.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct SettingsOpens {
+    pub skin_dialog: bool,
+    pub remote_window: bool,
+}
+
 /// Active preferences tab category for GUI settings window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GuiSettingsTab {
@@ -36,7 +43,7 @@ impl SettingsGuiPanel {
         active_tab: &mut GuiSettingsTab,
         config: &mut AppConfig,
         theme: &mut amp_core_engine::WinampTheme,
-        open_skin_dialog: &mut bool,
+        opens: &mut SettingsOpens,
         remote: &mut crate::remote_manager::RemoteGuiManager,
         outputs: OutputDevices<'_>,
     ) -> bool {
@@ -70,7 +77,7 @@ impl SettingsGuiPanel {
                 ui.selectable_value(active_tab, GuiSettingsTab::Accounts, "🌐 Accounts");
                 ui.selectable_value(active_tab, GuiSettingsTab::P2P, "🔗 P2P Network");
                 ui.selectable_value(active_tab, GuiSettingsTab::Appearance, "🎨 Appearance");
-                ui.selectable_value(active_tab, GuiSettingsTab::Plugins, "🧩 Plugins");
+                ui.selectable_value(active_tab, GuiSettingsTab::Plugins, "🔌 Plugins");
                 ui.selectable_value(active_tab, GuiSettingsTab::Remote, "📱 Remote Control");
             });
 
@@ -218,7 +225,7 @@ impl SettingsGuiPanel {
                             .button(RichText::new("📂 Load .wsz Skin...").strong())
                             .clicked()
                         {
-                            *open_skin_dialog = true;
+                            opens.skin_dialog = true;
                         }
                     });
 
@@ -291,40 +298,18 @@ impl SettingsGuiPanel {
                         return;
                     }
 
-                    ui.horizontal_wrapped(|ui| {
-                        let scope = if remote.allow_lan { "network" } else { "this computer only" };
-                        ui.label(format!("Listening on port {} ({scope})", remote.port));
-                        ui.separator();
-                        ui.label(format!(
-                            "Connected: {} · Paired devices: {}",
-                            remote.active_peers_count(),
-                            remote.paired_devices()
-                        ));
-                    });
-
-                    ui.add_space(6.0);
-                    ui.horizontal_wrapped(|ui| {
-                        if let Some(ref matrix) = remote.qr_matrix {
-                            crate::qr_widget::draw_qr_code(ui, matrix, 140.0);
-                        }
-
-                        ui.vertical(|ui| {
-                            ui.label("Scan the QR code with your phone camera to pair.");
-                            ui.label("Each code works once and expires after 10 minutes.");
-                            ui.add_space(4.0);
-                            ui.label(format!("Token: {}", remote.current_token));
-                            if ui.button("🔄 New pairing code").clicked() {
-                                remote.refresh_token();
-                            }
-                            if ui.button("🚫 Forget all paired devices").clicked() {
-                                remote.revoke_all_sessions();
-                            }
-                            ui.add_space(4.0);
-                            ui.label("Direct URL:");
-                            let mut url = remote.pairing_url();
-                            ui.text_edit_singleline(&mut url);
-                        });
-                    });
+                    let scope = if remote.allow_lan { "your network" } else { "this computer only" };
+                    ui.label(format!("Listening on port {} ({scope})", remote.port));
+                    ui.label(format!(
+                        "Connected: {} · Paired devices: {}",
+                        remote.active_peers_count(),
+                        remote.paired_devices()
+                    ));
+                    ui.add_space(4.0);
+                    ui.label("Pairing, paired devices and phone requests are in the Remote window.");
+                    if ui.button("📱 Open Remote window").clicked() {
+                        opens.remote_window = true;
+                    }
                 }
             });
         });

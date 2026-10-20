@@ -48,9 +48,9 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     row_rtl(ui, |ui| {
         if app.remote.is_running {
             let text = if app.remote.allow_lan {
-                "● REMOTE (LAN)"
+                "⚫ REMOTE (LAN)"
             } else {
-                "● REMOTE"
+                "⚫ REMOTE"
             };
             ui.label(
                 RichText::new(text)
@@ -58,7 +58,7 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
                     .strong()
                     .color(Color32::from_rgb(240, 180, 0)),
             )
-            .on_hover_text("Remote control is listening. Turn it off in Settings → Remote.");
+            .on_hover_text("Remote control is listening. Phones and requests: the 📱 window.");
         }
         if !narrow {
             ui.label(
@@ -251,17 +251,28 @@ fn toggles_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
         {
             app.toggle_dj_mode(Some(ui.ctx()));
         }
+        let waiting = app.remote_requests.rows.len();
+        let remote = if waiting > 0 {
+            format!("📱{waiting}")
+        } else {
+            "📱".to_string()
+        };
         for (id, text, tip) in [
-            (WindowId::Equalizer, "EQ", "Equalizer window"),
-            (WindowId::Playlist, "PL", "Playlist window"),
-            (WindowId::Settings, "⚙", "Preferences"),
+            (WindowId::Equalizer, "EQ".to_string(), "Equalizer window"),
+            (WindowId::Playlist, "PL".to_string(), "Playlist window"),
+            (
+                WindowId::Remote,
+                remote,
+                "Remote: phone requests and paired devices",
+            ),
+            (WindowId::Settings, "⚙".to_string(), "Preferences"),
         ] {
             let on = app.dock_manager.is_visible(id);
-            if ui
-                .selectable_label(on, RichText::new(text).size(11.0))
-                .on_hover_text(tip)
-                .clicked()
-            {
+            let mut label = RichText::new(text).size(11.0);
+            if id == WindowId::Remote && waiting > 0 {
+                label = label.color(Color32::from_rgb(240, 180, 0)).strong();
+            }
+            if ui.selectable_label(on, label).on_hover_text(tip).clicked() {
                 app.dock_manager.toggle_visible(id);
             }
         }

@@ -1,16 +1,21 @@
 //! Versioned JSON WebSocket protocol for remote control and mobile clients.
 //!
-//! Every client message is an envelope `{"v":1,"type":"<Action>","payload":...}`.
-//! Remotes can only reference tracks the host already knows (by [`TrackId`]);
-//! they can never hand the host a file path or URL to open.
+//! Every client message is an envelope `{"v":2,"type":"<Action>","payload":...}`; version 1
+//! clients (transport control only) are still understood.
+//! Remotes never make the host open anything without approval: a track request carries a
+//! validated [`TrackReference`] that the host accepts or rejects ([`crate::reference`]).
 
 #![forbid(unsafe_code)]
 
+use crate::reference::{SearchItem, TrackReference};
+use crate::requests::{RequestId, RequestStatus};
 use amp_domain::{Track, TrackId};
 use serde::{Deserialize, Serialize};
 
-/// Protocol version spoken by this daemon. Messages with any other `v` are rejected.
-pub const PROTOCOL_VERSION: u32 = 1;
+/// Protocol version spoken by this daemon.
+pub const PROTOCOL_VERSION: u32 = 2;
+/// Oldest client version still accepted. Messages with any other `v` are rejected.
+pub const MIN_PROTOCOL_VERSION: u32 = 1;
 
 /// Inbound control action received from a connected remote client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -30,16 +35,20 @@ pub enum RemoteAction {
     SetVolume(f32),
     /// Seek to a specified position in seconds.
     Seek(u64),
-    /// Enqueue a track the host already holds in its playlist or library.
+    /// Version 1 form of `RequestTrack(Library(id))`: becomes a request the host moderates.
     EnqueueById(TrackId),
     /// Cast a vote to skip the current track.
     VoteSkip,
+    /// Ask the host to play something. The host accepts or rejects it; it never auto-plays.
+    RequestTrack(TrackReference),
+    /// Search the host's library and providers (through the host).
+    Search(String),
 }
 
 /// Versioned envelope wrapping every client message.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ClientMessage {
-    /// Protocol version; must equal [`PROTOCOL_VERSION`].
+    /// Envelope version, from [`MIN_PROTOCOL_VERSION`] to [`PROTOCOL_VERSION`].
     pub v: u32,
     /// The requested action.
     #[serde(flatten)]
@@ -93,7 +102,7 @@ pub fn parse_client_message(text: &str) -> Result<RemoteAction, ProtocolError> {
                 "missing protocol version `v`".into(),
             ))
         }
-        Some(PROTOCOL_VERSION) => {}
+        Some(v) if (MIN_PROTOCOL_VERSION..=PROTOCOL_VERSION).contains(&v) => {}
         Some(other) => return Err(ProtocolError::UnsupportedVersion(other)),
     }
     let msg: ClientMessage =
@@ -150,6 +159,23 @@ pub enum RemoteEventBroadcast {
     ActionAck { action: String },
     /// Error notification (for example a refused message).
     Error { message: String },
+    /// A request this phone sent changed state (sent only to that phone).
+    RequestUpdate {
+        id: RequestId,
+        status: RequestStatus,
+        /// Resolved "title - artist", once the host knows it.
+        title: Option<String>,
+    },
+    /// A request or search was refused before reaching the host (sent only to that phone).
+    /// Replies come in the order messages were sent; `search` tells which kind it answers.
+    RequestRefused { reason: String, search: bool },
+    /// Whether phones may upload audio files right now (sent on connect when on, and on change).
+    Uploads { enabled: bool },
+    /// Results of this phone's search (sent only to that phone).
+    SearchResults {
+        query: String,
+        items: Vec<SearchItem>,
+    },
 }
 
 /// Versioned envelope wrapping every server message.
@@ -190,6 +216,9 @@ mod tests {
             RemoteAction::Seek(42),
             RemoteAction::EnqueueById(TrackId::new()),
             RemoteAction::VoteSkip,
+            RemoteAction::RequestTrack(TrackReference::Link("https://youtu.be/x".into())),
+            RemoteAction::RequestTrack(TrackReference::Search("q".into())),
+            RemoteAction::Search("q".into()),
         ];
         for action in actions {
             let json = serde_json::to_string(&ClientMessage::new(action.clone())).unwrap();
@@ -204,8 +233,12 @@ mod tests {
             Err(ProtocolError::Malformed(_))
         ));
         assert_eq!(
-            parse_client_message(r#"{"v":2,"type":"Play"}"#),
-            Err(ProtocolError::UnsupportedVersion(2))
+            parse_client_message(r#"{"v":3,"type":"Play"}"#),
+            Err(ProtocolError::UnsupportedVersion(3))
+        );
+        assert_eq!(
+            parse_client_message(r#"{"v":1,"type":"Play"}"#),
+            Ok(RemoteAction::Play)
         );
     }
 
@@ -232,6 +265,8 @@ mod tests {
         let seeds = [
             r#"{"v":1,"type":"SetVolume","payload":0.5}"#,
             r#"{"v":1,"type":"Seek","payload":1}"#,
+            r#"{"v":2,"type":"RequestTrack","payload":{"kind":"Link","value":"https://youtu.be/dQw4w9WgXcQ"}}"#,
+            r#"{"v":2,"type":"Search","payload":"daft punk"}"#,
         ];
         for i in 0..5_000 {
             let mut bytes: Vec<u8> = if i % 2 == 0 {
@@ -243,7 +278,11 @@ mod tests {
                 let idx = (next() as usize) % bytes.len();
                 bytes[idx] = next() as u8;
             }
-            let _ = parse_client_message(&String::from_utf8_lossy(&bytes));
+            if let Ok(RemoteAction::RequestTrack(r)) =
+                parse_client_message(&String::from_utf8_lossy(&bytes))
+            {
+                let _ = r.validate();
+            }
         }
     }
 
@@ -262,7 +301,7 @@ mod tests {
             position_secs: 3,
             active_peers: 1,
         });
-        assert!(json.starts_with(r#"{"v":1,"#));
+        assert!(json.starts_with(r#"{"v":2,"#));
         assert!(!json.contains("secret.flac"));
     }
 }

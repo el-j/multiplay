@@ -33,5 +33,10 @@
 ## Manual Verification
 Describe the release-build demo performed and link evidence (screenshot, screen recording, log, CI run) here before closing.
 
+## Evidence (PLAN-056 execution, 2026-10-20)
+- Protocol v2 (`RequestTrack { kind, value }`, `Search`, events `RequestUpdate`/`RequestRefused`/`SearchResults`/`Uploads`); v1 clients still accepted; `EnqueueById` became a moderated request.
+- Validation in `reference.rs` (URL parser, YouTube-only allow-list as only that resolver exists, no IPs/ports/logins/paths, 512-byte links, 200-char queries); per-device pending cap 5 and token buckets (`requests.rs`).
+- Tests: `cargo test -p amp-adapter-remote` (tests/requests.rs: 10 incl. file path, file://, private IP, unknown host, oversize and flood refused); fuzz target extended to `validate`. README/SECURITY.md say "remotes never make the host open anything without approval".
+
 ## Status
 - **Status:** Pending

@@ -45,6 +45,12 @@ impl AppPaths {
         self.data_dir.join("session_playlist.json")
     }
 
+    /// Temporary folder for audio files uploaded from phones (emptied when remote stops).
+    #[must_use]
+    pub fn remote_uploads_dir(&self) -> PathBuf {
+        self.data_dir.join("remote-uploads")
+    }
+
     /// Hashed session secrets of paired remote devices.
     #[must_use]
     pub fn remote_sessions_file(&self) -> PathBuf {

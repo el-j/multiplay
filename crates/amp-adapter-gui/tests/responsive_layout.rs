@@ -11,12 +11,13 @@ use amp_domain::{AudioSource, Track, TrackMetadata};
 use eframe::egui::{self, Pos2, RawInput, Rect, Vec2};
 use std::path::PathBuf;
 
-const WINDOWS: [WindowId; 5] = [
+const WINDOWS: [WindowId; 6] = [
     WindowId::Main,
     WindowId::Equalizer,
     WindowId::Playlist,
     WindowId::Settings,
     WindowId::DjConsole,
+    WindowId::Remote,
 ];
 
 struct TestRoot(PathBuf);

@@ -66,6 +66,18 @@ pub struct MultiplayGuiApp {
     pub skin_cache: crate::skin_texture::SkinTextureCache,
     pub visualizer_mode: crate::visualizer_widget::VisualizerMode,
     pub remote: crate::remote_manager::RemoteGuiManager,
+    /// Phone requests waiting for the host (Remote window).
+    pub remote_requests: crate::remote_requests::RequestQueue,
+    /// Who requested each playlist track that came from a phone (saved with the session).
+    pub requested_by: std::collections::HashMap<amp_domain::TrackId, String>,
+    /// Accepted requests whose phone still waits for "playing".
+    pub request_ids: std::collections::HashMap<amp_domain::TrackId, amp_adapter_remote::RequestId>,
+    /// Resolvers for request previews; `None` uses the real providers (tests inject fixtures).
+    pub lookup_services: Option<crate::remote_lookup::LookupServices>,
+    /// Lookup thread, started by the first request that needs it.
+    pub remote_lookup: Option<crate::remote_lookup::RemoteLookup>,
+    /// Track last reported as playing to phones.
+    pub last_playing: Option<amp_domain::TrackId>,
     /// Injected filesystem locations (user home in production, temp dirs in tests).
     pub paths: crate::app_paths::AppPaths,
 }
@@ -93,8 +105,9 @@ impl MultiplayGuiApp {
         paths: crate::app_paths::AppPaths,
     ) -> Result<Self, String> {
         // The remote daemon stays off until the user enables it (audit SEC-01).
-        let remote =
+        let mut remote =
             crate::remote_manager::RemoteGuiManager::new(Some(paths.remote_sessions_file()));
+        remote.upload_dir = Some(paths.remote_uploads_dir());
 
         let mut app = Self {
             audio_driver,
@@ -131,6 +144,12 @@ impl MultiplayGuiApp {
             skin_cache: crate::skin_texture::SkinTextureCache::default(),
             visualizer_mode: crate::visualizer_widget::VisualizerMode::Spectrum,
             remote,
+            remote_requests: Default::default(),
+            requested_by: std::collections::HashMap::new(),
+            request_ids: std::collections::HashMap::new(),
+            lookup_services: None,
+            remote_lookup: None,
+            last_playing: None,
             paths,
         };
 
@@ -157,6 +176,7 @@ impl MultiplayGuiApp {
             self.eq_enabled = snap.eq_enabled;
             self.deck_assign = snap.deck_assignments;
             self.dj_hint_done = snap.dj_hint_done;
+            self.requested_by = snap.requested_by;
 
             self.audio_driver.set_volume(self.volume);
             self.audio_driver.set_eq_preamp(self.eq_preamp);
@@ -172,10 +192,24 @@ impl MultiplayGuiApp {
         }
     }
 
+    /// True for tracks a phone uploaded (they live in the temporary upload folder).
+    fn is_phone_upload(&self, track: &Track) -> bool {
+        match (&track.source, &self.remote.upload_dir) {
+            (AudioSource::LocalFile { path }, Some(dir)) => Path::new(path).starts_with(dir),
+            _ => false,
+        }
+    }
+
     /// Persists current playlist and playback configuration to session snapshot.
     pub fn save_session(&self) {
         let snap = SessionPlaylistSnapshot {
-            tracks: self.playlist.clone(),
+            // Phone uploads are deleted on exit, so they never come back with the session.
+            tracks: self
+                .playlist
+                .iter()
+                .filter(|t| !self.is_phone_upload(t))
+                .cloned()
+                .collect(),
             selected_idx: self.selected_track_idx,
             volume: self.volume,
             eq_preamp: self.eq_preamp,
@@ -183,6 +217,12 @@ impl MultiplayGuiApp {
             eq_enabled: self.eq_enabled,
             deck_assignments: self.deck_assign.clone(),
             dj_hint_done: self.dj_hint_done,
+            requested_by: self
+                .requested_by
+                .iter()
+                .filter(|(id, _)| self.playlist.iter().any(|t| t.id == **id))
+                .map(|(id, name)| (*id, name.clone()))
+                .collect(),
         };
         let _ = snap.save_to_file(&self.paths.session_file());
     }

@@ -6,6 +6,7 @@
 use amp_domain::{AudioSource, Track, TrackMetadata};
 use amp_ports::{
     AudioSourceStream, ProviderError, ProviderSearchPort, SharedPrecacheBuffer, StreamResolverPort,
+    TrackLookupPort,
 };
 use async_trait::async_trait;
 use rusty_ytdl::{
@@ -71,6 +72,41 @@ impl ProviderSearchPort for PureYouTubeAdapter {
         }
 
         Ok(tracks)
+    }
+}
+
+#[async_trait]
+impl TrackLookupPort for PureYouTubeAdapter {
+    fn can_lookup(&self, source: &AudioSource) -> bool {
+        matches!(source, AudioSource::YouTube { .. })
+    }
+
+    /// Title, channel and length from the watch page, without fetching any audio.
+    async fn lookup(&self, source: &AudioSource) -> Result<TrackMetadata, ProviderError> {
+        let AudioSource::YouTube { video_id } = source else {
+            return Err(ProviderError::NotFound);
+        };
+        let video = Video::new(video_id).map_err(|e| {
+            ProviderError::Network(format!("Invalid YouTube video {video_id}: {e}"))
+        })?;
+        let info = video
+            .get_basic_info()
+            .await
+            .map_err(|e| ProviderError::Network(format!("YouTube lookup failed: {e}")))?;
+        let details = info.video_details;
+        let artist = details
+            .author
+            .map(|a| a.name)
+            .filter(|n| !n.is_empty())
+            .unwrap_or(details.owner_channel_name);
+        let mut metadata = TrackMetadata::new(details.title, artist);
+        metadata.duration = details
+            .length_seconds
+            .parse::<u64>()
+            .ok()
+            .filter(|s| *s > 0)
+            .map(Duration::from_secs);
+        Ok(metadata)
     }
 }
 
