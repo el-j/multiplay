@@ -98,11 +98,17 @@ fn play_to_end(file: &str, seconds: f64) {
     }
 }
 
+/// Engines run a few at a time: each one starts its own audio threads, and dozens at once
+/// starve small CI machines (Windows runners time out the sink start).
+const PARALLEL: usize = 4;
+
 #[test]
 fn every_fixture_plays_to_the_end_through_the_engine() {
-    std::thread::scope(|s| {
-        for (file, seconds) in FIXTURES {
-            s.spawn(move || play_to_end(file, *seconds));
-        }
-    });
+    for batch in FIXTURES.chunks(PARALLEL) {
+        std::thread::scope(|s| {
+            for (file, seconds) in batch {
+                s.spawn(move || play_to_end(file, *seconds));
+            }
+        });
+    }
 }
