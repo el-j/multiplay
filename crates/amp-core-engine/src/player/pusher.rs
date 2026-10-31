@@ -62,7 +62,7 @@ pub(crate) fn update_clock_position_and_tap(
     if popped_since_flush >= 512 {
         driver.clock.read_tap(tap_buf);
         tap_visualizer.push_samples(tap_buf);
-        let bands = tap_visualizer.compute_spectrum_bands();
+        let bands = tap_visualizer.spectrum_bands_throttled();
         if let Ok(mut spec) = driver.visualizer_spectrum.try_lock() {
             *spec = bands;
         }

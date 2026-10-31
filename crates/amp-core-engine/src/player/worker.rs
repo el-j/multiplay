@@ -186,7 +186,8 @@ fn process_standard_tick(
         drain_pending_to_ring(driver, pending_out);
         update_clock_position_and_tap(driver, tap_visualizer, tap_buf);
         if !pending_out.is_empty() {
-            driver.wait_for_wake(Duration::from_millis(2));
+            // The ring is full (1.36 s at 48 kHz): no hurry. Commands still wake us at once.
+            driver.wait_for_wake(Duration::from_millis(10));
             return;
         }
     }

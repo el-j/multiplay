@@ -161,6 +161,12 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             if opens.skin_dialog {
                 app.open_skin_dialog();
             }
+            let log_dir = app.paths.log_dir();
+            if let Some(notice) =
+                crate::about::run_action(opens.about, ui.ctx(), &app.config, &log_dir)
+            {
+                crate::about::set_notice(ui.ctx(), notice);
+            }
             if opens.remote_window {
                 app.dock_manager.set_visible(WindowId::Remote, true);
             }

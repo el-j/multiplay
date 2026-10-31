@@ -215,8 +215,14 @@ async fn search_each_provider(
             Ok(Ok(tracks)) => {
                 hits.extend(tracks.into_iter().take(PROVIDER_RESULTS).map(|t| (id, t)));
             }
-            Ok(Err(e)) => failures.push(format!("{}: {e}", provider_name(id))),
-            Err(_) => failures.push(format!("{}: no answer in time", provider_name(id))),
+            Ok(Err(e)) => {
+                tracing::warn!(provider = id, "search failed: {e}");
+                failures.push(format!("{}: {e}", provider_name(id)));
+            }
+            Err(_) => {
+                tracing::warn!(provider = id, "search timed out after {LOOKUP_TIMEOUT:?}");
+                failures.push(format!("{}: no answer in time", provider_name(id)));
+            }
         }
     }
     (hits, failures)

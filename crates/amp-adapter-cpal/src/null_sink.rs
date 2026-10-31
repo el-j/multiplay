@@ -118,7 +118,9 @@ pub(crate) fn spawn_realtime_drain(
                         }
                     }
                 }
-                thread::sleep(Duration::from_millis(2));
+                // About a sound card's period (512 frames at 48 kHz). Waking every 2 ms cost 0.5%
+                // CPU while idle and made headless measurements worse than real devices.
+                thread::sleep(Duration::from_millis(10));
             }
         })
         .ok();

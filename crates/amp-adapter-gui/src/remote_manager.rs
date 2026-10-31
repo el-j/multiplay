@@ -179,6 +179,7 @@ impl RemoteGuiManager {
         }) {
             Ok(l) => l,
             Err(e) => {
+                tracing::warn!("remote control could not listen on {bind_addr}: {e}");
                 self.last_error = Some(format!("Could not listen on {bind_addr}: {e}"));
                 return;
             }
@@ -199,8 +200,13 @@ impl RemoteGuiManager {
                     return;
                 };
                 rt.block_on(async move {
-                    if let Ok(listener) = tokio::net::TcpListener::from_std(listener) {
-                        let _ = runner.run_with_listener(listener).await;
+                    match tokio::net::TcpListener::from_std(listener) {
+                        Ok(listener) => {
+                            if let Err(e) = runner.run_with_listener(listener).await {
+                                tracing::warn!("remote control stopped: {e}");
+                            }
+                        }
+                        Err(e) => tracing::warn!("remote control listener: {e}"),
                     }
                 });
             });
@@ -221,12 +227,17 @@ impl RemoteGuiManager {
         self.is_running = true;
         self.last_error = None;
         self.refresh_token();
+        tracing::info!(
+            lan = self.allow_lan,
+            "remote control listening on {bind_addr}"
+        );
     }
 
     /// Stops the daemon and disconnects all remotes. Paired devices stay paired.
     pub fn stop_daemon(&mut self) {
         if let Some(daemon) = self.daemon.take() {
             daemon.shutdown();
+            tracing::info!("remote control stopped");
         }
         self.requests = None;
         self.is_running = false;

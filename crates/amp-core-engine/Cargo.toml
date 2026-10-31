@@ -22,6 +22,11 @@ uuid = { workspace = true }
 zip = { version = "9.1", default-features = false, features = ["deflate"] }
 rand = "0.10"
 toml = "1"
+# Field diagnostics (TASK-177): structured logs to daily files under the log folder.
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter"] }
+tracing-appender = "0.2"
 
 [dev-dependencies]
 proptest = "1.12"
+tempfile = "3.27"

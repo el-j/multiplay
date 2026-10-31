@@ -27,6 +27,7 @@ repository = "https://github.com/el-j/multiplay"
 authors = ["multiplay contributors"]
 
 [workspace.dependencies]
+tracing = "0.1"
 # Internal Workspace Crates
 amp-domain = { path = "crates/amp-domain" }
 amp-ports = { path = "crates/amp-ports" }

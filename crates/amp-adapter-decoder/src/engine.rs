@@ -77,7 +77,7 @@ impl PureDecoderEngine {
                     }
                 }
                 Err(SymphoniaError::DecodeError(msg)) => {
-                    eprintln!("Recoverable decode frame warning: {msg}");
+                    tracing::warn!("skipped an undecodable frame: {msg}");
                     continue;
                 }
                 Err(e) => return Err(format!("Fatal decoding failure: {e}")),

@@ -237,7 +237,7 @@ impl DjHost {
         let vol = volume(driver);
         let out: Vec<f32> = self.main[..STEP * 2].iter().map(|s| s * vol).collect();
         self.visualizer.push_samples(&out);
-        let bands = self.visualizer.compute_spectrum_bands();
+        let bands = self.visualizer.spectrum_bands_throttled();
         push_samples_with_clock(driver, &out, bands);
         None
     }

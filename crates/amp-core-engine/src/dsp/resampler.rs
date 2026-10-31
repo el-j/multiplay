@@ -1,13 +1,13 @@
-//! Bit-perfect polyphase Sinc resampler using pure-Rust Rubato.
-//! Converts arbitrary source sample rates (44.1, 48, 96, 192 kHz) to hardware output rates.
+//! Pure-Rust Rubato resampler: converts source sample rates (44.1, 48, 96, 192 kHz) to the
+//! hardware output rate. Track rates are fixed, so this uses rubato's synchronous FFT resampler
+//! (windowed-sinc anti-aliasing with a BlackmanHarris2 window, done in the frequency domain):
+//! the same cleanliness as the sinc interpolator at a fraction of its CPU (TASK-179;
+//! `tests/resampler_quality.rs`).
 
 #![forbid(unsafe_code)]
 
 use rubato::audioadapter_buffers::direct::{InterleavedSlice, SequentialSliceOfVecs};
-use rubato::{
-    Async, FixedAsync, Indexing, Resampler, SincInterpolationParameters, SincInterpolationType,
-    WindowFunction,
-};
+use rubato::{Fft, FixedSync, Indexing, Resampler};
 
 /// Tells rubato how many frames of a short block are real (the rest is silence).
 fn partial(frames: usize, chunk: usize) -> Option<Indexing> {
@@ -20,7 +20,7 @@ fn partial(frames: usize, chunk: usize) -> Option<Indexing> {
 }
 
 pub struct PureResampler {
-    resampler: Async<f32>,
+    resampler: Fft<f32>,
     input_channels: usize,
     chunk_size: usize,
     source_rate: usize,
@@ -37,22 +37,16 @@ impl PureResampler {
         channels: usize,
         chunk_size: usize,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let params = SincInterpolationParameters {
-            sinc_len: 256,
-            f_cutoff: Some(0.95),
-            interpolation: SincInterpolationType::Linear,
-            oversampling_factor: 256,
-            window: WindowFunction::BlackmanHarris2,
-        };
-
-        let resampler = Async::<f32>::new_sinc(
-            target_rate as f64 / source_rate as f64,
-            2.0,
-            &params,
+        let resampler = Fft::<f32>::new(
+            source_rate,
+            target_rate,
             chunk_size,
             channels,
-            FixedAsync::Input,
+            FixedSync::Input,
         )?;
+        // Rounded up to a whole number of the rate pair's smallest blocks (147 frames for
+        // 44.1 -> 48 kHz), so every full block is exactly what rubato expects.
+        let chunk_size = resampler.input_frames_next();
 
         let input_block = vec![0.0f32; chunk_size * channels];
         let input_fifo = Vec::with_capacity(chunk_size * channels * 4);

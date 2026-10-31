@@ -71,6 +71,11 @@ is already on this computer. This page will be updated before either goes online
 | Location | Contents |
 |---|---|
 | `~/.multiplay/` | Session playlist, library database, paired remote devices, phone uploads |
+| `~/.multiplay/logs/` | Log files (one per day, the last 7 kept), crash reports and diagnostics zips you save. Track titles and stream addresses appear in the logs |
 | `~/.config/multiplay/` | `config.toml` (settings) and the window layout |
 
 Nothing in these folders is uploaded anywhere. Delete them to reset multiplay.
+
+**Diagnostics** (Preferences → About) are only created when you click "Copy diagnostics" or "Save
+diagnostics". They contain the version, your system, your settings with passwords and tokens
+removed, the end of the newest log and the latest crash report. You decide whether to share them.

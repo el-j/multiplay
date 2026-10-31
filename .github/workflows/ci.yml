@@ -115,3 +115,11 @@ jobs:
         run: |
           cargo test --release --locked -p amp-core-engine --test dj_soak --test dj_analysis --test dj_mixer
           cargo test --release --locked -p amp-adapter-gui --test dj_waveform_perf
+
+      # Measured CPU and memory of the engine idle and playing FLAC/MP3 (TASK-179). The table
+      # lands on the run's summary page; see docs/performance.md. Windows runners are too
+      # noisy for a stable CPU number, so it runs on Linux and macOS.
+      - name: Resource budgets (release build, measured)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: cargo test --release --locked -p amp-adapter-gui --test resource_budget -- --ignored --nocapture

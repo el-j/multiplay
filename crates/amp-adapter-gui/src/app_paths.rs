@@ -39,6 +39,12 @@ impl AppPaths {
         }
     }
 
+    /// Log files, crash reports and diagnostics zips (TASK-177, TASK-178).
+    #[must_use]
+    pub fn log_dir(&self) -> PathBuf {
+        self.data_dir.join("logs")
+    }
+
     /// Session playlist snapshot file.
     #[must_use]
     pub fn session_file(&self) -> PathBuf {

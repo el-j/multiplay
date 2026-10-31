@@ -27,3 +27,10 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31, branch feat/plan-048-observability)
+- `amp_core_engine::diagnostics::{init_logging, file_subscriber}`: tracing + tracing-subscriber (env-filter) + tracing-appender, daily `multiplay.YYYY-MM-DD.log`, 7 kept, `RUST_LOG` overrides the `info` default. Both composition roots (GUI `main.rs`, TUI `amp-app/src/main.rs`) install it; log dir `~/.multiplay/logs` (`AppPaths::log_dir`).
+- Engine events are logged where they are emitted (`EventBus::emit_event`: playback errors warn, track starts info); provider search failures/timeouts and remote-control start/stop/errors are logged.
+- `eprintln!` replaced in cpal actor and decoder; the only remaining one reports that the log file itself could not be opened.
+- Secrets: `redact_config` (password/secret/token/credential/api_key/cookie keys).
+- Tests: `crates/amp-core-engine/tests/diagnostics.rs` (file written, level filtering, redaction). Real run: the TUI in a pty wrote `multiplay-tui 0.1.0 (b5a812d) starting os="macos"` to the log.

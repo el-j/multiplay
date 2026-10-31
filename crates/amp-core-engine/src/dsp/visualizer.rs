@@ -10,6 +10,7 @@ use num_complex::Complex;
 use rustfft::{Fft, FftPlanner};
 use std::f32::consts::PI;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 pub const FFT_SIZE: usize = 1024;
 pub const HALF_FFT: usize = FFT_SIZE / 2;
@@ -26,7 +27,14 @@ pub struct SpectrumVisualizer {
     decaying_bands: [f32; NUM_BANDS],
     decaying_bands_75: [f32; NUM_BANDS_75],
     sample_rate: f32,
+    /// When [`Self::spectrum_bands_throttled`] last ran the FFT.
+    last_fft: Option<Instant>,
+    fft_runs: u64,
 }
+
+/// Shortest time between two spectrum FFTs: one 60 Hz display frame. Audio arrives every few
+/// milliseconds; running the FFT for each chunk only cost CPU (TASK-179).
+pub const SPECTRUM_INTERVAL: Duration = Duration::from_millis(16);
 
 impl SpectrumVisualizer {
     /// Creates a new spectrum visualizer with precomputed Hann window and reusable FFT scratchpads.
@@ -53,6 +61,8 @@ impl SpectrumVisualizer {
             magnitudes: [0.0; HALF_FFT],
             decaying_bands: [0.0; NUM_BANDS],
             decaying_bands_75: [0.0; NUM_BANDS_75],
+            last_fft: None,
+            fft_runs: 0,
             sample_rate: sample_rate.max(8000.0),
         }
     }
@@ -98,9 +108,29 @@ impl SpectrumVisualizer {
         }
     }
 
+    /// The 16 bands, recomputed at most once per [`SPECTRUM_INTERVAL`]; in between, the last
+    /// bands. What the playback path calls for every chunk it pushes.
+    pub fn spectrum_bands_throttled(&mut self) -> [f32; NUM_BANDS] {
+        let now = Instant::now();
+        if self
+            .last_fft
+            .is_some_and(|last| now.duration_since(last) < SPECTRUM_INTERVAL)
+        {
+            return self.decaying_bands;
+        }
+        self.last_fft = Some(now);
+        self.compute_spectrum_bands()
+    }
+
+    /// How many times the FFT has run.
+    pub fn fft_runs(&self) -> u64 {
+        self.fft_runs
+    }
+
     /// Computes 16 log-spaced normalized frequency bands (0.0 to 1.0) with dB scaling,
     /// peak hold, and smooth decay (`TASK-144`, `DSP-06`).
     pub fn compute_spectrum_bands(&mut self) -> [f32; NUM_BANDS] {
+        self.fft_runs += 1;
         self.run_fft();
 
         let bin_hz = self.sample_rate / FFT_SIZE as f32;
