@@ -61,7 +61,8 @@ pub enum LookupJob {
 pub enum LookupResult {
     Preview {
         id: RequestId,
-        result: Result<Track, String>,
+        /// Boxed: a track is large next to the other results.
+        result: Result<Box<Track>, String>,
     },
     Search {
         device: DeviceId,
@@ -126,7 +127,7 @@ async fn run(services: &LookupServices, job: LookupJob) -> LookupResult {
             providers,
         } => LookupResult::Preview {
             id,
-            result: preview(services, &reference, providers).await,
+            result: preview(services, &reference, providers).await.map(Box::new),
         },
         LookupJob::Search {
             device,

@@ -3,7 +3,7 @@
 #
 # Every fixture carries the same known signal so tests can check the decoded samples:
 #   left 440 Hz, right 660 Hz, amplitude 0.5 (5.1: 440/550/660/770/880/990 Hz).
-# ffmpeg, flac and lame are offline tools for this script only; nothing in multiplay links them.
+# ffmpeg, flac, lame and python3 are offline tools for this script only; nothing in multiplay links them.
 #
 # Usage: ./scripts/make_audio_fixtures.sh
 set -euo pipefail
@@ -14,7 +14,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 
-for tool in ffmpeg flac lame; do
+for tool in ffmpeg flac lame python3; do
     command -v "$tool" >/dev/null || { echo "missing $tool" >&2; exit 1; }
 done
 
@@ -52,11 +52,23 @@ stereo 44100 1 "$OUT/vorbis.ogg" -c:a vorbis -strict -2 -ac 2
 
 # Formats enabled by TASK-227
 stereo 44100 1 "$OUT/alac.m4a" -c:a alac -sample_fmt s16p
-stereo 44100 1 "$OUT/aiff_16.aiff" -c:a pcm_s16be
+stereo 44100 1 "$OUT/aiff_16.aiff" -c:a pcm_s16be -write_id3v2 1
 stereo 44100 1 "$OUT/caf_16.caf" -c:a pcm_s16le -f caf
 stereo 44100 1 "$OUT/flac.mka" -c:a flac -sample_fmt s16 -f matroska
 stereo 44100 1 "$OUT/vorbis.webm" -c:a vorbis -strict -2 -ac 2 -f webm
-stereo 44100 1 "$OUT/mp2_192.mp2" -c:a mp2 -b:a 192k
+stereo 44100 1 "$TMP/raw.mp2" -c:a mp2 -b:a 192k
+# ffmpeg's mp2 muxer writes no tags: prepend an ID3v2.3 tag, as tagged .mp2 files have.
+python3 - "$TMP/raw.mp2" "$OUT/mp2_192.mp2" <<'PY'
+import sys
+def frame(fid, text):
+    data = b"\x03" + text.encode() + b"\x00"
+    return fid.encode() + len(data).to_bytes(4, "big") + b"\x00\x00" + data
+body = frame("TIT2", "Fixture") + frame("TPE1", "multiplay") + frame("TALB", "Golden Fixtures")
+size = len(body)
+syncsafe = bytes([(size >> 21) & 0x7F, (size >> 14) & 0x7F, (size >> 7) & 0x7F, size & 0x7F])
+audio = open(sys.argv[1], "rb").read()
+open(sys.argv[2], "wb").write(b"ID3\x03\x00\x00" + syncsafe + body + audio)
+PY
 stereo 44100 1 "$OUT/adpcm_ms.wav" -c:a adpcm_ms
 
 # Opus (TASK-229): always decoded at 48 kHz
@@ -66,5 +78,14 @@ stereo 48000 1 "$OUT/opus_stereo.opus" -c:a libopus -b:a 128k
 "${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*550*t)|0.5*sin(2*PI*660*t)|0.5*sin(2*PI*770*t)|0.5*sin(2*PI*880*t)|0.5*sin(2*PI*990*t):s=48000:d=0.5:c=5.1" \
     "${TAGS[@]}" -c:a libopus -mapping_family 1 -b:a 256k "$OUT/opus_5_1.opus"
 stereo 48000 1 "$OUT/opus.webm" -c:a libopus -b:a 128k -f webm
+
+# Rich tags and embedded cover art (TASK-230); the cover is the 64 px app icon.
+COVER="$ROOT/assets/icon/multiplay-64.png"
+RICH=(-metadata album_artist="Various Fixtures" -metadata genre="Test Tones" -metadata date=2024
+    -metadata disc=2 -metadata track=3 -metadata REPLAYGAIN_TRACK_GAIN="-6.50 dB")
+for ext in flac mp3 m4a; do
+    "${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*660*t):s=44100:d=0.5" -i "$COVER" \
+        -map 0 -map 1 -c:v copy -disposition:v attached_pic "${TAGS[@]}" "${RICH[@]}" "$OUT/cover.$ext"
+done
 
 ls -l "$OUT"

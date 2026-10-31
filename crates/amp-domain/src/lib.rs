@@ -209,7 +209,21 @@ pub struct TrackMetadata {
     pub cover_art_uri: Option<String>,
     pub replay_gain_mb: Option<i32>,
     pub integrated_lufs_mb: Option<i32>,
+    /// Album artist (e.g. "Various Artists" on compilations). Missing in older data.
+    #[serde(default)]
+    pub album_artist: Option<String>,
+    /// Disc number within a multi-disc release.
+    #[serde(default)]
+    pub disc_number: Option<u32>,
+    /// Release or recording year.
+    #[serde(default)]
+    pub year: Option<u16>,
+    #[serde(default)]
+    pub genre: Option<String>,
 }
+
+/// ReplayGain's reference loudness: a track with 0 dB ReplayGain gain is about -18 LUFS.
+const REPLAY_GAIN_REFERENCE_LUFS: f32 = -18.0;
 
 impl TrackMetadata {
     pub fn new(title: impl Into<String>, artist: impl Into<String>) -> Self {
@@ -226,6 +240,10 @@ impl TrackMetadata {
             cover_art_uri: None,
             replay_gain_mb: None,
             integrated_lufs_mb: None,
+            album_artist: None,
+            disc_number: None,
+            year: None,
+            genre: None,
         }
     }
 
@@ -239,9 +257,15 @@ impl TrackMetadata {
         self.replay_gain_mb = Some((gain_db * 100.0).round() as i32);
     }
 
-    /// Returns EBU R128 integrated loudness in LUFS (e.g. -14.0 LUFS).
+    /// Returns EBU R128 integrated loudness in LUFS (e.g. -14.0 LUFS): measured or from an R128
+    /// tag, otherwise derived from the ReplayGain track gain.
     pub fn integrated_lufs(&self) -> Option<f32> {
-        self.integrated_lufs_mb.map(|mb| mb as f32 / 100.0)
+        self.integrated_lufs_mb
+            .map(|mb| mb as f32 / 100.0)
+            .or_else(|| {
+                self.replay_gain_db()
+                    .map(|g| REPLAY_GAIN_REFERENCE_LUFS - g)
+            })
     }
 
     /// Sets EBU R128 integrated loudness in LUFS.

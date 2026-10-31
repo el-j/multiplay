@@ -34,3 +34,14 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- New `crates/amp-adapter-storage/src/tags.rs` (moved out of `scanner.rs`): lofty first; for playable files lofty cannot open (CAF, Matroska/WebM, ADPCM WAV) a Symphonia format-reader fallback supplies duration, stream properties and standard tags, so every decodable file gets a library entry (before: dropped CAF/MKA/WebM/ADPCM files were silently not added).
+- `TrackMetadata` gained `album_artist`, `disc_number`, `year`, `genre` (`#[serde(default)]`, JSON storage stays compatible); filled from lofty and Symphonia tags; Matroska album-level `ARTIST`/`ALBUM`/`TITLE` raw tags mapped.
+- Embedded art: `embedded_cover_art(path) -> CoverArt { mime_type, data }`; tracks with art get `cover_art_uri = "embedded:<path>"`. (No GUI shows artwork yet.)
+- Loudness: ReplayGain tags were read but never used; `TrackMetadata::integrated_lufs()` now falls back to ReplayGain (reference −18 LUFS), so the engine's normalizer uses it. R128 (Opus) was already used; OpusHead output gain is applied in the decoder (TASK-229).
+- File names: untagged files take "Artist - Title" from the name (scanner test updated to the new behaviour).
+- Fixtures: AIFF and MP2 now carry ID3 tags; `cover.flac/.mp3/.m4a` with album artist, genre, year, disc, track, ReplayGain −6.5 dB and the 64 px app icon as PNG cover.
+- Tests: `amp-adapter-storage/tests/format_tags.rs` (6): every playable fixture → track with expected tags and duration (±60 ms); rich tags; cover bytes equal the source PNG; ReplayGain → −11.5 LUFS; name fallback.
+- Known limits: CAF and ADPCM WAV tags are not read (neither lofty nor Symphonia expose them); ffmpeg-written MKA/WebM titles live outside the tags.
+- Gate: verify_pure_rust, cargo-deny, clippy `-D warnings`, `cargo test --workspace --no-fail-fast` 489 passed / 0 failed.

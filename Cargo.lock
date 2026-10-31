@@ -225,6 +225,7 @@ dependencies = [
  "redb",
  "serde",
  "serde_json",
+ "symphonia",
  "tempfile",
  "tokio",
  "uuid",
