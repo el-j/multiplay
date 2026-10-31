@@ -94,6 +94,8 @@ pub struct PureYouTubeAdapter {
 
 impl PureYouTubeAdapter {
     pub fn new() -> Result<Self, ProviderError> {
+        // rusty_ytdl's reqwest has rustls without a crypto provider; supply the pure `ring` one.
+        amp_adapter_http::install_ring_provider();
         let searcher = YouTube::new().map_err(|e| {
             ProviderError::Network(format!("Failed to initialize YouTube client: {e}"))
         })?;

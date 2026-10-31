@@ -43,13 +43,10 @@ The first public beta, to be tagged `v0.1.0-beta.1`.
   `multiplay/<version> (+https://github.com/el-j/multiplay)`, instead of a browser-like one.
 
 ### Fixed
+- **YouTube results play again.** rusty_ytdl 0.7.4 (the latest crates.io release) returned empty
+  audio links; multiplay now uses the library's unreleased fix, pinned to commit `b1c6eb7`.
 - Dropping onto the playlist window did nothing.
 - Bandcamp releases were never found by search.
 - Copying and pasting into the search box did not work.
 - Re-importing a playlist on Windows created duplicate tracks.
 - Audio dropouts on stream underruns; DJ mode toggling could click.
-
-### Known issues
-- **YouTube results don't play yet.** The YouTube library we use (rusty_ytdl 0.7.4) can no longer
-  read YouTube's audio links; results say so instead of failing silently. A fix is waiting on a
-  new release of that library.

@@ -12,7 +12,13 @@ async-trait = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 
-rusty_ytdl = { version = "0.7", default-features = false, features = ["rustls-tls", "search"] }
+# Unreleased upstream fix (crates.io 0.7.4 from 2024 returns empty stream URLs). Pinned to an
+# exact commit; move back to crates.io once a release includes it. See deny.toml [sources].
+rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl", rev = "b1c6eb7c83f0d6189f256ed5df50019a5803c734", default-features = false, features = ["search"] }
+# rusty_ytdl's own `rustls` feature pulls aws-lc-rs (C). This enables rustls without a provider
+# in the shared reqwest; amp-adapter-http installs the pure `ring` provider at startup.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+amp-adapter-http = { path = "../amp-adapter-http" }
 
 [dev-dependencies]
 amp-adapter-decoder = { path = "../amp-adapter-decoder" }
