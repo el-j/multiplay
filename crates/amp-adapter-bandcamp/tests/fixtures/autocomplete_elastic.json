@@ -1,0 +1,51 @@
+{
+ "auto": {
+  "results": [
+   {
+    "type": "a",
+    "id": 2162872411,
+    "art_id": 552435637,
+    "img_id": null,
+    "name": "In Rainbows",
+    "band_id": 3957198221,
+    "band_name": "Radiohead",
+    "item_url_root": "https://radiohead.bandcamp.com",
+    "item_url_path": "https://radiohead.bandcamp.com/album/in-rainbows",
+    "img": "https://f4.bcbits.com/img/0552435637_3.jpg",
+    "tag_names": null,
+    "stat_params": "search_item_id=2162872411&search_item_type=a&search_match_part=%3F&search_page_id=5916097909&search_page_no=0&search_rank=1"
+   },
+   {
+    "type": "t",
+    "id": 3565272442,
+    "art_id": 552435637,
+    "img_id": null,
+    "name": "Weird Fishes/ Arpeggi",
+    "band_id": 3957198221,
+    "band_name": "Radiohead",
+    "album_name": "In Rainbows",
+    "item_url_root": "https://radiohead.bandcamp.com",
+    "item_url_path": "https://radiohead.bandcamp.com/track/weird-fishes-arpeggi",
+    "img": "https://f4.bcbits.com/img/0552435637_3.jpg",
+    "album_id": 2162872411,
+    "stat_params": "search_item_id=3565272442&search_item_type=t&search_match_part=%3F&search_page_id=5916097909&search_page_no=0&search_rank=4"
+   },
+   {
+    "type": "b",
+    "id": 3957198221,
+    "art_id": null,
+    "img_id": 47220904,
+    "name": "Radiohead",
+    "item_url_root": "https://radiohead.bandcamp.com",
+    "location": "Oxford, UK",
+    "is_label": false,
+    "tag_names": [
+     "Alternative"
+    ],
+    "img": "https://f4.bcbits.com/img/0047220904_23.jpg",
+    "genre_name": "Alternative",
+    "stat_params": "search_item_id=3957198221&search_item_type=b&search_match_part=%3F&search_page_id=5916107666&search_page_no=0&search_rank=1"
+   }
+  ]
+ }
+}

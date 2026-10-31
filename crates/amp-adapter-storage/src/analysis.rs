@@ -4,7 +4,7 @@
 
 use crate::RedbStorageAdapter;
 use amp_domain::{HotCues, TrackAnalysis};
-use amp_ports::{AnalysisCachePort, HotCueStorePort};
+use amp_ports::{AnalysisCachePort, HotCueStorePort, StorageError};
 use redb::{ReadableDatabase, TableDefinition};
 
 pub(crate) const ANALYSIS_TABLE: TableDefinition<&str, &[u8]> =
@@ -23,16 +23,23 @@ impl HotCueStorePort for RedbStorageAdapter {
         read().unwrap_or_default()
     }
 
-    fn store_hot_cues(&self, key: &str, cues: &HotCues) -> Result<(), String> {
-        let bytes = postcard::to_allocvec(cues).map_err(|e| e.to_string())?;
-        let txn = self.db.begin_write().map_err(|e| e.to_string())?;
+    fn store_hot_cues(&self, key: &str, cues: &HotCues) -> Result<(), StorageError> {
+        let bytes =
+            postcard::to_allocvec(cues).map_err(|e| StorageError::Serialization(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
         {
-            let mut table = txn.open_table(HOT_CUE_TABLE).map_err(|e| e.to_string())?;
+            let mut table = txn
+                .open_table(HOT_CUE_TABLE)
+                .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
             table
                 .insert(key, bytes.as_slice())
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
         }
-        txn.commit().map_err(|e| e.to_string())
+        txn.commit()
+            .map_err(|e| StorageError::TransactionFailed(e.to_string()))
     }
 }
 
@@ -44,16 +51,23 @@ impl AnalysisCachePort for RedbStorageAdapter {
         postcard::from_bytes(bytes.value()).ok()
     }
 
-    fn store(&self, key: &str, analysis: &TrackAnalysis) -> Result<(), String> {
-        let bytes = postcard::to_allocvec(analysis).map_err(|e| e.to_string())?;
-        let txn = self.db.begin_write().map_err(|e| e.to_string())?;
+    fn store(&self, key: &str, analysis: &TrackAnalysis) -> Result<(), StorageError> {
+        let bytes = postcard::to_allocvec(analysis)
+            .map_err(|e| StorageError::Serialization(e.to_string()))?;
+        let txn = self
+            .db
+            .begin_write()
+            .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
         {
-            let mut table = txn.open_table(ANALYSIS_TABLE).map_err(|e| e.to_string())?;
+            let mut table = txn
+                .open_table(ANALYSIS_TABLE)
+                .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
             table
                 .insert(key, bytes.as_slice())
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| StorageError::TransactionFailed(e.to_string()))?;
         }
-        txn.commit().map_err(|e| e.to_string())
+        txn.commit()
+            .map_err(|e| StorageError::TransactionFailed(e.to_string()))
     }
 }
 

@@ -24,9 +24,11 @@ use tokio::net::TcpStream;
 
 /// Default upload size limit: 50 MB.
 pub const DEFAULT_MAX_UPLOAD_BYTES: u64 = 50 * 1024 * 1024;
-/// File types a phone may upload.
-pub const ALLOWED_EXTENSIONS: [&str; 8] =
-    ["mp3", "flac", "wav", "ogg", "oga", "opus", "m4a", "aac"];
+/// Whether a phone may upload files with extension `ext`: every playable format
+/// (`amp_domain::formats`), and the decode probe still checks the content.
+pub fn is_allowed_extension(ext: &str) -> bool {
+    amp_domain::formats::is_playable_extension(ext)
+}
 const MAX_HEAD_BYTES: usize = 8 * 1024;
 const MAX_NAME_CHARS: usize = 80;
 /// Time allowed to receive a whole upload.
@@ -63,7 +65,7 @@ fn is_generated_name(name: &str) -> bool {
     };
     stem.len() == 32
         && stem.bytes().all(|b| b.is_ascii_hexdigit())
-        && ALLOWED_EXTENSIONS.contains(&ext.strip_suffix(".part").unwrap_or(ext))
+        && is_allowed_extension(ext.strip_suffix(".part").unwrap_or(ext))
 }
 
 /// Serves one upload request and closes the connection.
@@ -285,7 +287,7 @@ fn display_name(raw: &str) -> String {
 
 fn extension(name: &str) -> Option<&'static str> {
     let ext = name.rsplit_once('.')?.1.to_ascii_lowercase();
-    ALLOWED_EXTENSIONS.iter().copied().find(|e| *e == ext)
+    amp_domain::formats::playable_extensions().find(|e| *e == ext)
 }
 
 fn percent_decode(s: &str) -> String {

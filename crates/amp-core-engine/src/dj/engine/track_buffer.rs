@@ -182,7 +182,10 @@ where
                     return w.finish();
                 }
             }
-            Err(e) => return w.fail(e),
+            Err(amp_ports::DecodeError::WouldBlock) => {
+                std::thread::sleep(std::time::Duration::from_millis(2));
+            }
+            Err(e) => return w.fail(e.to_string()),
         }
     }
 }

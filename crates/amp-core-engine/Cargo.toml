@@ -19,9 +19,9 @@ rustfft = "6.4"
 num-complex = "0.4"
 lofty = "0.25"
 uuid = { workspace = true }
-zip = { version = "9.0", default-features = false, features = ["deflate"] }
+zip = { version = "9.1", default-features = false, features = ["deflate"] }
 rand = "0.10"
-basic-toml = "0.1"
+toml = "1"
 
 [dev-dependencies]
 proptest = "1.12"

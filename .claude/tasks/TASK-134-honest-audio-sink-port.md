@@ -24,7 +24,9 @@
 `./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Removed dead `push_interleaved_samples` method from `AudioSinkPort` (`crates/amp-ports/src/driven.rs`).
+- Implemented real stream reconfiguration in `CpalAudioSink::configure` and accurate latency computation (`(queued_frames + device_buffer_frames) / sample_rate`) in `CpalAudioSink::get_buffer_latency`.
+- Verified with `./scripts/verify_pure_rust.sh && cargo test -p amp-adapter-cpal && cargo test -p amp-core-engine --test playback_pipeline`.
 
 ## Status
 - **Status:** Pending

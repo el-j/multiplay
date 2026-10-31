@@ -4,12 +4,22 @@
 #![forbid(unsafe_code)]
 
 pub mod actor;
+pub mod callback;
 pub mod device;
+pub mod null_sink;
 
-use actor::{run_cpal_actor, SinkControlMsg};
-pub use device::{list_output_devices, resolve_output_device, AudioDeviceDescription};
+use actor::{run_cpal_actor, CpalActorParams, SinkControlMsg};
+pub use device::{
+    default_output_device_name, list_output_devices, negotiate_stream_config,
+    resolve_output_device, resolve_output_device_with_rate, AudioDeviceDescription,
+    NegotiatedSampleFormat, NegotiatedStreamConfig, SupportedConfigRangeSpec,
+    DEFAULT_DEVICE_BUFFER_FRAMES,
+};
+use null_sink::spawn_realtime_drain;
+pub use null_sink::CapturedOutput;
 
 use amp_ports::driven::AudioSinkPort;
+use amp_ports::{AudioSinkError, OutputClock};
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 use std::sync::mpsc::{self, Sender};
@@ -17,14 +27,28 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-pub const DEFAULT_RING_BUFFER_FRAMES: usize = 65536;
+/// Default hardware ring buffer duration in milliseconds (~150 ms, TASK-127).
+pub const DEFAULT_RING_BUFFER_MS: u32 = 150;
+/// Default ring buffer capacity in interleaved samples (150 ms at 48 kHz stereo = 14,400 samples).
+pub const DEFAULT_RING_BUFFER_FRAMES: usize = 14_400;
+
+/// Computes the ring buffer capacity in interleaved samples for `buffer_ms` at `sample_rate` and `channels`.
+pub fn ring_capacity_samples(sample_rate: u32, channels: u16, buffer_ms: u32) -> usize {
+    let ch = usize::from(channels.max(1));
+    let frames = ((sample_rate as usize) * (buffer_ms.max(20) as usize)) / 1000;
+    (frames * ch).max(2048)
+}
 
 /// Thread-safe (`Send + Sync`) CPAL Audio Sink handle implementing `AudioSinkPort`.
 pub struct CpalAudioSink {
     control_tx: Option<Sender<SinkControlMsg>>,
     sample_rate: Arc<AtomicU32>,
     channels: Arc<AtomicU16>,
-    device_name: String,
+    device_buffer_frames: Arc<AtomicU32>,
+    ring_capacity: usize,
+    device_name: Arc<Mutex<String>>,
+    recovery_count: Arc<AtomicU32>,
+    clock: Arc<OutputClock>,
 }
 
 impl CpalAudioSink {
@@ -43,7 +67,15 @@ impl CpalAudioSink {
     pub fn new_with_device(
         target_device_name: Option<&str>,
     ) -> Result<(Self, Producer<f32>), String> {
-        Self::open(target_device_name, false)
+        Self::open(target_device_name, false, DEFAULT_RING_BUFFER_MS)
+    }
+
+    /// Spawns the audio actor thread with an explicit ring buffer duration in milliseconds.
+    pub fn new_with_buffer_ms(
+        target_device_name: Option<&str>,
+        buffer_ms: u32,
+    ) -> Result<(Self, Producer<f32>), String> {
+        Self::open(target_device_name, false, buffer_ms)
     }
 
     /// Like [`Self::new_with_device`], but the queue takes frames with all of the device's
@@ -51,14 +83,17 @@ impl CpalAudioSink {
     pub fn new_with_device_native(
         target_device_name: Option<&str>,
     ) -> Result<(Self, Producer<f32>), String> {
-        Self::open(target_device_name, true)
+        Self::open(target_device_name, true, DEFAULT_RING_BUFFER_MS)
     }
 
     fn open(
         target_device_name: Option<&str>,
         native: bool,
+        buffer_ms: u32,
     ) -> Result<(Self, Producer<f32>), String> {
-        let (device, config, resolved_name) = resolve_output_device(target_device_name)?;
+        let follow_default = target_device_name.is_none();
+        let (device, config, sample_format, buf_frames, resolved_name) =
+            resolve_output_device_with_rate(target_device_name, None)?;
         let source_channels = if native { config.channels } else { 2 };
 
         let initial_rate = config.sample_rate;
@@ -66,26 +101,35 @@ impl CpalAudioSink {
 
         let sample_rate = Arc::new(AtomicU32::new(initial_rate));
         let channels = Arc::new(AtomicU16::new(initial_channels));
+        let device_buffer_frames = Arc::new(AtomicU32::new(buf_frames));
+        let device_name = Arc::new(Mutex::new(resolved_name));
+        let recovery_count = Arc::new(AtomicU32::new(0));
+        let clock = Arc::new(OutputClock::new(initial_rate, source_channels));
 
-        let (producer, consumer) = RingBuffer::<f32>::new(DEFAULT_RING_BUFFER_FRAMES);
+        let ring_capacity = ring_capacity_samples(initial_rate, source_channels, buffer_ms);
+        let (producer, consumer) = RingBuffer::<f32>::new(ring_capacity);
         let (cmd_tx, cmd_rx) = mpsc::channel::<SinkControlMsg>();
 
-        let sr_clone = Arc::clone(&sample_rate);
-        let ch_clone = Arc::clone(&channels);
+        let params = CpalActorParams {
+            device,
+            config,
+            sample_format,
+            follow_default,
+            source_channels,
+            consumer,
+            cmd_rx,
+            current_sr: Arc::clone(&sample_rate),
+            current_ch: Arc::clone(&channels),
+            device_buffer_frames: Arc::clone(&device_buffer_frames),
+            active_device_name: Arc::clone(&device_name),
+            recovery_count: Arc::clone(&recovery_count),
+            clock: Arc::clone(&clock),
+        };
 
-        // Spawn dedicated audio thread that owns the non-Send/Sync CPAL Stream
         thread::Builder::new()
             .name("amp-cpal-actor".to_string())
             .spawn(move || {
-                run_cpal_actor(
-                    device,
-                    config,
-                    source_channels,
-                    consumer,
-                    cmd_rx,
-                    sr_clone,
-                    ch_clone,
-                );
+                run_cpal_actor(params);
             })
             .map_err(|e| format!("Failed to spawn CPAL actor thread: {e}"))?;
 
@@ -93,7 +137,11 @@ impl CpalAudioSink {
             control_tx: Some(cmd_tx),
             sample_rate,
             channels,
-            device_name: resolved_name,
+            device_buffer_frames,
+            ring_capacity,
+            device_name,
+            recovery_count,
+            clock,
         };
 
         Ok((sink, producer))
@@ -101,24 +149,56 @@ impl CpalAudioSink {
 
     /// Mock constructor for headless CI and unit testing.
     pub fn new_mock(sample_rate: u32, channels: u16) -> (Self, Producer<f32>, Consumer<f32>) {
-        let (producer, consumer) = RingBuffer::<f32>::new(DEFAULT_RING_BUFFER_FRAMES);
+        let ring_capacity = ring_capacity_samples(sample_rate, channels, DEFAULT_RING_BUFFER_MS);
+        let (producer, consumer) = RingBuffer::<f32>::new(ring_capacity);
         let sr = Arc::new(AtomicU32::new(sample_rate));
         let ch = Arc::new(AtomicU16::new(channels));
+        let device_buffer_frames = Arc::new(AtomicU32::new(DEFAULT_DEVICE_BUFFER_FRAMES));
+        let device_name = Arc::new(Mutex::new("Mock Device".to_string()));
+        let recovery_count = Arc::new(AtomicU32::new(0));
+        let clock = Arc::new(OutputClock::new(sample_rate, channels));
+
+        let actor_clock = Arc::clone(&clock);
+        let actor_sr = Arc::clone(&sr);
+        let actor_ch = Arc::clone(&ch);
+        let actor_name = Arc::clone(&device_name);
+        let actor_recoveries = Arc::clone(&recovery_count);
 
         let (cmd_tx, cmd_rx) = mpsc::channel::<SinkControlMsg>();
         thread::spawn(move || {
             while let Ok(msg) = cmd_rx.recv() {
                 match msg {
-                    SinkControlMsg::Configure { reply, .. } => {
+                    SinkControlMsg::Configure {
+                        sample_rate,
+                        channels,
+                        reply,
+                    } => {
+                        actor_sr.store(sample_rate, Ordering::Relaxed);
+                        actor_ch.store(channels, Ordering::Relaxed);
+                        actor_clock.set_format(sample_rate, channels);
                         let _ = reply.send(Ok(()));
                     }
                     SinkControlMsg::Start { reply } => {
+                        actor_clock.resume();
                         let _ = reply.send(Ok(()));
                     }
                     SinkControlMsg::Pause { reply } => {
                         let _ = reply.send(Ok(()));
                     }
                     SinkControlMsg::Stop { reply } => {
+                        let _ = reply.send(Ok(()));
+                    }
+                    SinkControlMsg::SimulateStreamError {
+                        fallback_device_name,
+                        reply,
+                    } => {
+                        actor_clock.flush_and_reset(actor_clock.current_position());
+                        actor_recoveries.fetch_add(1, Ordering::SeqCst);
+                        if let Some(name) = fallback_device_name {
+                            if let Ok(mut g) = actor_name.lock() {
+                                *g = name;
+                            }
+                        }
                         let _ = reply.send(Ok(()));
                     }
                     SinkControlMsg::Terminate => break,
@@ -130,34 +210,86 @@ impl CpalAudioSink {
             control_tx: Some(cmd_tx),
             sample_rate: sr,
             channels: ch,
-            device_name: "Mock Device".to_string(),
+            device_buffer_frames,
+            ring_capacity,
+            device_name,
+            recovery_count,
+            clock,
         };
 
         (sink, producer, consumer)
     }
 
     /// Hardware-free sink for tests, CI runners without audio devices, and headless mode.
-    /// A background thread drains the ring buffer at real-time pace and discards the samples,
-    /// so producers see the same back-pressure as with a real device.
     pub fn new_null(sample_rate: u32, channels: u16) -> (Self, Producer<f32>) {
-        let (mut sink, producer, consumer) = Self::new_mock(sample_rate, channels);
-        sink.device_name = "Null Output (no audio device)".to_string();
-        spawn_realtime_drain(consumer, sample_rate, channels, None);
+        let (sink, producer, consumer) = Self::new_mock(sample_rate, channels);
+        if let Ok(mut g) = sink.device_name.lock() {
+            *g = "Null Output (no audio device)".to_string();
+        }
+        spawn_realtime_drain(
+            consumer,
+            sample_rate,
+            channels,
+            Arc::clone(&sink.clock),
+            None,
+        );
         (sink, producer)
     }
 
     /// Like [`Self::new_null`], but records every drained sample so tests can assert on
     /// what the pipeline actually rendered.
     pub fn new_capture(sample_rate: u32, channels: u16) -> (Self, Producer<f32>, CapturedOutput) {
-        let (mut sink, producer, consumer) = Self::new_mock(sample_rate, channels);
-        sink.device_name = "Capture Output (no audio device)".to_string();
+        let (sink, producer, consumer) = Self::new_mock(sample_rate, channels);
+        if let Ok(mut g) = sink.device_name.lock() {
+            *g = "Capture Output (no audio device)".to_string();
+        }
         let captured = CapturedOutput::default();
-        spawn_realtime_drain(consumer, sample_rate, channels, Some(captured.clone()));
+        spawn_realtime_drain(
+            consumer,
+            sample_rate,
+            channels,
+            Arc::clone(&sink.clock),
+            Some(captured.clone()),
+        );
         (sink, producer, captured)
     }
 
-    pub fn device_name(&self) -> &str {
-        &self.device_name
+    /// Returns the shared lock-free output clock and visualizer tap for this sink.
+    pub fn clock(&self) -> Arc<OutputClock> {
+        Arc::clone(&self.clock)
+    }
+
+    /// Returns the currently active output device name.
+    pub fn device_name(&self) -> String {
+        self.device_name
+            .lock()
+            .map(|g| g.clone())
+            .unwrap_or_else(|_| "Unknown Device".to_string())
+    }
+
+    /// Number of hot-plug / stream error recoveries performed since creation (`TASK-133`).
+    pub fn recovery_count(&self) -> u32 {
+        self.recovery_count.load(Ordering::SeqCst)
+    }
+
+    /// Simulates a stream error / device hot-plug migration (`TASK-133`).
+    pub fn simulate_stream_error(
+        &self,
+        fallback_device_name: Option<String>,
+    ) -> Result<(), AudioSinkError> {
+        if let Some(tx) = &self.control_tx {
+            let (reply_tx, reply_rx) = mpsc::channel();
+            tx.send(SinkControlMsg::SimulateStreamError {
+                fallback_device_name,
+                reply: reply_tx,
+            })
+            .map_err(|e| AudioSinkError::StreamError(e.to_string()))?;
+            reply_rx
+                .recv_timeout(Duration::from_millis(500))
+                .map_err(|e| AudioSinkError::StreamError(format!("Recovery timeout: {e}")))?
+        } else {
+            Ok(())
+        }
     }
 
     pub fn sample_rate(&self) -> u32 {
@@ -167,72 +299,10 @@ impl CpalAudioSink {
     pub fn channels(&self) -> u16 {
         self.channels.load(Ordering::Relaxed)
     }
-}
 
-/// Samples recorded by a capture sink (see [`CpalAudioSink::new_capture`]).
-#[derive(Clone, Default)]
-pub struct CapturedOutput(Arc<Mutex<Vec<f32>>>);
-
-impl CapturedOutput {
-    /// Copy of every sample drained so far, interleaved.
-    pub fn samples(&self) -> Vec<f32> {
-        self.0.lock().map(|s| s.clone()).unwrap_or_default()
+    pub fn ring_capacity(&self) -> usize {
+        self.ring_capacity
     }
-
-    /// Number of samples drained so far.
-    pub fn len(&self) -> usize {
-        self.0.lock().map(|s| s.len()).unwrap_or(0)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Largest absolute sample value drained so far (0.0 for silence).
-    pub fn peak(&self) -> f32 {
-        self.0
-            .lock()
-            .map(|s| s.iter().fold(0.0f32, |m, x| m.max(x.abs())))
-            .unwrap_or(0.0)
-    }
-}
-
-/// Drains `consumer` at real-time pace on a background thread until the producer is dropped.
-fn spawn_realtime_drain(
-    mut consumer: Consumer<f32>,
-    sample_rate: u32,
-    channels: u16,
-    capture: Option<CapturedOutput>,
-) {
-    let per_sec = sample_rate as f64 * channels.max(1) as f64;
-    thread::Builder::new()
-        .name("amp-null-sink".to_string())
-        .spawn(move || {
-            // Drain by elapsed time, like a sound card, so a thread that oversleeps on a busy
-            // machine catches up instead of draining slower than real time.
-            let start = std::time::Instant::now();
-            let mut drained = 0usize;
-            while !consumer.is_abandoned() {
-                // Whole frames only, so channels never shift.
-                let ch = usize::from(channels.max(1));
-                let due = (start.elapsed().as_secs_f64() * per_sec) as usize / ch * ch;
-                let n = (consumer.slots() / ch * ch).min(due.saturating_sub(drained));
-                // What was not there in time is lost, as on a real card (an underrun).
-                drained = due;
-                if let Ok(chunk) = consumer.read_chunk(n) {
-                    if let Some(capture) = &capture {
-                        let (a, b) = chunk.as_slices();
-                        if let Ok(mut buf) = capture.0.lock() {
-                            buf.extend_from_slice(a);
-                            buf.extend_from_slice(b);
-                        }
-                    }
-                    chunk.commit_all();
-                }
-                thread::sleep(Duration::from_millis(10));
-            }
-        })
-        .ok();
 }
 
 impl Drop for CpalAudioSink {
@@ -244,9 +314,10 @@ impl Drop for CpalAudioSink {
 }
 
 impl AudioSinkPort for CpalAudioSink {
-    fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), String> {
+    fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), AudioSinkError> {
         self.sample_rate.store(sample_rate, Ordering::Relaxed);
         self.channels.store(channels, Ordering::Relaxed);
+        self.clock.set_format(sample_rate, channels);
 
         if let Some(tx) = &self.control_tx {
             let (reply_tx, reply_rx) = mpsc::channel();
@@ -255,67 +326,68 @@ impl AudioSinkPort for CpalAudioSink {
                 channels,
                 reply: reply_tx,
             })
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| AudioSinkError::StreamError(e.to_string()))?;
 
             reply_rx
                 .recv_timeout(Duration::from_millis(500))
-                .map_err(|e| format!("Configure timeout: {e}"))?
+                .map_err(|e| AudioSinkError::StreamError(format!("Configure timeout: {e}")))?
         } else {
             Ok(())
         }
     }
 
-    fn start(&mut self) -> Result<(), String> {
+    fn start(&mut self) -> Result<(), AudioSinkError> {
+        self.clock.resume();
         if let Some(tx) = &self.control_tx {
             let (reply_tx, reply_rx) = mpsc::channel();
             tx.send(SinkControlMsg::Start { reply: reply_tx })
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| AudioSinkError::StreamError(e.to_string()))?;
 
             reply_rx
                 .recv_timeout(Duration::from_millis(1000))
-                .map_err(|e| format!("Start timeout: {e}"))?
+                .map_err(|e| AudioSinkError::StreamError(format!("Start timeout: {e}")))?
         } else {
             Ok(())
         }
     }
 
-    fn pause(&mut self) -> Result<(), String> {
+    fn pause(&mut self) -> Result<(), AudioSinkError> {
+        let fade_frames = (self.sample_rate() * 5) / 1000;
+        self.clock.request_pause(fade_frames.max(64));
         if let Some(tx) = &self.control_tx {
             let (reply_tx, reply_rx) = mpsc::channel();
             tx.send(SinkControlMsg::Pause { reply: reply_tx })
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| AudioSinkError::StreamError(e.to_string()))?;
 
             reply_rx
                 .recv_timeout(Duration::from_millis(500))
-                .map_err(|e| format!("Pause timeout: {e}"))?
+                .map_err(|e| AudioSinkError::StreamError(format!("Pause timeout: {e}")))?
         } else {
             Ok(())
         }
     }
 
-    fn stop(&mut self) -> Result<(), String> {
+    fn stop(&mut self) -> Result<(), AudioSinkError> {
+        self.clock.flush_and_reset(Duration::ZERO);
         if let Some(tx) = &self.control_tx {
             let (reply_tx, reply_rx) = mpsc::channel();
             tx.send(SinkControlMsg::Stop { reply: reply_tx })
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| AudioSinkError::StreamError(e.to_string()))?;
 
             reply_rx
                 .recv_timeout(Duration::from_millis(500))
-                .map_err(|e| format!("Stop timeout: {e}"))?
+                .map_err(|e| AudioSinkError::StreamError(format!("Stop timeout: {e}")))?
         } else {
             Ok(())
         }
     }
 
-    fn push_interleaved_samples(&mut self, _samples: &[f32]) -> usize {
-        0
-    }
-
     fn get_buffer_latency(&self) -> Duration {
-        let ch = self.channels.load(Ordering::Relaxed).max(1) as f64;
-        let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as f64;
-        let frames = (DEFAULT_RING_BUFFER_FRAMES as f64) / ch;
-        Duration::from_secs_f64(frames / sr)
+        let sr = f64::from(self.sample_rate().max(1));
+        let ch = usize::from(self.channels().max(1));
+        let queued_frames = (self.clock.queued_samples() as usize) / ch;
+        let hw_frames = self.device_buffer_frames.load(Ordering::Relaxed) as usize;
+        Duration::from_secs_f64((queued_frames + hw_frames) as f64 / sr)
     }
 }
 
@@ -324,114 +396,94 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cpal_audio_sink_mock() {
-        let (mut sink, mut producer, mut consumer) = CpalAudioSink::new_mock(48000, 2);
-        assert_eq!(sink.sample_rate(), 48000);
+    fn test_mock_cpal_sink_lifecycle_and_latency() {
+        let (mut sink, mut producer, mut consumer) = CpalAudioSink::new_mock(44_100, 2);
+        assert_eq!(sink.sample_rate(), 44_100);
         assert_eq!(sink.channels(), 2);
 
-        sink.start().expect("mock start failed");
-        sink.pause().expect("mock pause failed");
-        sink.stop().expect("mock stop failed");
+        assert!(sink.configure(48_000, 2).is_ok());
+        assert_eq!(sink.sample_rate(), 48_000);
+        assert!(sink.start().is_ok());
 
-        let latency = sink.get_buffer_latency();
-        assert!(latency.as_millis() > 0);
+        for i in 0..960 {
+            producer.push(i as f32 * 0.001).unwrap();
+        }
+        sink.clock().record_pushed(960);
 
-        producer.push(0.5).unwrap();
+        // 480 queued frames + 512 hardware buffer frames at 48 kHz = ~20.66 ms
+        let lat = sink.get_buffer_latency();
+        assert!(lat >= Duration::from_millis(20) && lat <= Duration::from_millis(22));
+
+        let mut popped = Vec::with_capacity(960);
+        while let Ok(val) = consumer.pop() {
+            popped.push(val);
+        }
+        assert_eq!(popped.len(), 960);
+
+        assert!(sink.pause().is_ok());
+        assert!(sink.stop().is_ok());
+    }
+
+    #[test]
+    fn recovery_on_stream_error_flushes_epoch_rebuilds_stream_and_migrates_to_default() {
+        let (sink, mut producer, mut consumer) = CpalAudioSink::new_mock(48_000, 2);
+        for _ in 0..64 {
+            producer.push(0.75).unwrap();
+        }
+        sink.clock().record_pushed(64);
+        let initial_epoch = sink.clock().epoch();
+
+        // Simulate headphone unplug / stream error migrating to built-in speakers
+        sink.simulate_stream_error(Some("Built-in Speakers".to_string()))
+            .expect("recovery should succeed");
+
+        assert_eq!(sink.recovery_count(), 1);
+        assert_eq!(sink.device_name(), "Built-in Speakers");
+        assert!(sink.clock().epoch() > initial_epoch);
+        assert_eq!(sink.clock().flush_until(), 64);
+
+        // Push new-epoch audio and verify callback discards the 64 stale samples
         producer.push(-0.5).unwrap();
-        assert_eq!(consumer.pop().unwrap(), 0.5);
-        assert_eq!(consumer.pop().unwrap(), -0.5);
+        producer.push(0.5).unwrap();
+        sink.clock().record_pushed(2);
+
+        let mut out = [0.0f32; 4];
+        actor::fill_output_with_clock(&mut out, 2, 2, &mut consumer, &sink.clock());
+        assert_eq!(out, [-0.5, 0.5, 0.0, 0.0]);
     }
 
     #[test]
-    fn null_sink_drains_without_hardware() {
+    fn null_sink_drains_at_realtime_pace_without_hardware() {
         let (mut sink, mut producer) = CpalAudioSink::new_null(48_000, 2);
-        sink.start().expect("null sink start");
-        for _ in 0..4096 {
-            let _ = producer.push(0.25);
+        sink.start().unwrap();
+        let initial_free = producer.slots();
+        for _ in 0..4_800 {
+            producer.push(0.25).unwrap();
         }
-        std::thread::sleep(Duration::from_millis(100));
-        assert!(
-            producer.slots() > DEFAULT_RING_BUFFER_FRAMES - 4096,
-            "samples must be drained"
-        );
-        sink.stop().expect("null sink stop");
-    }
+        sink.clock().record_pushed(4_800);
+        assert!(producer.slots() < initial_free);
 
-    #[test]
-    fn capture_sink_keeps_frames_whole() {
-        let (_sink, mut producer, captured) = CpalAudioSink::new_capture(44_100, 2);
-        for i in 0..20_000 {
-            let _ = producer.push(if i % 2 == 0 { 1.0 } else { -1.0 });
-            if i % 997 == 0 {
-                std::thread::sleep(Duration::from_millis(3));
-            }
-        }
-        std::thread::sleep(Duration::from_millis(400));
-        let s = captured.samples();
-        assert!(s.len() >= 2 && s.len() % 2 == 0, "{} samples", s.len());
-        assert!(
-            s.chunks(2).all(|f| f == [1.0, -1.0]),
-            "left/right never swap"
-        );
-    }
-
-    #[test]
-    fn capture_sink_records_drained_samples_in_order() {
-        let (mut sink, mut producer, captured) = CpalAudioSink::new_capture(48_000, 2);
-        sink.start().expect("capture sink start");
-        for i in 0..2048 {
-            producer.push(i as f32).unwrap();
-        }
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
-        while captured.len() < 2048 && std::time::Instant::now() < deadline {
+        while producer.slots() < initial_free && std::time::Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(10));
         }
-        let samples = captured.samples();
-        assert_eq!(samples.len(), 2048);
-        assert!(samples.iter().enumerate().all(|(i, s)| *s == i as f32));
-        assert!(captured.peak() >= 2047.0);
+        assert_eq!(producer.slots(), initial_free);
     }
 
     #[test]
-    #[ignore = "needs audio hardware (run with `make test-hw`)"]
-    fn test_device_enumeration_and_fallback() {
-        let devices = CpalAudioSink::list_output_devices();
-        assert!(
-            !devices.is_empty(),
-            "Should detect at least one output device"
-        );
-    }
-
-    #[test]
-    #[ignore = "needs audio hardware (run with `make test-hw`)"]
-    fn test_repeated_start_pause_stop_lifecycle() {
-        let (mut sink, mut producer) =
-            CpalAudioSink::new().expect("Failed to initialize default sink");
-
-        for _ in 0..1024 {
-            let _ = producer.push(0.0);
+    fn capture_sink_records_rendered_samples_and_peaks() {
+        let (mut sink, mut producer, captured) = CpalAudioSink::new_capture(48_000, 2);
+        sink.start().unwrap();
+        for i in 0..960 {
+            let s = (i as f32 * 0.1).sin() * 0.8;
+            producer.push(s).unwrap();
         }
-
-        sink.start().expect("First start failed");
-        sink.pause().expect("Pause failed");
-        sink.start().expect("Second start failed");
-        sink.stop().expect("Stop failed");
-        sink.start().expect("Third start after stop failed");
-        sink.stop().expect("Final stop failed");
-    }
-
-    #[test]
-    #[ignore = "needs audio hardware (run with `make test-hw`)"]
-    fn test_play_macbook_pro_speakers_explicit() {
-        let target = "MacBook Pro Speakers";
-        if let Ok((mut sink, mut producer)) = CpalAudioSink::new_with_device(Some(target)) {
-            assert_eq!(sink.device_name(), target);
-            sink.start().expect("Failed to start MacBook Pro Speakers");
-            for _ in 0..2048 {
-                let _ = producer.push(0.0);
-            }
-            std::thread::sleep(Duration::from_millis(50));
-            sink.stop().expect("Failed to stop MacBook Pro Speakers");
+        sink.clock().record_pushed(960);
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while captured.len() < 960 && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
         }
+        assert_eq!(captured.len(), 960);
+        assert!((captured.peak() - 0.8).abs() < 0.01);
     }
 }

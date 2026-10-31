@@ -24,7 +24,9 @@
 `./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Deleted `crates/amp-app/src/{audio_driver,track_loader}.rs` and `crates/amp-adapter-gui/src/{audio_driver,playback_worker,audio_pusher,track_loader,dj_host,dj_link}.rs`.
+- Wired `PlayerEngine` via `engine_factory.rs` in both `amp-adapter-gui` and `amp-app` using a shared Tokio runtime handle.
+- Verified `(! grep -r AudioStreamDecoder crates/amp-adapter-gui crates/amp-adapter-tui)` and `./scripts/verify_pure_rust.sh && cargo test -p amp-adapter-gui --test dj_toggle --test dj_routing --test dj_controls --test responsive_layout && cargo test -p amp-app`.
 
 ## Status
 - **Status:** Pending

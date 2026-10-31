@@ -24,7 +24,7 @@
 `cargo test -p amp-core-engine search`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Verified that `FilteredSearchCoordinator::search_outcomes` streams `ProviderOutcome` for each registered provider containing latency, error status, and UI status chips (`✓`, `⏳`, `🔒`, `⚠`, `∅`), and that failing/timed-out providers never conceal results from successful providers. Verified via `cargo test -p amp-core-engine search`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

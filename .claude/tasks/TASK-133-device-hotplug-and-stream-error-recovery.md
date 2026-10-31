@@ -24,7 +24,8 @@
 `manual: plug/unplug test + cargo test -p amp-adapter-cpal recovery`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented stream error callback flag (`stream_error: Arc<AtomicBool>`), follow-system-default polling, epoch ring-buffer flush, and stream rebuild on the shared `Consumer<f32>` in `crates/amp-adapter-cpal/src/actor.rs`.
+- Verified with `cargo test -p amp-adapter-cpal recovery` (`recovery_on_stream_error_flushes_epoch_rebuilds_stream_and_migrates_to_default` passed).
 
 ## Status
 - **Status:** Pending

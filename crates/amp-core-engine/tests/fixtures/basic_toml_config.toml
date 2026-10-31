@@ -1,0 +1,45 @@
+[library]
+music_directories = ["/Music/My \"Quoted\" Folder"]
+watch_filesystem = true
+rescan_interval_secs = 3600
+supported_extensions = ["flac", "mp3", "wav", "ogg", "m4a", "aac"]
+
+[audio]
+sample_rate = 96000
+buffer_frames = 1024
+precache_ram_mb = 64
+crossfade_duration_ms = 2000
+loudness_normalization = true
+target_lufs = -14
+headphone_crossfeed = "Off"
+
+[streaming]
+enable_youtube = true
+enable_spotify = false
+enable_soundcloud = true
+enable_bandcamp = true
+download_cache_dir = "~/.multiplay/downloads"
+
+[p2p]
+enable_p2p_mesh = true
+enable_soulseek = false
+mesh_listen_port = 4040
+soulseek_listen_port = 2234
+max_upload_slots = 4
+shared_directories = []
+
+[ui]
+visualizer_fps = 60
+magnetic_snap_distance = 10
+compact_mode = true
+show_equalizer = true
+show_playlist = true
+show_dj_console = false
+
+[plugins]
+visualizer = "on"
+
+[remote]
+enabled = true
+allow_lan = false
+port = 9100

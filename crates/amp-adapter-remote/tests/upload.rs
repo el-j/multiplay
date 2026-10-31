@@ -25,9 +25,13 @@ impl Drop for Dir {
 
 /// Real decode probe: the file must open and yield samples with the fuzzed decoder.
 fn decoder_probe(path: &Path) -> Result<(), String> {
-    let mut dec = amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())?;
+    let mut dec = amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())
+        .map_err(|e| e.to_string())?;
     let mut buf = vec![0.0f32; 4096];
-    match dec.read_interleaved_samples(&mut buf)? {
+    match dec
+        .read_interleaved_samples(&mut buf)
+        .map_err(|e| e.to_string())?
+    {
         0 => Err("no audio".into()),
         _ => Ok(()),
     }

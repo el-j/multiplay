@@ -93,11 +93,20 @@ impl GraphicEqualizer {
         self.right_filters[idx].update_peaking_eq(self.sample_rate, freq, 1.414, self.gains[idx]);
     }
 
+    /// Returns true if the equalizer is disabled or all band gains and preamp are neutral (0 dB).
+    #[inline(always)]
+    pub fn is_bypassed(&self) -> bool {
+        !self.is_enabled
+            || (self.preamp_gain.abs() < 1e-4 && self.gains.iter().all(|&g| g.abs() < 1e-4))
+    }
+
     /// In-place processing of interleaved stereo PCM audio samples `[L, R, L, R, ...]`.
+    /// When disabled or when all gains and preamp are 0 dB, audio is completely bypassed
+    /// with zero floating-point alterations (`TASK-140`, `DSP-01`).
     #[inline(always)]
     #[allow(clippy::chunks_exact_to_as_chunks)]
     pub fn process_interleaved(&mut self, samples: &mut [f32]) {
-        if !self.is_enabled {
+        if self.is_bypassed() {
             return;
         }
 
@@ -110,8 +119,8 @@ impl GraphicEqualizer {
                 r = self.right_filters[i].process_sample(r);
             }
 
-            frame[0] = soft_limit(l);
-            frame[1] = soft_limit(r);
+            frame[0] = l;
+            frame[1] = r;
         }
     }
 
@@ -123,22 +132,6 @@ impl GraphicEqualizer {
         for f in &mut self.right_filters {
             f.reset_state();
         }
-    }
-}
-
-/// Audiophile transparent soft-knee saturation/limiter curve.
-/// Linear up to 0.85 amplitude; smoothly compresses above 0.85, guaranteeing
-/// output never clips or wraps past [-1.0, 1.0].
-#[inline(always)]
-fn soft_limit(x: f32) -> f32 {
-    if x.abs() <= 0.85 {
-        x
-    } else if x > 0.85 {
-        let excess = x - 0.85;
-        0.85 + (excess / (1.0 + excess * 2.0)) * 0.15
-    } else {
-        let excess = -x - 0.85;
-        -(0.85 + (excess / (1.0 + excess * 2.0)) * 0.15)
     }
 }
 
@@ -154,10 +147,8 @@ mod tests {
 
         eq.process_interleaved(&mut buffer);
 
-        // At flat gain, processing should not blow up or invert
-        for i in 0..buffer.len() {
-            assert!((buffer[i] - original[i]).abs() < 0.1);
-        }
+        // At flat gain, processing is bypassed and exact bit identity is preserved
+        assert_eq!(buffer, original);
     }
 
     #[test]
@@ -171,21 +162,17 @@ mod tests {
     }
 
     #[test]
-    fn test_eq_headroom_and_limiter() {
+    fn test_eq_headroom_preserves_linear_scale() {
         let mut eq = GraphicEqualizer::new(44100.0);
-        // Boost all bands by maximum +12 dB
-        for i in 0..10 {
-            eq.set_band_gain(i, 12.0);
-        }
-        eq.set_preamp_gain(6.0); // Extreme boost
+        // Boost 1 kHz band by +6 dB
+        eq.set_band_gain(4, 6.0);
 
         let mut loud_buffer = [1.0f32, -1.0f32, 0.95f32, -0.95f32];
         eq.process_interleaved(&mut loud_buffer);
 
-        // Soft limiter must guarantee all output samples strictly within [-1.0, 1.0]
+        // Equalizer preserves linear headroom without waveshaping / soft clipping
         for &s in &loud_buffer {
             assert!(s.is_finite());
-            assert!((-1.0..=1.0).contains(&s), "Sample out of bounds: {s}");
         }
     }
 }

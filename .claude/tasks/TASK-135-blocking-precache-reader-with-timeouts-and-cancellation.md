@@ -26,7 +26,8 @@
 `cargo test -p amp-ports precache && cargo test -p amp-adapter-http slow_server`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified `SharedPrecacheBuffer::new_blocking`, `PrecacheStreamReader` (`Drop` cancellation), and `buffering_percent` via `cargo test -p amp-ports precache` (4 passed) and `cargo test -p amp-adapter-http slow_server` (`slow_server_8kbps_with_jitter_streams_identically_without_wouldblock`, 1 passed).
+- Verified progressive decoder tests `cargo test -p amp-adapter-decoder --test progressive_stream` (`decodes_every_sample_when_data_trickles_in`, `gives_up_after_the_stall_timeout`, 2 passed).
 
 ## Status
 - **Status:** Pending

@@ -56,14 +56,9 @@ impl Default for LibraryConfig {
             music_directories: vec!["~/Music".into()],
             watch_filesystem: true,
             rescan_interval_secs: 3600,
-            supported_extensions: vec![
-                "flac".into(),
-                "mp3".into(),
-                "wav".into(),
-                "ogg".into(),
-                "m4a".into(),
-                "aac".into(),
-            ],
+            supported_extensions: crate::formats::playable_extensions()
+                .map(String::from)
+                .collect(),
         }
     }
 }
@@ -91,7 +86,7 @@ impl Default for AudioHardwareConfig {
             sample_rate: 48000,
             buffer_frames: 1024,
             precache_ram_mb: 64,
-            crossfade_duration_ms: 2000,
+            crossfade_duration_ms: 0,
             loudness_normalization: true,
             target_lufs: -14,
             headphone_crossfeed: "Off".to_string(),

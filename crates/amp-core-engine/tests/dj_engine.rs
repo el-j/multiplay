@@ -249,7 +249,7 @@ impl PcmStreamPort for SlowSine {
     fn sample_rate(&self) -> u32 {
         self.rate
     }
-    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, String> {
+    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, amp_ports::DecodeError> {
         std::thread::sleep(Duration::from_millis(1));
         let n = out.len().min(self.left) / 2 * 2;
         for f in out[..n].chunks_mut(2) {

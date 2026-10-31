@@ -24,7 +24,7 @@
 `cargo test -p amp-adapter-bandcamp`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Verified pure Rust compilation, contract tests (`test_extract_tralbum_json_fixture` and `test_parse_autocomplete_json_fixture`), URL stream resolution, and GUI/TUI integration.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

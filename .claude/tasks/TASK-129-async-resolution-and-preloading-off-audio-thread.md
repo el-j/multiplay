@@ -24,7 +24,8 @@
 `cargo test -p amp-core-engine preload`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented non-blocking Tokio stream resolution (`spawn_track_load`, `PendingLoad`) with cancellation on skip, per-provider resolution timeout, and lookahead preloading with exponential backoff in `crates/amp-core-engine/src/player/loader.rs`.
+- Verified with `cargo test -p amp-core-engine preload` (`preload_non_blocking_resolution_cancellation_and_retry` passed).
 
 ## Status
 - **Status:** Pending

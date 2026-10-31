@@ -25,7 +25,7 @@
 `./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Wired `ConfigStore` into `MultiplayGuiApp` (`save_and_apply_config`, `apply_config_to_engine`) and verified settings persistence and live engine application across restarts via `cargo test -p amp-adapter-gui config_survives_restart_and_applies_to_engine`.
 
 ## Status
 - **Status:** Pending

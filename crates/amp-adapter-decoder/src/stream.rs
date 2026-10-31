@@ -2,15 +2,56 @@
 
 #![forbid(unsafe_code)]
 
+use amp_ports::{AudioSourceStream, DecodeError, DecoderFactoryPort, PcmStreamPort};
 use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
-use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
-use symphonia::core::io::{MediaSource, MediaSourceStream};
-use symphonia::core::meta::MetadataOptions;
-use symphonia::core::units::Timestamp;
+use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, TrackType};
+use symphonia::core::io::MediaSource;
+use symphonia::core::units::{Time, TimeBase, Timestamp};
 
+pub use crate::probe::build_probe_hint;
+use crate::probe::{open_audio_with_hint, reject_unplayable};
 use crate::source::GenericMediaSource;
+
+/// Stateless factory implementing `DecoderFactoryPort` using Symphonia.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct SymphoniaDecoderFactory;
+
+impl DecoderFactoryPort for SymphoniaDecoderFactory {
+    fn open_file(&self, path: &str) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
+        let ext = std::path::Path::new(path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(str::to_ascii_lowercase);
+        if matches!(ext.as_deref(), Some("dsf" | "dff" | "wv")) {
+            let file = std::fs::File::open(path).map_err(|e| {
+                DecodeError::OpenFailed(format!("Failed to open audio file {path}: {e}"))
+            })?;
+            return self.open_stream(Box::new(file));
+        }
+        Ok(Box::new(AudioStreamDecoder::open_file(path)?))
+    }
+
+    fn open_stream(
+        &self,
+        mut stream: Box<dyn AudioSourceStream>,
+    ) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
+        // DSD (DSF/DSDIFF) and WavPack are not handled by Symphonia: recognise them by header.
+        let mut head = [0u8; 4];
+        let sniffed = stream.read_exact(&mut head).is_ok();
+        stream
+            .seek(std::io::SeekFrom::Start(0))
+            .map_err(|e| DecodeError::OpenFailed(format!("Stream rewind failed: {e}")))?;
+        if sniffed && crate::dsd::is_dsd(&head) {
+            return Ok(Box::new(crate::dsd::DsdDecoder::open(stream)?));
+        }
+        if sniffed && crate::wavpack::is_wavpack(&head) {
+            return Ok(Box::new(crate::wavpack::WavPackDecoder::open(stream)?));
+        }
+        Ok(Box::new(AudioStreamDecoder::open_stream(stream)?))
+    }
+}
 
 /// Stateful streaming audio decoder session for interactive track playback and seeking.
 pub struct AudioStreamDecoder {
@@ -26,33 +67,72 @@ pub struct AudioStreamDecoder {
     pending_idx: usize,
     /// Frames still to drop after a seek landed before its target (sample-accurate seeking).
     skip_frames: u64,
+    /// Unit of the track's timestamps; `None` means one tick per sample frame.
+    time_base: Option<TimeBase>,
+    /// Target frame of the last seek until a packet arrives after it. Some readers report a
+    /// seek as done but leave the stream at its end (Symphonia 0.6.1, ADPCM in WAV); then the
+    /// decoder rewinds and decodes forward to this frame instead.
+    seek_target: Option<u64>,
 }
 
 impl AudioStreamDecoder {
-    /// Opens an audio file on disk and initializes format reader and codec decoder.
-    pub fn open_file(path: &str) -> Result<Self, String> {
-        let file = std::fs::File::open(path)
-            .map_err(|e| format!("Failed to open audio file {path}: {e}"))?;
-        Self::open_media_source(file)
+    /// Opens an audio file on disk and initializes format reader and codec decoder,
+    /// passing the file extension as a Symphonia probe [`Hint`] (`TASK-139`).
+    pub fn open_file(path: &str) -> Result<Self, DecodeError> {
+        let file = std::fs::File::open(path).map_err(|e| {
+            DecodeError::OpenFailed(format!("Failed to open audio file {path}: {e}"))
+        })?;
+        let ext = std::path::Path::new(path)
+            .extension()
+            .and_then(|e| e.to_str());
+        reject_unplayable(ext, None)?;
+        let hint = build_probe_hint(ext, None);
+        Self::open_media_source_with_hint(file, hint)
     }
 
     /// Opens an arbitrary `Read + Seek + Send + Sync + 'static` stream (e.g. PrecacheBuffer, network stream, Cursor).
-    pub fn open_stream<S>(stream: S) -> Result<Self, String>
+    pub fn open_stream<S>(stream: S) -> Result<Self, DecodeError>
     where
         S: std::io::Read + std::io::Seek + Send + Sync + 'static,
     {
         Self::open_media_source(GenericMediaSource::new(stream))
     }
 
+    /// Opens an arbitrary stream with explicit file-extension and/or MIME type probe hints (`TASK-139`).
+    pub fn open_stream_with_hint<S>(
+        stream: S,
+        extension: Option<&str>,
+        mime_type: Option<&str>,
+    ) -> Result<Self, DecodeError>
+    where
+        S: std::io::Read + std::io::Seek + Send + Sync + 'static,
+    {
+        reject_unplayable(extension, mime_type)?;
+        let hint = build_probe_hint(extension, mime_type);
+        Self::open_media_source_with_hint(GenericMediaSource::new(stream), hint)
+    }
+
     /// Opens an arbitrary MediaSource (File, Cursor, PrecacheBuffer).
-    pub fn open_media_source<S>(source: S) -> Result<Self, String>
+    pub fn open_media_source<S>(source: S) -> Result<Self, DecodeError>
     where
         S: MediaSource + 'static,
     {
-        let opened = open_audio(source)?;
+        Self::open_media_source_with_hint(source, Hint::new())
+    }
+
+    /// Opens an arbitrary MediaSource with a Symphonia probe [`Hint`].
+    pub fn open_media_source_with_hint<S>(source: S, hint: Hint) -> Result<Self, DecodeError>
+    where
+        S: MediaSource + 'static,
+    {
+        let opened = open_audio_with_hint(source, &hint).map_err(DecodeError::UnsupportedFormat)?;
         let (reader, decoder) = (opened.reader, opened.decoder);
-        let (track_id, sample_rate, duration_frames) =
-            (opened.track_id, opened.sample_rate, opened.duration_frames);
+        let (track_id, sample_rate, duration_frames, time_base) = (
+            opened.track_id,
+            opened.sample_rate,
+            opened.duration_frames,
+            opened.time_base,
+        );
 
         Ok(Self {
             reader,
@@ -61,6 +141,8 @@ impl AudioStreamDecoder {
             track_id,
             sample_rate,
             duration_frames,
+            time_base,
+            seek_target: None,
             frames_played: 0,
             pending_samples: Vec::new(),
             pending_idx: 0,
@@ -68,9 +150,41 @@ impl AudioStreamDecoder {
         })
     }
 
+    /// Rebuilds the active codec decoder when a chained stream (e.g. chained Ogg Vorbis)
+    /// signals `SymphoniaError::ResetRequired` (`TASK-139`).
+    pub fn rebuild_decoder_on_reset(&mut self) -> Result<(), DecodeError> {
+        let track = self
+            .reader
+            .first_track_known_codec(TrackType::Audio)
+            .ok_or_else(|| {
+                DecodeError::UnsupportedFormat(
+                    "No playable audio track after stream reset".to_string(),
+                )
+            })?;
+        let params = track
+            .codec_params
+            .as_ref()
+            .and_then(|p| p.audio())
+            .ok_or_else(|| {
+                DecodeError::UnsupportedFormat(
+                    "Missing audio codec parameters after stream reset".to_string(),
+                )
+            })?
+            .clone();
+        self.track_id = track.id;
+        self.time_base = track.time_base;
+        if let Some(sr) = params.sample_rate {
+            self.sample_rate = sr;
+        }
+        self.decoder = crate::probe::codec_registry()
+            .make_audio_decoder(&params, &AudioDecoderOptions::default())
+            .map_err(|e| DecodeError::UnsupportedFormat(format!("Unsupported codec: {e}")))?;
+        Ok(())
+    }
+
     /// Reads up to `output.len()` interleaved stereo f32 samples `[L, R, L, R, ...]`.
     /// Returns the number of samples actually written. Returns Ok(0) on EOF.
-    pub fn read_interleaved_samples(&mut self, output: &mut [f32]) -> Result<usize, String> {
+    pub fn read_interleaved_samples(&mut self, output: &mut [f32]) -> Result<usize, DecodeError> {
         let mut written = 0;
 
         // 1. Drain pending samples from previous packet
@@ -92,8 +206,16 @@ impl AudioStreamDecoder {
             let packet = match self.reader.next_packet() {
                 Ok(Some(pkt)) => pkt,
                 Ok(None) => {
+                    if let Some(target) = self.seek_target.take() {
+                        self.rewind_and_skip_to(target)?;
+                        continue;
+                    }
                     eof_reached = true;
                     break; // End of the track
+                }
+                Err(SymphoniaError::ResetRequired) => {
+                    self.rebuild_decoder_on_reset()?;
+                    continue;
                 }
                 Err(SymphoniaError::IoError(e))
                     if e.kind() == std::io::ErrorKind::UnexpectedEof =>
@@ -104,12 +226,17 @@ impl AudioStreamDecoder {
                 Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     break; // Temporary network buffer underrun
                 }
-                Err(e) => return Err(format!("Packet read error: {e}")),
+                Err(e) => {
+                    return Err(DecodeError::CorruptStream(format!(
+                        "Packet read error: {e}"
+                    )))
+                }
             };
 
             if packet.track_id != self.track_id {
                 continue;
             }
+            self.seek_target = None;
 
             match self.decoder.decode(&packet) {
                 Ok(audio_buf) => {
@@ -141,24 +268,41 @@ impl AudioStreamDecoder {
                         }
                     }
                 }
+                Err(SymphoniaError::ResetRequired) => {
+                    self.rebuild_decoder_on_reset()?;
+                    continue;
+                }
                 Err(SymphoniaError::DecodeError(_)) => continue,
-                Err(e) => return Err(format!("Decode frame error: {e}")),
+                Err(e) => {
+                    return Err(DecodeError::CorruptStream(format!(
+                        "Decode frame error: {e}"
+                    )))
+                }
             }
         }
 
         if written == 0 && !eof_reached {
-            return Err("WouldBlock".to_string());
+            return Err(DecodeError::WouldBlock);
         }
 
         self.frames_played += (written / 2) as u64;
         Ok(written)
     }
 
-    /// Seeks to specified playback duration timestamp.
-    pub fn seek(&mut self, target: std::time::Duration) -> Result<(), String> {
-        let ts = (target.as_secs_f64() * self.sample_rate as f64).round() as u64;
+    /// Seeks to specified playback duration timestamp and returns the actual seeked timestamp.
+    pub fn seek(
+        &mut self,
+        target: std::time::Duration,
+    ) -> Result<std::time::Duration, DecodeError> {
+        // Timestamps are in the track's time base, which is not always one tick per sample
+        // (Matroska/WebM count in their own ticks); rounding keeps sample-based seeks exact.
+        let secs = target.as_secs_f64();
+        let ticks = match self.time_base {
+            Some(tb) => secs * tb.denom.get() as f64 / tb.numer.get() as f64,
+            None => secs * self.sample_rate as f64,
+        };
         let seek_to = SeekTo::Timestamp {
-            ts: Timestamp::new(ts as i64),
+            ts: Timestamp::new(ticks.round() as i64),
             track_id: self.track_id,
         };
         // The reader lands on a packet boundary at or before the target; the frames between
@@ -166,14 +310,44 @@ impl AudioStreamDecoder {
         let landed = self
             .reader
             .seek(SeekMode::Accurate, seek_to)
-            .map_err(|e| format!("Seek failed: {e}"))?;
-        self.skip_frames = (landed.required_ts.get() - landed.actual_ts.get()).max(0) as u64;
+            .map_err(|e| DecodeError::SeekFailed(format!("Seek failed: {e}")))?;
+        let actual_ts = self.ts_to_frames(landed.actual_ts);
+        let required_ts = self.ts_to_frames(landed.required_ts);
+        self.skip_frames = required_ts.saturating_sub(actual_ts);
 
         self.decoder.reset();
         self.pending_samples.clear();
         self.pending_idx = 0;
-        self.frames_played = ts;
+        let effective_frames = actual_ts + self.skip_frames;
+        self.frames_played = effective_frames;
+        self.seek_target = Some(required_ts);
+        Ok(self.elapsed())
+    }
+
+    /// Fallback for a reader whose seek left it at the end: start over and drop frames up to
+    /// `target`.
+    fn rewind_and_skip_to(&mut self, target: u64) -> Result<(), DecodeError> {
+        let start = SeekTo::Time {
+            time: Time::try_from_secs_f64(0.0).unwrap_or_default(),
+            track_id: Some(self.track_id),
+        };
+        self.reader
+            .seek(SeekMode::Accurate, start)
+            .map_err(|e| DecodeError::SeekFailed(format!("Rewind after failed seek: {e}")))?;
+        self.decoder.reset();
+        self.skip_frames = target;
         Ok(())
+    }
+
+    /// Sample frames for a timestamp in this track's time base.
+    fn ts_to_frames(&self, ts: Timestamp) -> u64 {
+        let ticks = ts.get().max(0) as u64;
+        match self.time_base {
+            Some(tb) => tb.calc_time(ts).map_or(ticks, |t| {
+                (t.as_secs_f64().max(0.0) * self.sample_rate as f64).round() as u64
+            }),
+            None => ticks,
+        }
     }
 
     pub fn sample_rate(&self) -> u32 {
@@ -190,13 +364,25 @@ impl AudioStreamDecoder {
     }
 }
 
-impl amp_ports::PcmStreamPort for AudioStreamDecoder {
+impl PcmStreamPort for AudioStreamDecoder {
     fn sample_rate(&self) -> u32 {
         AudioStreamDecoder::sample_rate(self)
     }
 
-    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, String> {
+    fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, DecodeError> {
         self.read_interleaved_samples(out)
+    }
+
+    fn duration(&self) -> Option<std::time::Duration> {
+        AudioStreamDecoder::duration(self)
+    }
+
+    fn elapsed(&self) -> std::time::Duration {
+        AudioStreamDecoder::elapsed(self)
+    }
+
+    fn seek(&mut self, target: std::time::Duration) -> Result<std::time::Duration, DecodeError> {
+        AudioStreamDecoder::seek(self, target)
     }
 }
 
@@ -222,84 +408,84 @@ pub fn downmix_frame(samples: &[f32], frame_idx: usize, channels: usize) -> (f32
     }
 }
 
-/// A probed audio stream with its decoder.
-pub(crate) struct OpenedAudio {
-    pub reader: Box<dyn FormatReader>,
-    pub decoder: Box<dyn AudioDecoder>,
-    pub track_id: u32,
-    pub sample_rate: u32,
-    pub channels: u16,
-    pub duration_frames: Option<u64>,
-}
-
-/// Probes `source`, picks its first decodable audio track and makes a (gapless) decoder.
-pub(crate) fn open_audio<S>(source: S) -> Result<OpenedAudio, String>
-where
-    S: MediaSource + 'static,
-{
-    let mss = MediaSourceStream::new(Box::new(source), Default::default());
-    let reader = symphonia::default::get_probe()
-        .probe(
-            &Hint::new(),
-            mss,
-            FormatOptions::default(),
-            MetadataOptions::default(),
-        )
-        .map_err(|e| format!("Unrecognized audio format: {e}"))?;
-    let track = reader
-        .first_track_known_codec(TrackType::Audio)
-        .ok_or_else(|| "No playable audio tracks found".to_string())?;
-    let params = track
-        .codec_params
-        .as_ref()
-        .and_then(|p| p.audio())
-        .ok_or_else(|| "No playable audio tracks found".to_string())?
-        .clone();
-    let (track_id, duration_frames) = (track.id, track.num_frames);
-    let decoder = symphonia::default::get_codecs()
-        .make_audio_decoder(&params, &AudioDecoderOptions::default())
-        .map_err(|e| format!("Unsupported codec: {e}"))?;
-    Ok(OpenedAudio {
-        reader,
-        decoder,
-        track_id,
-        sample_rate: params.sample_rate.unwrap_or(44_100),
-        channels: params.channels.as_ref().map_or(2, |c| c.count() as u16),
-        duration_frames,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
+    use std::time::Duration;
 
-    #[test]
-    fn test_downmix_mono_to_stereo() {
-        let mono_samples = vec![0.8f32, 0.4f32];
-        let (l0, r0) = downmix_frame(&mono_samples, 0, 1);
-        assert_eq!(l0, 0.8);
-        assert_eq!(r0, 0.8);
-
-        let (l1, r1) = downmix_frame(&mono_samples, 1, 1);
-        assert_eq!(l1, 0.4);
-        assert_eq!(r1, 0.4);
+    fn build_ramp_wav(num_frames: usize, sample_rate: u32) -> Vec<u8> {
+        let data_size = (num_frames * 4) as u32;
+        let mut bytes = Vec::with_capacity(44 + data_size as usize);
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data_size).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt \x10\x00\x00\x00\x01\x00\x02\x00");
+        bytes.extend_from_slice(&sample_rate.to_le_bytes());
+        bytes.extend_from_slice(&(sample_rate * 4).to_le_bytes());
+        bytes.extend_from_slice(b"\x04\x00\x10\x00data");
+        bytes.extend_from_slice(&data_size.to_le_bytes());
+        for f in 0..num_frames {
+            let sample = (f as i16).clamp(-30_000, 30_000);
+            bytes.extend_from_slice(&sample.to_le_bytes());
+            bytes.extend_from_slice(&(-sample).to_le_bytes());
+        }
+        bytes
     }
 
     #[test]
-    fn test_downmix_stereo_passthrough() {
-        let stereo = vec![0.7f32, -0.5f32];
-        let (l, r) = downmix_frame(&stereo, 0, 2);
-        assert_eq!(l, 0.7);
-        assert_eq!(r, -0.5);
+    fn seek_accuracy_within_one_frame_on_wav() {
+        let sample_rate = 10_000;
+        let wav = build_ramp_wav(20_000, sample_rate);
+        let mut dec = AudioStreamDecoder::open_stream_with_hint(
+            Cursor::new(wav),
+            Some("wav"),
+            Some("audio/wav"),
+        )
+        .unwrap();
+
+        for &target_frame in &[500usize, 2_500, 7_777, 12_345, 1_000] {
+            let target_dur = Duration::from_secs_f64(target_frame as f64 / sample_rate as f64);
+            dec.seek(target_dur).unwrap();
+            let mut out = [0.0f32; 2];
+            assert_eq!(dec.read_interleaved_samples(&mut out).unwrap(), 2);
+            let actual_frame = (out[0] * 32768.0).round() as isize;
+            assert!((actual_frame - target_frame as isize).abs() <= 1);
+        }
     }
 
     #[test]
-    fn test_downmix_5_1_surround_sound() {
-        // FL, FR, FC, LFE, SL, SR
-        let surround = vec![1.0f32, 0.5f32, 1.0f32, 0.0f32, 0.5f32, 0.5f32];
-        let (l, r) = downmix_frame(&surround, 0, 6);
-        // Center channel and surround channels are mixed without phase error
-        assert!(l > 0.0 && l <= 1.5);
-        assert!(r > 0.0 && r <= 1.5);
+    fn reset_required_rebuilds_decoder_seamlessly() {
+        let wav = build_ramp_wav(1024, 44_100);
+        let mut dec = AudioStreamDecoder::open_stream(Cursor::new(wav)).unwrap();
+        let mut out = [0.0f32; 64];
+        assert_eq!(dec.read_interleaved_samples(&mut out).unwrap(), 64);
+        dec.rebuild_decoder_on_reset().unwrap();
+        assert_eq!(dec.read_interleaved_samples(&mut out).unwrap(), 64);
+    }
+
+    #[test]
+    fn formats_the_registry_cannot_play_are_rejected_by_name() {
+        for (ext, mime, name) in [
+            (Some("mpc"), None, "Musepack"),
+            (Some(".TTA"), None, "TTA"),
+            (Some("ape"), None, "Monkey's Audio"),
+        ] {
+            match AudioStreamDecoder::open_stream_with_hint(Cursor::new(vec![0u8; 64]), ext, mime) {
+                Err(DecodeError::UnsupportedFormat(msg)) => assert!(msg.contains(name), "{msg}"),
+                other => panic!(
+                    "{ext:?}/{mime:?}: expected UnsupportedFormat, got {:?}",
+                    other.err()
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn test_downmix_mono_stereo_and_5_1_surround() {
+        assert_eq!(downmix_frame(&[0.8f32, 0.4f32], 0, 1), (0.8, 0.8));
+        assert_eq!(downmix_frame(&[0.8f32, 0.4f32], 1, 1), (0.4, 0.4));
+        assert_eq!(downmix_frame(&[0.7f32, -0.5f32], 0, 2), (0.7, -0.5));
+        let (l, r) = downmix_frame(&[1.0f32, 0.5, 1.0, 0.0, 0.5, 0.5], 0, 6);
+        assert!(l > 0.0 && l <= 1.5 && r > 0.0 && r <= 1.5);
     }
 }

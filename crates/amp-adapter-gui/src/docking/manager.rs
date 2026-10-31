@@ -43,6 +43,7 @@ impl Default for DockManager {
             DockRect::new(610.0, 530.0, 480.0, 220.0),
         );
         windows.insert(WindowId::Remote, DockRect::new(610.0, 310.0, 360.0, 320.0));
+        windows.insert(WindowId::Search, DockRect::new(610.0, 100.0, 480.0, 360.0));
 
         let mut visibility = HashMap::new();
         visibility.insert(WindowId::Main, true);
@@ -51,6 +52,7 @@ impl Default for DockManager {
         visibility.insert(WindowId::Settings, false);
         visibility.insert(WindowId::DjConsole, false);
         visibility.insert(WindowId::Remote, false);
+        visibility.insert(WindowId::Search, false);
 
         let mut dock_parent = HashMap::new();
         dock_parent.insert(WindowId::Equalizer, (WindowId::Main, DockEdge::Bottom));
@@ -206,7 +208,9 @@ impl DockManager {
         let mut out: Vec<_> = self
             .windows
             .iter()
-            .filter(|(id, _)| **id != WindowId::Settings && self.is_visible(**id))
+            .filter(|(id, _)| {
+                **id != WindowId::Settings && **id != WindowId::Search && self.is_visible(**id)
+            })
             .map(|(id, r)| (*id, *r))
             .collect();
         out.sort_by_key(|(id, _)| *id as u8);

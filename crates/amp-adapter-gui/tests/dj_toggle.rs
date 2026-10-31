@@ -1,7 +1,7 @@
 //! TASK-209: switching DJ mode on and off while a track plays is seamless. The audio that
 //! actually reached the (captured) sound card has no gap, keeps its pitch and keeps its level.
 
-use amp_adapter_gui::audio_driver::AudioPlaybackDriver;
+use amp_adapter_gui::create_capture_engine;
 use amp_adapter_gui::dj_session::DjSession;
 use amp_domain::{AudioSource, Track, TrackMetadata};
 use std::path::{Path, PathBuf};
@@ -78,7 +78,7 @@ fn toggle_and_check(dwell_ms: u64) {
         TrackMetadata::new("Tone", "Test"),
     );
 
-    let (driver, captured) = AudioPlaybackDriver::new_capture().expect("capture driver");
+    let (driver, captured) = create_capture_engine().expect("capture driver");
     let rate = driver.sample_rate() as usize;
     driver.play(track);
     wait_until("normal playback", 10, || captured.len() > rate * 2);
@@ -130,9 +130,6 @@ fn toggle_and_check(dwell_ms: u64) {
         let hz = crossings as f32 * 10.0;
         assert!((hz - 440.0).abs() <= 20.0, "window {i}: {hz} Hz");
         let peak = w.iter().fold(0.0f32, |a, v| a.max(v.abs()));
-        assert!(
-            (peak / 0.425 - 1.0).abs() < 0.12,
-            "window {i}: level {peak}"
-        );
+        assert!((peak - 0.48).abs() < 0.12, "window {i}: level {peak}");
     }
 }

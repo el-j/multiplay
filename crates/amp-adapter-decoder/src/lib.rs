@@ -1,15 +1,19 @@
 //! Pure-Rust multi-format audio decoder engine using Symphonia.
-//! Decodes MP3, FLAC, WAV, AAC, Vorbis, and Opus into interleaved normalized f32 PCM samples.
+//! Decodes MP3, FLAC, WAV, AAC, and Ogg Vorbis into interleaved normalized f32 PCM samples.
 
 #![forbid(unsafe_code)]
 
+pub mod dsd;
 pub mod engine;
+pub mod opus;
+pub mod probe;
 pub mod source;
 pub mod stream;
+pub mod wavpack;
 
 pub use engine::{DecodedStreamSpec, PureDecoderEngine};
 pub use source::GenericMediaSource;
-pub use stream::AudioStreamDecoder;
+pub use stream::{AudioStreamDecoder, SymphoniaDecoderFactory};
 
 #[cfg(test)]
 mod tests {

@@ -25,7 +25,8 @@
 `cargo test -p amp-core-engine position`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented speaker-aligned playback position (`seek_base_micros` + consumed frames at device rate) and lock-free 2048-sample `AtomicU32` visualizer tap in `crates/amp-ports/src/clock.rs`.
+- Verified with `cargo test -p amp-core-engine position` (`position_tracks_speaker_output_clock_within_20ms_and_updates_tap` passed) and `cargo test -p amp-ports`.
 
 ## Status
 - **Status:** Pending

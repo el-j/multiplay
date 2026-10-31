@@ -25,7 +25,7 @@
 `cargo test -p amp-core-engine bounded_buffer`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified live radio sliding window (`SharedPrecacheBuffer::new_live_ring`), disk spill (`SharedPrecacheBuffer::with_disk_spill`), LRU eviction (`DiskSpillCache`), and 50-stream cancellation on reader drop via `cargo test -p amp-core-engine bounded_buffer` (3 passed).
 
 ## Status
 - **Status:** Pending

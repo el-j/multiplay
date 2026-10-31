@@ -68,11 +68,11 @@ mod tests {
         fn load(&self, key: &str) -> Option<TrackAnalysis> {
             self.map.lock().ok()?.get(key).cloned()
         }
-        fn store(&self, key: &str, a: &TrackAnalysis) -> Result<(), String> {
+        fn store(&self, key: &str, a: &TrackAnalysis) -> Result<(), amp_ports::StorageError> {
             self.stores.fetch_add(1, Ordering::Relaxed);
             self.map
                 .lock()
-                .map_err(|e| e.to_string())?
+                .map_err(|e| amp_ports::StorageError::TransactionFailed(e.to_string()))?
                 .insert(key.into(), a.clone());
             Ok(())
         }

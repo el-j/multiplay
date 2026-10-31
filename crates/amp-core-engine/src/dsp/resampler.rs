@@ -25,6 +25,8 @@ pub struct PureResampler {
     chunk_size: usize,
     source_rate: usize,
     target_rate: usize,
+    input_fifo: Vec<f32>,
+    input_block: Vec<f32>,
 }
 
 impl PureResampler {
@@ -52,12 +54,17 @@ impl PureResampler {
             FixedAsync::Input,
         )?;
 
+        let input_block = vec![0.0f32; chunk_size * channels];
+        let input_fifo = Vec::with_capacity(chunk_size * channels * 4);
+
         Ok(Self {
             resampler,
             input_channels: channels,
             chunk_size,
             source_rate,
             target_rate,
+            input_fifo,
+            input_block,
         })
     }
 
@@ -89,42 +96,54 @@ impl PureResampler {
             .collect())
     }
 
-    /// Resamples one block of up to `chunk_size` interleaved frames.
-    fn process_interleaved_block(&mut self, samples: &[f32]) -> Result<Vec<f32>, String> {
-        let frames = samples.len() / self.input_channels;
-        if frames == 0 {
+    /// Processes arbitrary length interleaved audio samples, buffering into the input FIFO
+    /// and feeding Rubato only full unpadded blocks to eliminate mid-stream clicks (`TASK-142`, `DSP-04`).
+    pub fn process_interleaved(&mut self, samples: &[f32]) -> Result<Vec<f32>, String> {
+        self.input_fifo.extend_from_slice(samples);
+        let block_len = self.chunk_size * self.input_channels;
+        let mut all_out = Vec::new();
+
+        while self.input_fifo.len() >= block_len {
+            self.input_block[..block_len].copy_from_slice(&self.input_fifo[..block_len]);
+            self.input_fifo.drain(..block_len);
+
+            let input =
+                InterleavedSlice::new(&self.input_block, self.input_channels, self.chunk_size)
+                    .map_err(|e| format!("Resampling input error: {e}"))?;
+            let out = self
+                .resampler
+                .process(&input, None)
+                .map_err(|e| format!("Resampling error: {e}"))?
+                .take_data();
+            all_out.extend(out);
+        }
+
+        Ok(all_out)
+    }
+
+    /// Flushes any remaining partial block in the input FIFO at end of stream (`TASK-142`, `DSP-04`).
+    pub fn flush_interleaved(&mut self) -> Result<Vec<f32>, String> {
+        if self.input_fifo.is_empty() {
             return Ok(Vec::new());
         }
-        let input = InterleavedSlice::new(samples, self.input_channels, frames)
-            .map_err(|e| format!("Resampling input error: {e}"))?;
+        let frames = self.input_fifo.len() / self.input_channels;
+        if frames == 0 {
+            self.input_fifo.clear();
+            return Ok(Vec::new());
+        }
+        let input = InterleavedSlice::new(&self.input_fifo, self.input_channels, frames)
+            .map_err(|e| format!("Resampling flush error: {e}"))?;
         let indexing = partial(frames, self.chunk_size);
         let mut out = self
             .resampler
             .process(&input, indexing.as_ref())
             .map_err(|e| format!("Resampling error: {e}"))?
             .take_data();
-        // A short final block is padded with silence inside rubato; keep only its share.
-        if frames < self.chunk_size {
-            let keep = (frames as f64 * self.target_rate as f64 / self.source_rate as f64).round()
-                as usize;
-            out.truncate(keep * self.input_channels);
-        }
+        let keep =
+            (frames as f64 * self.target_rate as f64 / self.source_rate as f64).round() as usize;
+        out.truncate(keep * self.input_channels);
+        self.input_fifo.clear();
         Ok(out)
-    }
-
-    /// Processes arbitrary length interleaved audio samples, automatically chunking as needed.
-    pub fn process_interleaved(&mut self, samples: &[f32]) -> Result<Vec<f32>, String> {
-        let step = self.chunk_size * self.input_channels;
-        if samples.len() <= step {
-            return self.process_interleaved_block(samples);
-        }
-
-        let mut all_out = Vec::new();
-        for chunk in samples.chunks(step) {
-            let res = self.process_interleaved_block(chunk)?;
-            all_out.extend(res);
-        }
-        Ok(all_out)
     }
 
     /// Output frames by which the resampled audio lags its input.
@@ -205,9 +224,10 @@ mod tests {
 
         // Test with fewer samples than chunk_size (e.g. 100 frames = 200 samples)
         let small_input = vec![0.2f32; 200];
-        let small_out = resampler
+        let mut small_out = resampler
             .process_interleaved(&small_input)
             .expect("small resample failed");
+        small_out.extend(resampler.flush_interleaved().expect("flush failed"));
         assert!(!small_out.is_empty());
         assert_eq!(small_out.len() % 2, 0);
 
@@ -218,5 +238,55 @@ mod tests {
             .expect("large resample failed");
         assert!(!large_out.is_empty());
         assert_eq!(large_out.len() % 2, 0);
+    }
+
+    #[test]
+    fn test_resampler_streaming_chunks_match_single_shot() {
+        let chunk_size = 512;
+        let mut r_single = PureResampler::new(44100, 48000, 2, chunk_size).unwrap();
+        let mut r_chunked = PureResampler::new(44100, 48000, 2, chunk_size).unwrap();
+
+        // 1 second of 440 Hz stereo sine at 44.1 kHz
+        let num_frames = 44100;
+        let mut input = Vec::with_capacity(num_frames * 2);
+        for i in 0..num_frames {
+            let s = (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 44100.0).sin() * 0.7;
+            input.push(s);
+            input.push(s);
+        }
+
+        // Single shot
+        let mut out_single = r_single.process_interleaved(&input).unwrap();
+        out_single.extend(r_single.flush_interleaved().unwrap());
+
+        // Random-sized chunks: 17, 333, 7, 1024, 61, 513...
+        let mut out_chunked = Vec::new();
+        let chunk_lens = [34, 666, 14, 2048, 122, 1026, 50, 400];
+        let mut offset = 0;
+        let mut step_idx = 0;
+        while offset < input.len() {
+            let len = chunk_lens[step_idx % chunk_lens.len()].min(input.len() - offset);
+            let part = &input[offset..offset + len];
+            out_chunked.extend(r_chunked.process_interleaved(part).unwrap());
+            offset += len;
+            step_idx += 1;
+        }
+        out_chunked.extend(r_chunked.flush_interleaved().unwrap());
+
+        assert_eq!(out_single.len(), out_chunked.len());
+
+        // Verify SNR > 120 dB (max absolute sample diff < 1e-4) and no zero-padding mid-stream
+        let mut max_diff = 0.0f32;
+        for (i, (&s1, &s2)) in out_single.iter().zip(out_chunked.iter()).enumerate() {
+            let diff = (s1 - s2).abs();
+            if diff > max_diff {
+                max_diff = diff;
+            }
+            assert!(
+                diff < 1e-4,
+                "Sample diff at {i} too large: {diff} (single={s1}, chunked={s2})"
+            );
+        }
+        assert!(max_diff < 1e-4, "Max diff {max_diff} exceeded threshold");
     }
 }

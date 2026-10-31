@@ -4,13 +4,13 @@
 #![forbid(unsafe_code)]
 
 pub mod app_state;
-pub mod audio_driver;
+pub mod engine_factory;
 pub mod runner;
 pub mod terminal;
-pub mod track_loader;
 
+pub use amp_core_engine::PlayerEngine;
 pub use app_state::MultiplayApp;
-pub use audio_driver::AudioPlaybackDriver;
+pub use engine_factory::{create_capture_engine, create_headless_engine, create_player_engine};
 
 #[cfg(test)]
 mod tests {

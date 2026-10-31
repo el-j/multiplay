@@ -17,19 +17,42 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
     Satellite::new(WindowId::Equalizer, "Equalizer").show(app, ctx);
     Satellite::new(WindowId::Playlist, "Playlist").show(app, ctx);
     Satellite::new(WindowId::Remote, "Remote").show(app, ctx);
-    // Settings is an overlay: close button only, never snaps or docks (TASK-201).
+    // Settings & Search are overlays: close button only, never snap or dock (TASK-201, TASK-153).
     let mut settings = Satellite::new(WindowId::Settings, "Preferences");
     settings.overlay = true;
     settings.show(app, ctx);
+    let mut search = Satellite::new(WindowId::Search, "Search");
+    search.overlay = true;
+    search.show(app, ctx);
+}
+
+/// Adds files and folders the OS dropped onto the current viewport. Every window is its own
+/// viewport with its own input, so each one has to read its drops.
+pub fn ingest_dropped_files(app: &mut MultiplayGuiApp, ctx: &egui::Context) {
+    let dropped: Vec<_> = ctx.input(|i| {
+        i.raw
+            .dropped_files
+            .iter()
+            .map(|f| f.path().to_path_buf())
+            .filter(|p| !p.as_os_str().is_empty())
+            .collect()
+    });
+    if !dropped.is_empty() {
+        app.ingest_paths(&dropped);
+    }
 }
 
 /// Renders `window`'s content under its title strip, grows the window if anything still did
 /// not fit, and adds the resize handles.
 pub fn show_body(app: &mut MultiplayGuiApp, ui: &mut Ui, window: WindowId) {
     let ctx = &ui.ctx().clone();
+    ingest_dropped_files(app, ctx);
     chrome::zoom::shortcut(ctx);
     if ctx.input_mut(|i| i.consume_shortcut(&chrome::overlay::SETTINGS)) {
         app.dock_manager.toggle_visible(WindowId::Settings);
+    }
+    if ctx.input_mut(|i| i.consume_shortcut(&chrome::overlay::SEARCH)) {
+        app.dock_manager.toggle_visible(WindowId::Search);
     }
     if app.dock_manager.is_shaded(window) {
         return;
@@ -61,7 +84,7 @@ fn place_on_show(app: &mut MultiplayGuiApp, window: WindowId, screens: &[DockRec
     let mut r = app.dock_manager.get_rect(window);
     r.width = r.width.max(min.x);
     r.height = r.height.max(min.y);
-    if window == WindowId::Settings {
+    if window == WindowId::Settings || window == WindowId::Search {
         let main = app.dock_manager.get_rect(WindowId::Main);
         r = chrome::overlay::centered(r.width, r.height, screens.first().copied(), main);
     } else {
@@ -110,6 +133,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
         }
         WindowId::Playlist => render_playlist_window_content(app, ui),
         WindowId::Remote => crate::remote_window::render(app, ui),
+        WindowId::Search => crate::search_window::render_search_window_content(app, ui),
         WindowId::Settings => {
             let mut opens = crate::settings_panel::SettingsOpens::default();
             let devices: Vec<String> = app
@@ -118,6 +142,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 .iter()
                 .map(|d| d.name.clone())
                 .collect();
+            let prev_config = app.config.clone();
             let done = SettingsGuiPanel::show(
                 ui,
                 &mut app.settings_tab,
@@ -130,6 +155,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                     headphones_error: app.dj_phones_error.as_deref(),
                 },
             );
+            if app.config != prev_config {
+                app.save_and_apply_config();
+            }
             if opens.skin_dialog {
                 app.open_skin_dialog();
             }

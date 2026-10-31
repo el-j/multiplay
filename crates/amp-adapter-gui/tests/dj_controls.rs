@@ -1,12 +1,12 @@
 //! TASK-212: no single control stops the music by accident, and held controls let go cleanly.
 
-use amp_adapter_gui::audio_driver::AudioPlaybackDriver;
 use amp_adapter_gui::dj_controls::{press, release, ConsoleState, DjAction};
 use amp_adapter_gui::dj_session::DjSession;
+use amp_adapter_gui::{create_headless_engine, PlayerEngine};
 use std::time::{Duration, Instant};
 
-fn session() -> (AudioPlaybackDriver, DjSession) {
-    let driver = AudioPlaybackDriver::new_headless().expect("driver");
+fn session() -> (PlayerEngine, DjSession) {
+    let driver = create_headless_engine().expect("driver");
     let dj = DjSession::new(&driver, None);
     let p = dj.params();
     p.set_crossfader(-1.0); // deck A on air, deck B silent on master

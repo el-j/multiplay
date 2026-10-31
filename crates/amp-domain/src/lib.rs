@@ -6,8 +6,10 @@
 pub mod analysis;
 pub mod config;
 pub mod deck_assign;
+pub mod formats;
 pub mod jam_crdt;
 pub mod source_badge;
+pub mod source_url;
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -21,6 +23,10 @@ pub use config::{
 pub use deck_assign::{next_for_deck, next_markers, DeckAssignment};
 pub use jam_crdt::{CollaborativeQueue, JamItem, JamOperation, LamportTimestamp};
 pub use source_badge::{SourceFilterMask, SourceKind};
+pub use source_url::{
+    is_valid_youtube_id, parse_source_url, parse_time_param, parse_youtube_url, ParsedSourceUrl,
+    YouTubeReference,
+};
 
 /// Unique identifier for an audio track in the system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,6 +36,36 @@ impl TrackId {
     /// Generates a new random TrackId.
     pub fn new() -> Self {
         Self(Uuid::new_v4())
+    }
+
+    /// Computes a deterministic [`TrackId`] from the canonical URI of `source` (`TASK-148`).
+    /// Rescanning the same local path or remote source always yields the exact same [`TrackId`].
+    pub fn from_source(source: &AudioSource) -> Self {
+        let canonical = source.canonical_uri();
+        let bytes = canonical.as_bytes();
+        // Dual 64-bit FNV-1a with distinct seeds + avalanche mixing to form 128 deterministic bits
+        let mut h1: u64 = 0xcbf2_9ce4_8422_2325;
+        let mut h2: u64 = 0x8422_2325_cbf2_9ce4;
+        for (i, &b) in bytes.iter().enumerate() {
+            h1 ^= b as u64;
+            h1 = h1.wrapping_mul(0x0000_0100_0000_01b3);
+            h2 ^= (b as u64).wrapping_add(i as u64);
+            h2 = h2.wrapping_mul(0x0000_0100_0000_01b3).rotate_left(5);
+        }
+        h1 ^= h1 >> 33;
+        h1 = h1.wrapping_mul(0xff51_afd7_ed55_8ccd);
+        h1 ^= h1 >> 33;
+        h2 ^= h2 >> 33;
+        h2 = h2.wrapping_mul(0xc4ce_b9fe_1a85_ec53);
+        h2 ^= h2 >> 33;
+
+        let mut uuid_bytes = [0u8; 16];
+        uuid_bytes[..8].copy_from_slice(&h1.to_be_bytes());
+        uuid_bytes[8..].copy_from_slice(&h2.to_be_bytes());
+        // RFC 4122 variant + v5 version bits
+        uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x50;
+        uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80;
+        Self(Uuid::from_bytes(uuid_bytes))
     }
 }
 
@@ -68,6 +104,94 @@ impl AudioSource {
             Self::P2PShared { .. } => SourceKind::P2PShared,
         }
     }
+
+    /// Formats the source into a lossless canonical URI (`multiplay:` scheme for non-local sources,
+    /// `TASK-148`, `TASK-152`).
+    pub fn canonical_uri(&self) -> String {
+        match self {
+            Self::LocalFile { path } => format!("multiplay:file:{path}"),
+            Self::NetworkSmb { share_url } => format!("multiplay:smb:{share_url}"),
+            Self::DirectHttp { url } => format!("multiplay:http:{url}"),
+            Self::YouTube { video_id } => format!("multiplay:youtube:{video_id}"),
+            Self::Spotify { track_uri } => format!("multiplay:spotify:{track_uri}"),
+            Self::Bandcamp { stream_url } => format!("multiplay:bandcamp:{stream_url}"),
+            Self::SoundCloud { track_url } => format!("multiplay:soundcloud:{track_url}"),
+            Self::Soulseek { username, filename } => {
+                format!(
+                    "multiplay:soulseek:{}:{}:{username}{filename}",
+                    username.len(),
+                    filename.len()
+                )
+            }
+            Self::P2PShared { peer_id, file_hash } => {
+                format!(
+                    "multiplay:p2p:{}:{}:{peer_id}{file_hash}",
+                    peer_id.len(),
+                    file_hash.len()
+                )
+            }
+        }
+    }
+
+    /// Parses a `multiplay:` canonical URI back into its exact [`AudioSource`] variant (`TASK-152`).
+    pub fn from_canonical_uri(uri: &str) -> Option<Self> {
+        let rest = uri.strip_prefix("multiplay:")?;
+        if let Some(path) = rest.strip_prefix("file:") {
+            Some(Self::LocalFile {
+                path: path.to_string(),
+            })
+        } else if let Some(share_url) = rest.strip_prefix("smb:") {
+            Some(Self::NetworkSmb {
+                share_url: share_url.to_string(),
+            })
+        } else if let Some(url) = rest.strip_prefix("http:") {
+            Some(Self::DirectHttp {
+                url: url.to_string(),
+            })
+        } else if let Some(video_id) = rest.strip_prefix("youtube:") {
+            Some(Self::YouTube {
+                video_id: video_id.to_string(),
+            })
+        } else if let Some(track_uri) = rest.strip_prefix("spotify:") {
+            Some(Self::Spotify {
+                track_uri: track_uri.to_string(),
+            })
+        } else if let Some(stream_url) = rest.strip_prefix("bandcamp:") {
+            Some(Self::Bandcamp {
+                stream_url: stream_url.to_string(),
+            })
+        } else if let Some(track_url) = rest.strip_prefix("soundcloud:") {
+            Some(Self::SoundCloud {
+                track_url: track_url.to_string(),
+            })
+        } else if let Some(slsk) = rest.strip_prefix("soulseek:") {
+            let (u_len, r1) = slsk.split_once(':')?;
+            let (f_len, payload) = r1.split_once(':')?;
+            let u_len: usize = u_len.parse().ok()?;
+            let f_len: usize = f_len.parse().ok()?;
+            if payload.len() != u_len + f_len {
+                return None;
+            }
+            Some(Self::Soulseek {
+                username: payload[..u_len].to_string(),
+                filename: payload[u_len..].to_string(),
+            })
+        } else if let Some(p2p) = rest.strip_prefix("p2p:") {
+            let (p_len, r1) = p2p.split_once(':')?;
+            let (h_len, payload) = r1.split_once(':')?;
+            let p_len: usize = p_len.parse().ok()?;
+            let h_len: usize = h_len.parse().ok()?;
+            if payload.len() != p_len + h_len {
+                return None;
+            }
+            Some(Self::P2PShared {
+                peer_id: payload[..p_len].to_string(),
+                file_hash: payload[p_len..].to_string(),
+            })
+        } else {
+            None
+        }
+    }
 }
 
 /// Metadata attributes associated with an audio track.
@@ -85,7 +209,33 @@ pub struct TrackMetadata {
     pub cover_art_uri: Option<String>,
     pub replay_gain_mb: Option<i32>,
     pub integrated_lufs_mb: Option<i32>,
+    /// Album artist (e.g. "Various Artists" on compilations). Missing in older data.
+    #[serde(default)]
+    pub album_artist: Option<String>,
+    /// Disc number within a multi-disc release.
+    #[serde(default)]
+    pub disc_number: Option<u32>,
+    /// Release or recording year.
+    #[serde(default)]
+    pub year: Option<u16>,
+    #[serde(default)]
+    pub genre: Option<String>,
+    /// The part of the source this track covers, e.g. one song of a single-file album with a
+    /// CUE sheet. `None` plays the whole source.
+    #[serde(default)]
+    pub segment: Option<TrackSegment>,
 }
+
+/// A time range within an audio source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrackSegment {
+    pub start: Duration,
+    /// `None`: until the end of the source.
+    pub end: Option<Duration>,
+}
+
+/// ReplayGain's reference loudness: a track with 0 dB ReplayGain gain is about -18 LUFS.
+const REPLAY_GAIN_REFERENCE_LUFS: f32 = -18.0;
 
 impl TrackMetadata {
     pub fn new(title: impl Into<String>, artist: impl Into<String>) -> Self {
@@ -102,6 +252,11 @@ impl TrackMetadata {
             cover_art_uri: None,
             replay_gain_mb: None,
             integrated_lufs_mb: None,
+            album_artist: None,
+            disc_number: None,
+            year: None,
+            genre: None,
+            segment: None,
         }
     }
 
@@ -115,9 +270,15 @@ impl TrackMetadata {
         self.replay_gain_mb = Some((gain_db * 100.0).round() as i32);
     }
 
-    /// Returns EBU R128 integrated loudness in LUFS (e.g. -14.0 LUFS).
+    /// Returns EBU R128 integrated loudness in LUFS (e.g. -14.0 LUFS): measured or from an R128
+    /// tag, otherwise derived from the ReplayGain track gain.
     pub fn integrated_lufs(&self) -> Option<f32> {
-        self.integrated_lufs_mb.map(|mb| mb as f32 / 100.0)
+        self.integrated_lufs_mb
+            .map(|mb| mb as f32 / 100.0)
+            .or_else(|| {
+                self.replay_gain_db()
+                    .map(|g| REPLAY_GAIN_REFERENCE_LUFS - g)
+            })
     }
 
     /// Sets EBU R128 integrated loudness in LUFS.
@@ -144,15 +305,28 @@ impl Track {
             date_added_epoch: 0,
         }
     }
+
+    /// Creates a [`Track`] whose [`TrackId`] is deterministically derived from `source` (`TASK-148`).
+    pub fn with_stable_id(source: AudioSource, metadata: TrackMetadata) -> Self {
+        let id = TrackId::from_source(&source);
+        Self {
+            id,
+            source,
+            metadata,
+            date_added_epoch: 0,
+        }
+    }
 }
 
 /// High-level transport state for playback session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlaybackState {
     Stopped,
+    Loading,
     Buffering { progress_percent: u8 },
     Playing,
     Paused,
+    Error,
 }
 
 /// Normalized interleaved audio frame chunk (-1.0 to 1.0).

@@ -25,7 +25,9 @@
 `cargo test -p amp-adapter-cpal format`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented pure `negotiate_stream_config` (`F32 > I32 > I16 > U16`, stereo > multichannel > mono, `preferred_rate` bit-perfect support) in `crates/amp-adapter-cpal/src/device.rs`.
+- Implemented real-time safe `fill_output_typed_with_clock` with xorshift32 `TpdfDither` (`f32_to_i16_dithered`, `f32_to_u16_dithered`, `f32_to_i32_dithered`) and N-channel mapping in `crates/amp-adapter-cpal/src/actor.rs`.
+- Verified with `cargo test -p amp-adapter-cpal format` (3 passed, 0 failed).
 
 ## Status
 - **Status:** Pending

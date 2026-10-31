@@ -24,7 +24,9 @@
 `./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Replaced all `Result<_, String>` across `amp-ports` with typed domain/port errors (`DecodeError`, `AudioSinkError`, `StorageError`, `VaultError`, `PlaylistError`, `DownloadError`) and removed string-based `WouldBlock` matching in favor of `DecodeError::WouldBlock`.
+- Emitted `PlayerEvent::Error { kind, source, message, recoverable }` from `PlayerEngine`.
+- Verified `(! grep -rn "Result<.*String>" crates/amp-ports)` and `./scripts/verify_pure_rust.sh && cargo clippy --workspace --all-targets -- -D warnings`.
 
 ## Status
 - **Status:** Pending

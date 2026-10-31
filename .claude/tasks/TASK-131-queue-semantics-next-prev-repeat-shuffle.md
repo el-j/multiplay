@@ -25,7 +25,8 @@
 `cargo test -p amp-core-engine queue`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented `EngineQueue` in `crates/amp-core-engine/src/player/queue.rs` owning `Next`, `Previous` (3 s restart threshold), `RepeatMode { Off, One, All }`, `ShuffleMode`, `EnqueueExisting(TrackId)`, and automatic gapless/EOF advancement.
+- Verified with `cargo test -p amp-core-engine queue` (3 passed, 0 failed).
 
 ## Status
 - **Status:** Pending

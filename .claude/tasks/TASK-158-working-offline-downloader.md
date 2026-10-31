@@ -24,7 +24,11 @@
 `cargo test -p amp-core-engine downloader`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Unit tested cross-platform filename sanitization (`sanitize_filename`), removing reserved chars, traversal, and Windows device names.
+- Unit tested audio container detection (`detect_audio_container`) from header bytes (WAV, FLAC, OGG, M4A, MP3).
+- Implemented collision-proof non-overwriting destination path generation (`get_unique_filepath`).
+- Implemented `TrackDownloadPort` via `TrackDownloadService` supporting async downloads, Lofty metadata tagging, progress event broadcasting, and cancellation.
+- Verification command passed: `cargo test -p amp-core-engine downloader`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
