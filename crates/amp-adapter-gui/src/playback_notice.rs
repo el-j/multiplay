@@ -39,7 +39,7 @@ impl MultiplayGuiApp {
     }
 }
 
-/// "3 files skipped: Opus (2), WavPack (1) – not supported yet", or `None` when nothing was.
+/// "3 files skipped: TTA (2), Musepack (1) – not supported yet", or `None` when nothing was.
 pub fn skipped_summary(
     skipped: &std::collections::BTreeMap<&'static str, usize>,
 ) -> Option<String> {

@@ -31,7 +31,7 @@ pub use scanner::{
     collect_audio_files, extract_track_from_file, is_playable_path, scan_audio_files,
     LibraryScanner, ScanReport,
 };
-pub use tags::{embedded_cover_art, CoverArt, EMBEDDED_COVER_PREFIX};
+pub use tags::{embedded_cover_art, file_name_track, CoverArt, EMBEDDED_COVER_PREFIX};
 
 const TRACKS_TABLE: TableDefinition<&[u8; 16], &[u8]> = TableDefinition::new("tracks_v2");
 const SOURCE_INDEX_TABLE: TableDefinition<&str, &[u8; 16]> =

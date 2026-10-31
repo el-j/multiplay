@@ -42,20 +42,6 @@ const fn playable(
     }
 }
 
-const fn planned(
-    name: &'static str,
-    extensions: &'static [&'static str],
-    mime_types: &'static [&'static str],
-    task: &'static str,
-) -> AudioFormat {
-    AudioFormat {
-        name,
-        extensions,
-        mime_types,
-        status: FormatStatus::Planned { task },
-    }
-}
-
 const fn unsupported(
     name: &'static str,
     extensions: &'static [&'static str],
@@ -101,23 +87,23 @@ pub const AUDIO_FORMATS: &[AudioFormat] = &[
     ),
     playable("MPEG Layer I/II", &["mp1", "mp2"], &["audio/mpeg"]),
     playable("Opus", &["opus"], &["audio/opus"]),
-    planned("DSD", &["dsf", "dff"], &["audio/dsd"], "TASK-231"),
-    unsupported("WavPack", &["wv"], "no pure-Rust WavPack decoder yet"),
+    playable("DSD", &["dsf", "dff"], &["audio/dsd"]),
+    playable("WavPack", &["wv"], &["audio/wavpack", "audio/x-wavpack"]),
     unsupported(
         "Monkey's Audio",
         &["ape"],
-        "no pure-Rust Monkey's Audio decoder yet",
+        "a pure-Rust decoder is being evaluated (ADR-006)",
     ),
     unsupported(
         "Musepack",
         &["mpc", "mp+"],
-        "no pure-Rust Musepack decoder yet",
+        "no mature pure-Rust decoder yet (ADR-006)",
     ),
-    unsupported("TTA", &["tta"], "no pure-Rust TTA decoder yet"),
+    unsupported("TTA", &["tta"], "no mature pure-Rust decoder yet (ADR-006)"),
     unsupported(
         "Windows Media Audio",
         &["wma"],
-        "proprietary codec without a pure-Rust decoder",
+        "no mature pure-Rust decoder yet (ADR-006)",
     ),
 ];
 

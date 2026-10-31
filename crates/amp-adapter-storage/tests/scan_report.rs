@@ -12,9 +12,9 @@ fn skipped_audio_is_counted_by_format() {
     for name in [
         "a.flac",
         "sub/b.MP3",
-        "c.wv",
-        "sub/d.wv",
-        "e.dsf",
+        "c.tta",
+        "sub/d.tta",
+        "e.ape",
         "cover.jpg",
         "notes.txt",
     ] {
@@ -29,7 +29,7 @@ fn skipped_audio_is_counted_by_format() {
     files.sort();
     assert_eq!(files, vec!["a.flac", "b.MP3"]);
     assert_eq!(report.skipped_count(), 3);
-    assert_eq!(report.skipped.get("WavPack"), Some(&2));
-    assert_eq!(report.skipped.get("DSD"), Some(&1));
+    assert_eq!(report.skipped.get("TTA"), Some(&2));
+    assert_eq!(report.skipped.get("Monkey's Audio"), Some(&1));
     let _ = std::fs::remove_dir_all(dir);
 }

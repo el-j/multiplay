@@ -165,7 +165,7 @@ impl LibraryScanner {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScanReport {
     pub files: Vec<PathBuf>,
-    /// Format name (e.g. "WavPack") to number of files skipped.
+    /// Format name (e.g. "TTA") to number of files skipped.
     pub skipped: std::collections::BTreeMap<&'static str, usize>,
     /// CUE sheets found; the files they cover are not in `files` (TASK-232).
     pub cue_sheets: Vec<PathBuf>,

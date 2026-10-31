@@ -399,9 +399,15 @@ fn every_playable_format_has_a_fixture() {
         if format.status != FormatStatus::Playable {
             continue;
         }
-        let covered = FIXTURES
-            .iter()
-            .any(|f| formats::by_path(Path::new(f.file)).is_some_and(|x| x.name == format.name));
+        // DSD and WavPack bypass Symphonia; `dsd.rs` and `wavpack.rs` check them via the factory.
+        let files = FIXTURES.iter().map(|f| f.file).chain([
+            "dsd_stereo.dsf",
+            "dsd_stereo.dff",
+            "wavpack_16.wv",
+        ]);
+        let covered = files
+            .clone()
+            .any(|f| formats::by_path(Path::new(f)).is_some_and(|x| x.name == format.name));
         assert!(
             covered,
             "{} is playable but has no golden fixture",

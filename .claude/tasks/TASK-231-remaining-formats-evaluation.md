@@ -36,3 +36,10 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- Decision record: [ADR-006](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/adr/ADR-006-remaining-audio-formats.md).
+- **DSD** (`src/dsd/`): DSF + DSDIFF parsing, three-stage decimation to 88.2 kHz, seeking with filter warm-up; factory routes by extension and by header. CPU: 2.94 % (single 1024-tap FIR) → 0.86 % after multistage filtering and removing a per-sample buffer shift. Fixtures `dsd_stereo.dsf/.dff` (sigma-delta generator, verified with ffmpeg: 440/660 Hz, RMS 0.354). Tests `tests/dsd.rs` (3) + engine playback; GUI imports DSD with the decoder's duration (`drop_ingest::dsd_files_are_added_with_their_duration`).
+- **WavPack** (`src/wavpack.rs`): `wavicle =0.1.0`, block-by-block, stops at APEv2 tags, exact seeks. Fixtures `wavpack_16.wv`, `wavpack_24.wv` (ffmpeg, tagged). Tests `tests/wavpack.rs` (2): lossless vs formula by name and as stream, frame-exact seek; engine playback; tags via lofty.
+- APE, TTA, Musepack, WMA stay unplayable with updated reasons (see ADR-006).
+- Gate: verify_pure_rust, cargo-deny, clippy `-D warnings`, `cargo test --workspace --no-fail-fast` 508 passed / 0 failed.

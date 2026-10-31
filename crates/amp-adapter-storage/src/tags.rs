@@ -48,6 +48,24 @@ pub fn extract_track_from_file(path: &Path) -> Option<Track> {
     })
 }
 
+/// A track for a playable file no tag reader understands (e.g. DSD): title and artist from
+/// the file name, properties from whoever could decode it.
+pub fn file_name_track(path: &Path, duration: Option<Duration>, sample_rate: Option<u32>) -> Track {
+    let mut m = TrackMetadata::new("", "");
+    m.duration = duration;
+    m.sample_rate = sample_rate;
+    name_fallback(&mut m, path);
+    let source = AudioSource::LocalFile {
+        path: path.to_string_lossy().to_string(),
+    };
+    Track {
+        id: TrackId::from_source(&source),
+        source,
+        metadata: m,
+        date_added_epoch: 0,
+    }
+}
+
 /// The front cover (or first picture) embedded in `path`, if any.
 pub fn embedded_cover_art(path: &Path) -> Option<CoverArt> {
     let file = Probe::open(path).ok()?.read().ok()?;

@@ -20,13 +20,35 @@ pub struct SymphoniaDecoderFactory;
 
 impl DecoderFactoryPort for SymphoniaDecoderFactory {
     fn open_file(&self, path: &str) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
+        let ext = std::path::Path::new(path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(str::to_ascii_lowercase);
+        if matches!(ext.as_deref(), Some("dsf" | "dff" | "wv")) {
+            let file = std::fs::File::open(path).map_err(|e| {
+                DecodeError::OpenFailed(format!("Failed to open audio file {path}: {e}"))
+            })?;
+            return self.open_stream(Box::new(file));
+        }
         Ok(Box::new(AudioStreamDecoder::open_file(path)?))
     }
 
     fn open_stream(
         &self,
-        stream: Box<dyn AudioSourceStream>,
+        mut stream: Box<dyn AudioSourceStream>,
     ) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
+        // DSD (DSF/DSDIFF) and WavPack are not handled by Symphonia: recognise them by header.
+        let mut head = [0u8; 4];
+        let sniffed = stream.read_exact(&mut head).is_ok();
+        stream
+            .seek(std::io::SeekFrom::Start(0))
+            .map_err(|e| DecodeError::OpenFailed(format!("Stream rewind failed: {e}")))?;
+        if sniffed && crate::dsd::is_dsd(&head) {
+            return Ok(Box::new(crate::dsd::DsdDecoder::open(stream)?));
+        }
+        if sniffed && crate::wavpack::is_wavpack(&head) {
+            return Ok(Box::new(crate::wavpack::WavPackDecoder::open(stream)?));
+        }
         Ok(Box::new(AudioStreamDecoder::open_stream(stream)?))
     }
 }
@@ -444,9 +466,9 @@ mod tests {
     #[test]
     fn formats_the_registry_cannot_play_are_rejected_by_name() {
         for (ext, mime, name) in [
-            (Some("wv"), None, "WavPack"),
-            (None, Some("audio/dsd"), "DSD"),
-            (Some(".DSF"), None, "DSD"),
+            (Some("mpc"), None, "Musepack"),
+            (Some(".TTA"), None, "TTA"),
+            (Some("ape"), None, "Monkey's Audio"),
         ] {
             match AudioStreamDecoder::open_stream_with_hint(Cursor::new(vec![0u8; 64]), ext, mime) {
                 Err(DecodeError::UnsupportedFormat(msg)) => assert!(msg.contains(name), "{msg}"),

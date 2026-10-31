@@ -46,6 +46,7 @@ const FIXTURES: &[(&str, f64, Tags)] = &[
     ("adpcm_ms.wav", 1.0, Tags::NameOnly),
     ("opus_stereo.opus", 1.0, Tags::Full),
     ("opus.webm", 1.0, Tags::ArtistAlbum),
+    ("wavpack_16.wv", 1.0, Tags::Full),
 ];
 
 #[test]
@@ -90,6 +91,10 @@ fn every_fixture_in_the_corpus_is_listed_here() {
                 "wav_24.wav",
                 "opus_mono.opus",
                 "opus_5_1.opus",
+                "wavpack_24.wv",
+                // No tag reader knows DSD; the GUI asks the decoder instead (drop_ingest test).
+                "dsd_stereo.dsf",
+                "dsd_stereo.dff",
             ]
             .contains(&name.as_str())
             || name.starts_with("cover");

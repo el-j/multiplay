@@ -40,10 +40,14 @@ fn every_extension_belongs_to_one_format() {
 
 #[test]
 fn audio_that_cannot_play_yet_says_why() {
-    let reason = formats::skip_reason(Path::new("song.wv")).expect("WavPack is known");
-    assert!(reason.contains("WavPack"), "{reason}");
-    let dsd = formats::skip_reason(Path::new("song.dsf")).expect("DSD is known");
-    assert!(dsd.contains("DSD"), "{dsd}");
+    let reason = formats::skip_reason(Path::new("song.tta")).expect("TTA is known");
+    assert!(reason.contains("TTA"), "{reason}");
+    let ape = formats::skip_reason(Path::new("song.ape")).expect("Monkey's Audio is known");
+    assert!(ape.contains("Monkey's Audio"), "{ape}");
+    assert!(
+        formats::is_playable_extension("dsf"),
+        "DSD plays since TASK-231"
+    );
     assert_eq!(
         formats::skip_reason(Path::new("song.flac")),
         None,
@@ -73,7 +77,8 @@ fn playable_extensions_are_listed_once_in_registry_order() {
         list.contains(&"opus"),
         "Opus plays since TASK-229 (ADR-005)"
     );
-    assert!(!list.contains(&"wv"));
+    assert!(list.contains(&"wv"), "WavPack plays since TASK-231");
+    assert!(!list.contains(&"tta"));
     let unique: HashSet<_> = list.iter().collect();
     assert_eq!(unique.len(), list.len());
 }

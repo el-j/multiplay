@@ -347,7 +347,7 @@ impl MultiplayGuiApp {
         if path.is_dir() {
             let report = scan_audio_files(path);
             for f in &report.files {
-                if let Some(track) = extract_track_from_file(f) {
+                if let Some(track) = self.read_track(f) {
                     self.playlist.push(track);
                 }
             }
@@ -361,9 +361,29 @@ impl MultiplayGuiApp {
             .filter(|f| f.status != amp_domain::formats::FormatStatus::Playable)
         {
             *skipped.entry(format.name).or_default() += 1;
-        } else if let Some(track) = extract_track_from_file(path) {
+        } else if let Some(track) = self.read_track(path) {
             self.playlist.push(track);
         }
+    }
+
+    /// A library track for `path`: from its tags, or, for playable formats no tag reader
+    /// understands (DSD), from the file name and the decoder's duration.
+    fn read_track(&self, path: &Path) -> Option<Track> {
+        extract_track_from_file(path).or_else(|| {
+            if !amp_domain::formats::is_playable_path(path) {
+                return None;
+            }
+            let dec = self
+                .audio_driver
+                .decoder_factory()
+                .open_file(&path.to_string_lossy())
+                .ok()?;
+            Some(amp_adapter_storage::file_name_track(
+                path,
+                dec.duration(),
+                Some(dec.sample_rate()),
+            ))
+        })
     }
 
     /// Scans the configured music folder (normally ~/Music).

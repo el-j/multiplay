@@ -79,6 +79,10 @@ stereo 48000 1 "$OUT/opus_stereo.opus" -c:a libopus -b:a 128k
     "${TAGS[@]}" -c:a libopus -mapping_family 1 -b:a 256k "$OUT/opus_5_1.opus"
 stereo 48000 1 "$OUT/opus.webm" -c:a libopus -b:a 128k -f webm
 
+# WavPack (TASK-231): lossless; ffmpeg appends an APEv2 tag like most real .wv files have.
+stereo 44100 1 "$OUT/wavpack_16.wv" -c:a wavpack -sample_fmt s16p
+stereo 48000 0.5 "$OUT/wavpack_24.wv" -c:a wavpack -sample_fmt s32p -bits_per_raw_sample 24
+
 # Rich tags and embedded cover art (TASK-230); the cover is the 64 px app icon.
 COVER="$ROOT/assets/icon/multiplay-64.png"
 RICH=(-metadata album_artist="Various Fixtures" -metadata genre="Test Tones" -metadata date=2024
@@ -87,5 +91,7 @@ for ext in flac mp3 m4a; do
     "${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*660*t):s=44100:d=0.5" -i "$COVER" \
         -map 0 -map 1 -c:v copy -disposition:v attached_pic "${TAGS[@]}" "${RICH[@]}" "$OUT/cover.$ext"
 done
+
+python3 "$ROOT/scripts/make_dsd_fixtures.py" "$OUT"
 
 ls -l "$OUT"
