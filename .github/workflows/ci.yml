@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+  # The release workflow runs the full CI on the tagged commit before packaging.
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always

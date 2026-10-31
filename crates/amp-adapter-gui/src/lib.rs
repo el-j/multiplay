@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod app;
+pub mod app_icon;
 pub mod app_paths;
 pub mod app_render;
 pub mod app_state;

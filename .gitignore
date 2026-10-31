@@ -3,4 +3,4 @@ target/
 build/
 dist/
 mutants.out/
-mutants.out.old/
+mutants.out.old/.playwright-mcp/
