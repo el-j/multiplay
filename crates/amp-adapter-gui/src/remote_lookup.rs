@@ -72,7 +72,7 @@ pub enum LookupResult {
     OmniSearch {
         query: String,
         tracks: Vec<Track>,
-        /// One line per provider that failed, e.g. "Bandcamp: <error>".
+        /// One line per provider that failed, e.g. "Bandcamp: \<reason\>".
         failures: Vec<String>,
     },
 }
