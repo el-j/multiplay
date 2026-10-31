@@ -3,9 +3,13 @@
 
 #![forbid(unsafe_code)]
 
+pub mod dsd;
 pub mod engine;
+pub mod opus;
+pub mod probe;
 pub mod source;
 pub mod stream;
+pub mod wavpack;
 
 pub use engine::{DecodedStreamSpec, PureDecoderEngine};
 pub use source::GenericMediaSource;

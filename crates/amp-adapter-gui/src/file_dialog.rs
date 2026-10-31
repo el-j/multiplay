@@ -10,10 +10,17 @@ use std::path::PathBuf;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::process::Command;
 
-/// Supported audio extensions for file picker filtering.
-pub const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "mp3", "flac", "wav", "aac", "ogg", "m4a", "wsz", "m3u", "m3u8",
-];
+/// Files the add dialog accepts besides audio: Winamp skins.
+const SKIN_EXTENSIONS: [&str; 1] = ["wsz"];
+
+/// Extensions offered by the add dialog: every playable audio format from
+/// `amp_domain::formats`, plus playlists, CUE sheets and skins.
+pub fn dialog_extensions() -> Vec<&'static str> {
+    amp_domain::formats::playable_extensions()
+        .chain(crate::playlist_import::LIST_EXTENSIONS)
+        .chain(SKIN_EXTENSIONS)
+        .collect()
+}
 
 fn dialogs_disabled() -> bool {
     cfg!(test) || std::env::var("CI").is_ok() || std::env::var("HEADLESS").is_ok()
@@ -30,12 +37,12 @@ pub fn pick_audio_files() -> Vec<PathBuf> {
         run_paths(
             Command::new("osascript")
                 .args(["-l", "JavaScript", "-e"])
-                .arg(macos_open_panel_script(SUPPORTED_EXTENSIONS)),
+                .arg(macos_open_panel_script(&dialog_extensions())),
         )
     }
     #[cfg(target_os = "linux")]
     {
-        let filter: Vec<String> = SUPPORTED_EXTENSIONS
+        let filter: Vec<String> = dialog_extensions()
             .iter()
             .map(|e| format!("*.{e}"))
             .collect();
@@ -47,7 +54,7 @@ pub fn pick_audio_files() -> Vec<PathBuf> {
     }
     #[cfg(target_os = "windows")]
     {
-        let patterns: Vec<String> = SUPPORTED_EXTENSIONS
+        let patterns: Vec<String> = dialog_extensions()
             .iter()
             .map(|e| format!("*.{e}"))
             .collect();
@@ -176,10 +183,10 @@ mod tests {
 
     #[test]
     fn test_file_dialog_supported_extensions() {
-        assert!(SUPPORTED_EXTENSIONS.contains(&"mp3"));
-        assert!(SUPPORTED_EXTENSIONS.contains(&"flac"));
-        assert!(SUPPORTED_EXTENSIONS.contains(&"wav"));
-        assert!(SUPPORTED_EXTENSIONS.contains(&"wsz"));
+        let exts = dialog_extensions();
+        for ext in ["mp3", "flac", "wav", "wsz", "m3u8"] {
+            assert!(exts.contains(&ext), "{ext}");
+        }
     }
 
     #[test]

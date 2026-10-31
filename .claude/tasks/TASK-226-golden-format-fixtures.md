@@ -42,3 +42,9 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- `scripts/make_audio_fixtures.sh` (ffmpeg, flac, lame as offline tools) writes 12 fixtures (~1 MB) to `crates/amp-adapter-decoder/tests/fixtures/`: FLAC 16/44.1k, 24/96k, 24/192k, no seek table, 5.1/48k; WAV 16-bit, 24-bit, 32-bit float; MP3 CBR 128 and VBR V2; AAC in M4A; Ogg Vorbis. All carry left 440 Hz / right 660 Hz at 0.5; verified with ffprobe.
+- `crates/amp-adapter-decoder/tests/format_matrix.rs` (4 tests): open by path and by hint-less stream; sample rate; duration (±60 ms); lossless files compared sample by sample with the formula (< 1e-3), including exactly after a seek to the middle; lossy files by RMS (±10 %) and pitch (±3 %); 5.1 downmix non-silent on both sides; every registry `Playable` format must have a fixture. A mutation (441 Hz expected) makes the matrix fail.
+- `crates/amp-adapter-gui/tests/format_playback.rs`: every fixture played to the end through the real `PlayerEngine` with the capture sink (resampled to 48 kHz), sound span within 3 %, peaks in (0.2, 1.0], no NaN. Placed in the GUI crate because the engine factory with real decoders lives there (deviation from the task's key-file list).
+- Finding: `track_finished` is raised when decoding ends, while up to ~0.7 s still drains from the output ring buffer; the test waits for the drain.

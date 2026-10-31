@@ -29,12 +29,16 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
 /// Adds files and folders the OS dropped onto the current viewport. Every window is its own
 /// viewport with its own input, so each one has to read its drops.
 pub fn ingest_dropped_files(app: &mut MultiplayGuiApp, ctx: &egui::Context) {
-    let dropped = ctx.input(|i| i.raw.dropped_files.clone());
-    for f in dropped {
-        let path = f.path();
-        if !path.as_os_str().is_empty() {
-            app.ingest_path(path);
-        }
+    let dropped: Vec<_> = ctx.input(|i| {
+        i.raw
+            .dropped_files
+            .iter()
+            .map(|f| f.path().to_path_buf())
+            .filter(|p| !p.as_os_str().is_empty())
+            .collect()
+    });
+    if !dropped.is_empty() {
+        app.ingest_paths(&dropped);
     }
 }
 

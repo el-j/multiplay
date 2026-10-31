@@ -55,3 +55,16 @@ TASK-228 → TASK-229 (Opus). TASK-230 and TASK-232 after TASK-225. TASK-231 las
 `./scripts/verify_pure_rust.sh && cargo test --workspace`, the decode matrix of TASK-226 green
 for every format the registry marks playable, and a manual release-build session dropping one
 file of each format onto the playlist (see `docs/definition-of-done.md`).
+
+## Outcome (2026-10-31)
+| Format | Now |
+|---|---|
+| MP3, FLAC (up to 24-bit/192 kHz, 5.1), WAV (16/24/f32, ADPCM), AAC & ALAC (M4A), Ogg Vorbis | ✅ playable, golden fixtures |
+| AIFF, CAF, MKA/WebM, MP1/MP2 | ✅ playable (TASK-227) |
+| Opus (Ogg, WebM; mono–7.1) | ✅ playable via `rusty-opus` (TASK-229, ADR-005) |
+| DSD (DSF/DSDIFF) | ✅ playable, own decoder (TASK-231, ADR-006) |
+| WavPack (lossless) | ✅ playable via `wavicle` (TASK-231, ADR-006) |
+| CUE sheets, PLS, XSPF, M3U | ✅ imported from drop, dialog and folders (TASK-232) |
+| Monkey's Audio, TTA, Musepack, WMA | ⏳ shown as skipped with a reason (ADR-006) |
+
+All tasks carry implementation evidence; their Nexus status is for the owner to update.

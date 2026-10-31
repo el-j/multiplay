@@ -164,6 +164,17 @@ pub fn open_track_blocking(
     resolvers: &[Arc<dyn StreamResolverPort>],
     resolve_timeout: Duration,
 ) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
+    let decoder = open_source_blocking(rt, track, decoder_factory, resolvers, resolve_timeout)?;
+    super::segment::apply_segment(track, decoder)
+}
+
+fn open_source_blocking(
+    rt: &tokio::runtime::Handle,
+    track: &Track,
+    decoder_factory: &Arc<dyn DecoderFactoryPort>,
+    resolvers: &[Arc<dyn StreamResolverPort>],
+    resolve_timeout: Duration,
+) -> Result<Box<dyn PcmStreamPort>, DecodeError> {
     match &track.source {
         AudioSource::LocalFile { path } => decoder_factory.open_file(path),
         source => {
@@ -240,6 +251,8 @@ async fn resolve_and_open_with_retries(
 
         match res {
             Ok(decoder) => {
+                // A CUE-sheet track plays only its part of the file (TASK-232).
+                let decoder = super::segment::apply_segment(&track, decoder)?;
                 let duration = decoder.duration().or(track.metadata.duration);
                 if track.metadata.duration.is_none() {
                     track.metadata.duration = duration;

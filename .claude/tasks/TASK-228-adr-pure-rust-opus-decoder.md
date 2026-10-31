@@ -47,3 +47,10 @@ crates.io as of 2026-10-31:
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- Spike (throwaway, outside the workspace) decoded all 12 RFC 8251 vectors with `opus-decoder` 0.1.1, `rusty-opus` 1.0.2 and `moosicbox_opus_native` 0.5.0, plus a 30 s 128 kbit/s music-like Ogg Opus file. Full tables in [ADR-005](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/adr/ADR-005-opus-decoder.md).
+- `opus-decoder`: range check exact on 12/12 vectors (19,973 packets), `#![forbid(unsafe_code)]`, but 43–87 dB SNR on CELT vectors and 12.7 % of one core for music (policy budget 1 %).
+- `rusty-opus`: ~100 dB SNR, ≥ 99.97 % identical samples, 0.22 % CPU; 173 `unsafe` uses, all SIMD intrinsics; BSD-3-Clause (allowed by `deny.toml`).
+- `moosicbox_opus_native`: fails 11/12 vectors. `opus-pure`: not run (unsafe like rusty-opus, less adoption).
+- ADR-005 is **Proposed**: no candidate meets ADR-004's `forbid(unsafe)` criterion and the CPU budget together; owner decision needed (recommendation: adopt `rusty-opus`).

@@ -184,7 +184,7 @@ impl MultiplayGuiApp {
                     return;
                 };
                 row.preview = match result {
-                    Ok(track) => Preview::Ready(Box::new(track)),
+                    Ok(track) => Preview::Ready(track),
                     Err(why) => Preview::Failed(why),
                 };
                 let auto = row.auto_accept && matches!(row.preview, Preview::Ready(_));

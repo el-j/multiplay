@@ -3,11 +3,7 @@
 
 #![forbid(unsafe_code)]
 
-use amp_domain::{AudioSource, Track, TrackId, TrackMetadata};
 use amp_ports::driven::LibraryStoragePort;
-use lofty::file::{AudioFile, TaggedFileExt};
-use lofty::probe::Probe;
-use lofty::tag::Accessor;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -16,8 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
-/// Canonical list of local audio file extensions supported by the pure-Rust Symphonia pipeline (`TASK-139`, `TASK-149`).
-pub const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &["mp3", "flac", "wav", "ogg", "m4a", "aac"];
+/// Whether a file is a playable audio file; the format list lives in `amp_domain::formats` (TASK-225).
+pub use amp_domain::formats::is_playable_path;
 
 /// Options controlling directory traversal and incremental scanning (`TASK-149`).
 #[derive(Debug, Clone, Default)]
@@ -164,24 +160,60 @@ impl LibraryScanner {
     }
 }
 
+/// Playable files found under a folder, and how many audio files of each unplayable format
+/// were left out (TASK-225).
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ScanReport {
+    pub files: Vec<PathBuf>,
+    /// Format name (e.g. "TTA") to number of files skipped.
+    pub skipped: std::collections::BTreeMap<&'static str, usize>,
+    /// CUE sheets found; the files they cover are not in `files` (TASK-232).
+    pub cue_sheets: Vec<PathBuf>,
+}
+
+impl ScanReport {
+    pub fn skipped_count(&self) -> usize {
+        self.skipped.values().sum()
+    }
+}
+
 /// Collects supported audio files recursively under `dir` without following symlinks (`TASK-149`).
 pub fn collect_audio_files(dir: &Path) -> Vec<PathBuf> {
     collect_audio_files_with_options(dir, &ScanOptions::default())
 }
 
+/// Like [`collect_audio_files`], and also counts audio files that cannot be played.
+pub fn scan_audio_files(dir: &Path) -> ScanReport {
+    let mut report = ScanReport::default();
+    collect_recursive(
+        dir,
+        &ScanOptions::default(),
+        &mut HashSet::new(),
+        &mut report,
+    );
+    // A single-file album with a CUE sheet is played song by song through the sheet.
+    let mut covered = HashSet::new();
+    report.cue_sheets.retain(|cue| {
+        let files = crate::cue::cue_audio_files(cue);
+        covered.extend(files.iter().cloned());
+        !files.is_empty()
+    });
+    report.files.retain(|f| !covered.contains(f));
+    report
+}
+
 /// Collects supported audio files under `dir` honoring [`ScanOptions`] (symlink policy and cancellation).
 pub fn collect_audio_files_with_options(dir: &Path, options: &ScanOptions) -> Vec<PathBuf> {
-    let mut results = Vec::new();
-    let mut visited_dirs = HashSet::new();
-    collect_recursive(dir, options, &mut visited_dirs, &mut results);
-    results
+    let mut report = ScanReport::default();
+    collect_recursive(dir, options, &mut HashSet::new(), &mut report);
+    report.files
 }
 
 fn collect_recursive(
     dir: &Path,
     options: &ScanOptions,
     visited_dirs: &mut HashSet<PathBuf>,
-    results: &mut Vec<PathBuf>,
+    report: &mut ScanReport,
 ) {
     if options
         .cancel_flag
@@ -220,104 +252,27 @@ fn collect_recursive(
         }
 
         if path.is_dir() {
-            collect_recursive(&path, options, visited_dirs, results);
-        } else if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if SUPPORTED_AUDIO_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
-                results.push(path);
-            }
+            collect_recursive(&path, options, visited_dirs, report);
+        } else if is_playable_path(&path) {
+            report.files.push(path);
+        } else if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
+        {
+            report.cue_sheets.push(path);
+        } else if let Some(format) = amp_domain::formats::by_path(&path) {
+            *report.skipped.entry(format.name).or_default() += 1;
         }
     }
 }
 
-pub fn extract_track_from_file(path: &Path) -> Option<Track> {
-    let tagged_file = Probe::open(path).ok()?.read().ok()?;
-
-    let properties = tagged_file.properties();
-    let duration = Some(properties.duration());
-    let sample_rate = properties.sample_rate();
-    let channels = properties.channels().map(|c| c as u16);
-    let bitrate_kbps = properties.audio_bitrate();
-
-    let tag = tagged_file
-        .primary_tag()
-        .or_else(|| tagged_file.first_tag());
-
-    let title = tag
-        .and_then(|t| t.title().as_deref().map(str::to_string))
-        .unwrap_or_else(|| {
-            path.file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Unknown Title")
-                .to_string()
-        });
-
-    let artist = tag
-        .and_then(|t| t.artist().as_deref().map(str::to_string))
-        .unwrap_or_else(|| "Unknown Artist".to_string());
-
-    let album = tag.and_then(|t| t.album().as_deref().map(str::to_string));
-    let track_number = tag.and_then(|t| t.track());
-
-    let (replay_gain_mb, integrated_lufs_mb) = if let Some(t) = tag {
-        let rg = t
-            .get_string(lofty::tag::ItemKey::ReplayGainTrackGain)
-            .and_then(parse_gain_db)
-            .map(|db| (db * 100.0).round() as i32);
-        let lufs = t
-            .get_string(lofty::tag::ItemKey::R128TrackGain)
-            .and_then(r128_gain_to_lufs)
-            .map(|v| (v * 100.0).round() as i32);
-
-        (rg, lufs)
-    } else {
-        (None, None)
-    };
-
-    let metadata = TrackMetadata {
-        title,
-        artist,
-        album,
-        track_number,
-        duration,
-        sample_rate,
-        channels,
-        bit_depth: properties.bit_depth().map(|b| b as u16),
-        bitrate_kbps,
-        cover_art_uri: None,
-        replay_gain_mb,
-        integrated_lufs_mb,
-    };
-
-    let source = AudioSource::LocalFile {
-        path: path.to_string_lossy().to_string(),
-    };
-    let id = TrackId::from_source(&source);
-
-    Some(Track {
-        id,
-        source,
-        metadata,
-        date_added_epoch: 0,
-    })
-}
-
-/// Parses a ReplayGain value such as `-6.48 dB`.
-fn parse_gain_db(s: &str) -> Option<f32> {
-    s.replace("dB", "").trim().parse::<f32>().ok()
-}
-
-/// Integrated loudness from a Vorbis `R128_TRACK_GAIN` tag. The tag holds the gain (in
-/// Q7.8 fixed point, i.e. 1/256 dB) that brings the track to -23 LUFS, so the track's own
-/// loudness is -23 LUFS minus that gain.
-fn r128_gain_to_lufs(s: &str) -> Option<f32> {
-    let q78 = s.trim().parse::<i32>().ok()?;
-    Some(-23.0 - q78 as f32 / 256.0)
-}
+pub use crate::tags::extract_track_from_file;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::RedbStorageAdapter;
+    use amp_domain::TrackId;
     use tempfile::{tempdir, NamedTempFile};
 
     fn write_minimal_wav(path: &Path) {
@@ -336,15 +291,6 @@ mod tests {
         wav_bytes.extend_from_slice(&40u32.to_le_bytes());
         wav_bytes.extend_from_slice(&[0u8; 40]);
         fs::write(path, &wav_bytes).unwrap();
-    }
-
-    #[test]
-    fn replaygain_and_r128_tags_parse() {
-        assert_eq!(parse_gain_db("-6.48 dB"), Some(-6.48));
-        assert_eq!(parse_gain_db("+2 dB"), Some(2.0));
-        assert_eq!(r128_gain_to_lufs("-1280"), Some(-18.0));
-        assert_eq!(r128_gain_to_lufs("512"), Some(-25.0));
-        assert_eq!(r128_gain_to_lufs("loud"), None);
     }
 
     #[test]
@@ -371,7 +317,9 @@ mod tests {
         let track = extract_track_from_file(&wav_path);
         assert!(track.is_some());
         let t = track.unwrap();
-        assert_eq!(t.metadata.title, "Artist - Title");
+        // Untagged: "Artist - Title" in the file name gives both (TASK-230).
+        assert_eq!(t.metadata.title, "Title");
+        assert_eq!(t.metadata.artist, "Artist");
         assert_eq!(t.metadata.sample_rate, Some(44100));
         assert_eq!(t.metadata.channels, Some(2));
         // Deterministic ID matches TrackId::from_source

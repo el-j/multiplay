@@ -4,7 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-use amp_adapter_gui::file_dialog::{macos_open_panel_script, parse_paths, SUPPORTED_EXTENSIONS};
+use amp_adapter_gui::file_dialog::{dialog_extensions, macos_open_panel_script, parse_paths};
 use std::path::PathBuf;
 
 #[test]
@@ -26,7 +26,7 @@ fn every_selected_path_is_returned() {
 
 #[test]
 fn the_macos_panel_takes_several_files_and_folders() {
-    let script = macos_open_panel_script(SUPPORTED_EXTENSIONS);
+    let script = macos_open_panel_script(&dialog_extensions());
     for needle in [
         "canChooseFiles = true",
         "canChooseDirectories = true",
@@ -34,7 +34,7 @@ fn the_macos_panel_takes_several_files_and_folders() {
     ] {
         assert!(script.contains(needle), "missing {needle}");
     }
-    for ext in SUPPORTED_EXTENSIONS {
+    for ext in dialog_extensions() {
         assert!(script.contains(&format!("'{ext}'")), "missing .{ext}");
     }
 }
@@ -49,7 +49,7 @@ fn the_macos_panel_script_compiles() {
         .args(["-l", "JavaScript", "-o"])
         .arg(&out)
         .arg("-e")
-        .arg(macos_open_panel_script(SUPPORTED_EXTENSIONS))
+        .arg(macos_open_panel_script(&dialog_extensions()))
         .output()
         .expect("osacompile runs");
     let _ = std::fs::remove_file(&out);
