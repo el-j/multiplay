@@ -14,6 +14,7 @@ pub fn min_inner_size(window: WindowId) -> Vec2 {
         WindowId::Settings => Vec2::new(360.0, 260.0),
         WindowId::DjConsole => Vec2::new(360.0, 200.0),
         WindowId::Remote => Vec2::new(300.0, 200.0),
+        WindowId::Search => Vec2::new(360.0, 260.0),
     }
 }
 

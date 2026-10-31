@@ -26,7 +26,9 @@
 `cargo test -p amp-core-engine transport`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Implemented epoch-based ring buffer flushing (`flush_until_sample`) and 5 ms click-free cosine pause fade-out in `OutputClock` (`crates/amp-ports/src/clock.rs`) and `crates/amp-adapter-cpal/src/{actor,null_sink}.rs`.
+- Sized the hardware ring buffer to 150 ms (`DEFAULT_RING_BUFFER_MS = 150`) and retained unpushed PCM frames in `pending_out` across pause/resume and device switches.
+- Verified with `cargo test -p amp-core-engine transport` (`transport_pause_retains_pending_chunk_and_seek_flushes_stale_ring` passed).
 
 ## Status
 - **Status:** Pending

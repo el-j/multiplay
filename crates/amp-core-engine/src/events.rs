@@ -2,8 +2,21 @@
 
 #![forbid(unsafe_code)]
 
-use amp_domain::{PlaybackState, Track, TrackId};
+use amp_domain::{AudioSource, PlaybackState, Track, TrackId};
 use std::time::Duration;
+
+/// Structured category of an engine error emitted via [`PlayerEvent::Error`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerErrorKind {
+    AudioSink,
+    Decode,
+    Provider,
+    Playlist,
+    Storage,
+    Vault,
+    Download,
+    Playback,
+}
 
 /// Inbound commands dispatched from UI controllers or external interfaces to the core engine.
 #[derive(Debug, Clone)]
@@ -47,5 +60,11 @@ pub enum PlayerEvent {
         completed: bool,
     },
     ConfigChanged(Box<amp_domain::AppConfig>),
+    Error {
+        kind: PlayerErrorKind,
+        source: Option<AudioSource>,
+        message: String,
+        recoverable: bool,
+    },
     ErrorNotification(String),
 }

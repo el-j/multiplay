@@ -188,7 +188,7 @@ async fn test_corrupt_stream_fail_fast_without_panic() {
 
 #[tokio::test]
 async fn test_progressive_network_audio_streaming() {
-    use amp_app::AudioPlaybackDriver;
+    use amp_app::create_capture_engine;
     use amp_ports::{async_trait, AudioSourceStream, ProviderError, StreamResolverPort};
     use std::sync::Arc;
 
@@ -232,7 +232,7 @@ async fn test_progressive_network_audio_streaming() {
 
     // Capture sink: runs on CI machines without audio devices and records the rendered output.
     {
-        let (driver, output) = AudioPlaybackDriver::new_capture().expect("capture driver");
+        let (driver, output) = create_capture_engine().expect("capture driver");
         driver.register_resolver(resolver);
 
         let meta = TrackMetadata::new("Stream Song", "Network Station");

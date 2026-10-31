@@ -1,12 +1,15 @@
 #![forbid(unsafe_code)]
 
-use amp_domain::source_badge::SourceFilterMask;
+use crate::driven::ProviderError;
+use crate::error::{DownloadError, PlaylistError};
+use amp_domain::source_badge::{SourceFilterMask, SourceKind};
 use amp_domain::{PlaybackState, Track, TrackId};
 use async_trait::async_trait;
 use std::time::Duration;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+/// Typed errors returned by `PlayerControlPort`.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum PlayerControlError {
     #[error("Engine unavailable or shut down")]
     EngineTerminated,
@@ -20,7 +23,7 @@ pub enum PlayerControlError {
     SeekOutOfBounds,
 }
 
-/// Driving port for controlling playback actions from user interfaces (TUI, GUI, CLI).
+/// Driving port for controlling playback actions from user interfaces (TUI, GUI, CLI, Remote).
 #[async_trait]
 pub trait PlayerControlPort: Send + Sync {
     async fn play_track(&self, track: Track) -> Result<(), PlayerControlError>;
@@ -39,10 +42,10 @@ pub trait PlayerControlPort: Send + Sync {
 /// Driving port for managing active playlist items and queue ordering.
 #[async_trait]
 pub trait PlaylistManagementPort: Send + Sync {
-    async fn add_to_playlist(&self, track: Track) -> Result<usize, String>;
-    async fn remove_from_playlist(&self, track_id: TrackId) -> Result<(), String>;
-    async fn clear_playlist(&self) -> Result<(), String>;
-    async fn move_track(&self, from_idx: usize, to_idx: usize) -> Result<(), String>;
+    async fn add_to_playlist(&self, track: Track) -> Result<usize, PlaylistError>;
+    async fn remove_from_playlist(&self, track_id: TrackId) -> Result<(), PlaylistError>;
+    async fn clear_playlist(&self) -> Result<(), PlaylistError>;
+    async fn move_track(&self, from_idx: usize, to_idx: usize) -> Result<(), PlaylistError>;
     async fn get_playlist(&self) -> Vec<Track>;
 }
 
@@ -50,6 +53,30 @@ pub trait PlaylistManagementPort: Send + Sync {
 #[async_trait]
 pub trait UniversalSearchPort: Send + Sync {
     async fn execute_search(&self, query: &str) -> Vec<Track>;
+}
+
+/// Outcome of a search query executed against a single provider (`TASK-154`).
+#[derive(Debug, Clone)]
+pub struct ProviderOutcome {
+    pub kind: SourceKind,
+    pub result: Result<Vec<Track>, ProviderError>,
+    pub latency: Duration,
+}
+
+impl ProviderOutcome {
+    /// Returns the UI chip icon and status label for rendering search status chips.
+    pub fn status_chip(&self) -> (&'static str, &'static str) {
+        match &self.result {
+            Ok(tracks) if tracks.is_empty() => ("∅", "No results"),
+            Ok(_) => ("✓", "Results ready"),
+            Err(ProviderError::AuthenticationRequired) => ("🔒", "Login required"),
+            Err(ProviderError::RateLimited) => ("⚠", "Rate limited"),
+            Err(ProviderError::Timeout) => ("⏳", "Timed out"),
+            Err(ProviderError::Network(_)) => ("⚠", "Network error"),
+            Err(ProviderError::Unavailable(_)) => ("⚠", "Unavailable"),
+            Err(ProviderError::NotFound) => ("∅", "Not found"),
+        }
+    }
 }
 
 /// Options for fine-grained multi-source searches.
@@ -64,6 +91,7 @@ pub struct SearchQueryOptions {
 #[async_trait]
 pub trait FilteredSearchPort: Send + Sync {
     async fn search(&self, options: SearchQueryOptions) -> Vec<Track>;
+    async fn search_outcomes(&self, options: SearchQueryOptions) -> Vec<ProviderOutcome>;
 }
 
 /// Driving port for background track downloading and local caching.
@@ -73,6 +101,6 @@ pub trait TrackDownloadPort: Send + Sync {
         &self,
         track: Track,
         target_directory: String,
-    ) -> Result<String, String>;
-    async fn cancel_download(&self, track_id: TrackId) -> Result<(), String>;
+    ) -> Result<String, DownloadError>;
+    async fn cancel_download(&self, track_id: TrackId) -> Result<(), DownloadError>;
 }

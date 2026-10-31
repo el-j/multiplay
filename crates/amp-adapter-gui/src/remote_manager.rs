@@ -286,9 +286,15 @@ impl Drop for RemoteGuiManager {
 
 /// Accepts an uploaded file only if the decoder opens it and produces audio.
 fn probe_audio(path: &std::path::Path) -> Result<(), String> {
-    let mut decoder = amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())?;
+    use amp_ports::DecoderFactoryPort;
+    let mut decoder = amp_adapter_decoder::SymphoniaDecoderFactory
+        .open_file(&path.to_string_lossy())
+        .map_err(|e| e.to_string())?;
     let mut buf = vec![0.0f32; 4096];
-    match decoder.read_interleaved_samples(&mut buf)? {
+    match decoder
+        .read_interleaved(&mut buf)
+        .map_err(|e| e.to_string())?
+    {
         0 => Err("no audio in the file".into()),
         _ => Ok(()),
     }

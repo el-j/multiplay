@@ -1,18 +1,18 @@
-//! Hand-over point between the GUI's DJ session and the audio worker.
+//! Hand-over point between a UI DJ session and the `PlayerEngine` audio worker.
 //!
-//! The session puts the engine and requests here; the worker picks them up between blocks.
+//! The session puts the DJ engine and requests here; the worker picks them up between blocks.
 //! Each request is a rare event (entering or leaving DJ mode), so a mutex per request is fine.
 //! Audio itself never waits on these locks.
 
 #![forbid(unsafe_code)]
 
-use amp_core_engine::dj::engine::{DjEngine, DjStatus, TrackBuffer};
+use crate::dj::engine::{DjEngine, DjStatus, TrackBuffer};
 use amp_domain::Track;
 use rtrb::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-/// What the session asks the worker to do.
+/// What the DJ session asks the `PlayerEngine` worker to do.
 #[derive(Debug)]
 pub enum DjRequest {
     /// Take over from normal playback. Deck A's track is decoding into `deck_a`; the worker
@@ -34,7 +34,7 @@ pub enum DjRequest {
     },
 }
 
-/// Shared between the session (GUI thread) and the playback worker.
+/// Shared between the DJ session and the playback worker.
 #[derive(Debug, Default)]
 pub struct DjLink {
     engine: Mutex<Option<DjEngine>>,

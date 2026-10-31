@@ -1,0 +1,23 @@
+[package]
+name = "amp-adapter-bandcamp"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+publish = false
+description = "Pure-Rust Bandcamp search, page scraper and stream resolver adapter"
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+amp-adapter-http = { path = "../amp-adapter-http" }
+async-trait = { workspace = true }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "stream"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+amp-adapter-decoder = { path = "../amp-adapter-decoder" }
+serde_json = { workspace = true }

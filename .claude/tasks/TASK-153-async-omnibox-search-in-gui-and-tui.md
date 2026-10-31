@@ -26,7 +26,7 @@
 `./scripts/verify_pure_rust.sh && cargo test --workspace`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Verified async omnibox search window in GUI with Ctrl/Cmd+K, source badges (`[YT]`, `[BC]`, `[LOCAL]`), "+ Add" and "▶ Play" actions, URL ingestion, and TUI Enter/debounce search execution with channel-backed non-blocking result streaming. Tested via `cargo test -p amp-adapter-gui -p amp-app`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

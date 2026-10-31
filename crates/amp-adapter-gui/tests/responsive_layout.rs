@@ -11,13 +11,14 @@ use amp_domain::{AudioSource, Track, TrackMetadata};
 use eframe::egui::{self, Pos2, RawInput, Rect, Vec2};
 use std::path::PathBuf;
 
-const WINDOWS: [WindowId; 6] = [
+const WINDOWS: [WindowId; 7] = [
     WindowId::Main,
     WindowId::Equalizer,
     WindowId::Playlist,
     WindowId::Settings,
     WindowId::DjConsole,
     WindowId::Remote,
+    WindowId::Search,
 ];
 
 struct TestRoot(PathBuf);
@@ -42,6 +43,8 @@ fn app_with_long_content() -> (TestRoot, MultiplayGuiApp) {
             TrackMetadata::new(long, "A Very Long Artist Name Featuring Another Artist"),
         ));
     }
+    app.playback_notice = Some(format!("Couldn't play “{long}”: {long}"));
+    app.search_status = Some(format!("Bandcamp: {long}\nYouTube: {long}"));
     (TestRoot(dir), app)
 }
 

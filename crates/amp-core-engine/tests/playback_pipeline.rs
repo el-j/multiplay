@@ -22,28 +22,40 @@ pub struct CaptureAudioSink {
 }
 
 impl AudioSinkPort for CaptureAudioSink {
-    fn configure(&mut self, sample_rate: u32, channels: u16) -> Result<(), String> {
+    fn configure(
+        &mut self,
+        sample_rate: u32,
+        channels: u16,
+    ) -> Result<(), amp_ports::AudioSinkError> {
         self.sample_rate = sample_rate;
         self.channels = channels;
         Ok(())
     }
 
-    fn start(&mut self) -> Result<(), String> {
+    fn start(&mut self) -> Result<(), amp_ports::AudioSinkError> {
         self.is_running = true;
         Ok(())
     }
 
-    fn pause(&mut self) -> Result<(), String> {
+    fn pause(&mut self) -> Result<(), amp_ports::AudioSinkError> {
         self.is_running = false;
         Ok(())
     }
 
-    fn stop(&mut self) -> Result<(), String> {
+    fn stop(&mut self) -> Result<(), amp_ports::AudioSinkError> {
         self.is_running = false;
         Ok(())
     }
 
-    fn push_interleaved_samples(&mut self, samples: &[f32]) -> usize {
+    fn get_buffer_latency(&self) -> Duration {
+        let frames =
+            self.captured_samples.lock().unwrap().len() / usize::from(self.channels.max(1));
+        Duration::from_secs_f64(frames as f64 / f64::from(self.sample_rate.max(1)))
+    }
+}
+
+impl CaptureAudioSink {
+    pub fn record_interleaved_samples(&mut self, samples: &[f32]) -> usize {
         if self.is_running {
             let mut buf = self.captured_samples.lock().unwrap();
             buf.extend_from_slice(samples);
@@ -51,10 +63,6 @@ impl AudioSinkPort for CaptureAudioSink {
         } else {
             0
         }
-    }
-
-    fn get_buffer_latency(&self) -> Duration {
-        Duration::from_millis(10)
     }
 }
 
@@ -103,19 +111,25 @@ fn test_e2e_playback_pipeline() {
     let bands = visualizer.compute_spectrum_bands();
     assert_eq!(bands.len(), 16, "Visualizer must output 16 bands");
 
-    // Fundamental 440 Hz falls into Band 0 (0 to 1378 Hz in linear binning)
+    // Fundamental 440 Hz falls into Band 6 in log-spaced bands (379-551 Hz, TASK-144)
     let total_energy: f32 = bands.iter().sum();
     assert!(
         total_energy > 0.05,
         "Visualizer should register energy for active audio tone"
     );
-    assert!(
-        bands[0] > 0.05,
-        "Band 0 (0-1378 Hz) should register fundamental 440 Hz energy"
+    let max_band = bands
+        .iter()
+        .enumerate()
+        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+        .map(|(i, _)| i)
+        .unwrap();
+    assert_eq!(
+        max_band, 6,
+        "Band 6 (379-551 Hz) should register peak 440 Hz energy"
     );
 
-    // 5. Push to CaptureAudioSink
-    let pushed = sink.push_interleaved_samples(&samples);
+    // 5. Record into CaptureAudioSink
+    let pushed = sink.record_interleaved_samples(&samples);
     assert_eq!(pushed, num_frames * 2);
 
     let captured = sink.captured_samples.lock().unwrap();
@@ -136,13 +150,14 @@ fn test_limiter_headroom_and_clipping_safeguard() {
     // Generate extreme overdrive signal with peak 4.0 (+12 dB)
     let mut extreme_samples = generate_stereo_sine(sample_rate, 1000.0, num_frames, 4.0);
 
-    let mut eq = GraphicEqualizer::new(sample_rate as f32);
-    eq.set_preamp_gain(6.0); // Extreme +6 dB digital preamp
-    eq.set_band_gain(4, 12.0); // +12 dB on 1 kHz
+    let mut limiter = amp_core_engine::dsp::limiter::LookaheadTruePeakLimiter::new(
+        sample_rate as f32,
+        amp_core_engine::dsp::limiter::LimiterConfig::default(),
+    );
 
-    eq.process_interleaved(&mut extreme_samples);
+    limiter.process_interleaved(&mut extreme_samples);
 
-    // Verify soft-knee limiter strictly prevents clipping beyond [-1.0, 1.0]
+    // Verify true-peak limiter strictly prevents clipping beyond [-1.0, 1.0]
     for (i, &sample) in extreme_samples.iter().enumerate() {
         assert!(
             (-1.0..=1.0).contains(&sample),

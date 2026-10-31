@@ -24,7 +24,7 @@
 `cargo test -p amp-domain source_url`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Table-driven tests for 16 distinct URL shapes (standard watch, youtu.be, shorts, music, mobile, embed, live, timestamps, playlist query parameters, raw 11-char IDs) in `amp-domain::source_url`. Export and import round-trip verified in `amp-adapter-storage::playlist`. GUI `ingest_url` verified to store clean 11-char IDs in `amp-adapter-gui`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

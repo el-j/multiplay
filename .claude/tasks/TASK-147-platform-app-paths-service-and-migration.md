@@ -24,7 +24,7 @@
 `cargo test -p amp-adapter-storage paths`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified `AppPaths` (`from_env`, `from_env_map`, `from_portable_root`, `migrate_from_legacy_home`, `expand_tilde`) working on Windows without `HOME`, honoring `MULTIPLAY_HOME`, and migrating `~/.multiplay/*` and `~/.config/multiplay/*` via `cargo test -p amp-adapter-storage paths` (2 passed).
 
 ## Status
 - **Status:** Pending

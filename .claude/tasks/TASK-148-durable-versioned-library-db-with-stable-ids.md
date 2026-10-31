@@ -26,7 +26,7 @@
 `cargo test -p amp-adapter-storage`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified deterministic `TrackId::from_source`, `RecordEnvelope` v2 migration, corrupt-record quarantine (`QUARANTINE_TABLE`), and 10k-file rescan adding 0 duplicates via `cargo test -p amp-adapter-storage` (`rescan_of_10k_unchanged_tracks_adds_zero_duplicates_and_quarantines_corrupt_records`, 16 passed).
 
 ## Status
 - **Status:** Pending

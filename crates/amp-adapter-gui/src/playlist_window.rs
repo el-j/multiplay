@@ -10,10 +10,11 @@ use eframe::egui::{self, Color32, RichText, Ui};
 
 /// Below this width the toolbar shows icons only and rows hide the source badge.
 const NARROW: f32 = 460.0;
-const SOURCES: [(Option<SourceKind>, &str); 5] = [
+const SOURCES: [(Option<SourceKind>, &str); 6] = [
     (None, "All sources"),
     (Some(SourceKind::LocalFile), "Local"),
     (Some(SourceKind::YouTube), "YouTube"),
+    (Some(SourceKind::Bandcamp), "Bandcamp"),
     (Some(SourceKind::Soulseek), "Soulseek"),
     (Some(SourceKind::P2PShared), "P2P"),
 ];
@@ -42,6 +43,8 @@ pub fn render_playlist_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             );
         });
     });
+
+    crate::playback_notice::notice_line(app, ui);
 
     // 2. Actions & source filter
     row_rtl(ui, |ui| {
@@ -85,6 +88,14 @@ pub fn render_playlist_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
                 .clicked()
             {
                 app.scan_user_music_dir();
+            }
+            if ui
+                .button(label("🔍", "Search"))
+                .on_hover_text("Open Universal Search & Add (Ctrl+K)")
+                .clicked()
+            {
+                app.dock_manager
+                    .toggle_visible(crate::docking::WindowId::Search);
             }
             let clear = RichText::new(label("🗑", "Clear")).color(Color32::from_rgb(255, 100, 100));
             if ui.button(clear).on_hover_text("Clear playlist").clicked() {
@@ -155,6 +166,7 @@ fn track_matches(app: &MultiplayGuiApp, track: &amp_domain::Track) -> bool {
         None => true,
         Some(SourceKind::LocalFile) => matches!(track.source, AudioSource::LocalFile { .. }),
         Some(SourceKind::YouTube) => matches!(track.source, AudioSource::YouTube { .. }),
+        Some(SourceKind::Bandcamp) => matches!(track.source, AudioSource::Bandcamp { .. }),
         Some(SourceKind::Soulseek) => matches!(track.source, AudioSource::Soulseek { .. }),
         Some(SourceKind::P2PShared) => matches!(track.source, AudioSource::P2PShared { .. }),
         _ => true,
@@ -167,6 +179,7 @@ fn badge(source: &AudioSource) -> (&'static str, Color32) {
         AudioSource::LocalFile { .. } => ("LOCAL", Color32::from_rgb(0, 200, 120)),
         AudioSource::Soulseek { .. } => ("SLSK", Color32::from_rgb(0, 180, 240)),
         AudioSource::YouTube { .. } => ("YT", Color32::from_rgb(255, 80, 80)),
+        AudioSource::Bandcamp { .. } => ("BC", Color32::from_rgb(30, 180, 225)),
         AudioSource::P2PShared { .. } => ("P2P", Color32::from_rgb(255, 180, 40)),
         _ => ("WEB", Color32::from_rgb(180, 180, 180)),
     }

@@ -136,8 +136,9 @@ impl<'a> Widget for DenseConsole<'a> {
         let state_indicator = match self.state {
             PlaybackState::Playing => "▶",
             PlaybackState::Paused => "❚❚",
-            PlaybackState::Buffering { .. } => "⏳",
+            PlaybackState::Loading | PlaybackState::Buffering { .. } => "⏳",
             PlaybackState::Stopped => "■",
+            PlaybackState::Error => "⚠",
         };
         let minutes = self.elapsed.as_secs() / 60;
         let seconds = self.elapsed.as_secs() % 60;

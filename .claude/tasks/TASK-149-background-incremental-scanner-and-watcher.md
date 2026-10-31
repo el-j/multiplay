@@ -25,7 +25,7 @@
 `cargo test -p amp-adapter-storage scanner`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified symlink-safe traversal (`ScanOptions`), incremental `(mtime_secs, size_bytes)` fingerprinting (`IncrementalScanCache`), and cancellation via `cargo test -p amp-adapter-storage scanner` (`scanner_terminates_on_symlink_loop_fixture`, `scanner_incremental_skips_unchanged_and_honors_cancellation`, 5 passed).
 
 ## Status
 - **Status:** Pending

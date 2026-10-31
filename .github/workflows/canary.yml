@@ -1,0 +1,33 @@
+name: YouTube Canary & Extraction Health
+
+on:
+  schedule:
+    # Run daily at 04:00 UTC
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+# HOTFIX PROCEDURE FOR EXTRACTOR BREAKAGE:
+# 1. YouTube frequently updates web player obfuscation, signature cipher, and client parameters.
+# 2. When this canary fails, check https://github.com/MithicSpider/rusty-ytdl/releases for newer versions.
+# 3. Bump `rusty_ytdl` version in `crates/amp-adapter-youtube/Cargo.toml`.
+# 4. Verify `cargo test -p amp-adapter-youtube --test canary -- --ignored`.
+# 5. If upstream has no fix yet, fall back to yt-dlp sidecar or update cipher deciphering in pure Rust.
+
+jobs:
+  youtube-canary:
+    name: YouTube Resolver Canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run YouTube Resolver Canary
+        run: cargo test -p amp-adapter-youtube --test canary -- --ignored --nocapture
+        env:
+          RUST_BACKTRACE: 1
+          CANARY_VIDEO_ID: "jNQXAC9IVRw"

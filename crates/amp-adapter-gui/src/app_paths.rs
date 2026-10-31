@@ -56,6 +56,21 @@ impl AppPaths {
     pub fn remote_sessions_file(&self) -> PathBuf {
         self.data_dir.join("remote_sessions.json")
     }
+
+    /// Persistent `config.toml` file inside the configuration directory (`TASK-147`, `TASK-150`).
+    #[must_use]
+    pub fn config_file(&self) -> PathBuf {
+        self.layout_file
+            .parent()
+            .unwrap_or(&self.data_dir)
+            .join("config.toml")
+    }
+
+    /// Persistent `library.redb` file inside the data directory (`TASK-148`).
+    #[must_use]
+    pub fn library_db_file(&self) -> PathBuf {
+        self.data_dir.join("library.redb")
+    }
 }
 
 #[cfg(test)]

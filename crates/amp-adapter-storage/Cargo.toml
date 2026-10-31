@@ -17,7 +17,7 @@ lofty = "0.25"
 # Compact serde encoding for database values (bincode is discontinued).
 postcard = { version = "1.1", default-features = false, features = ["use-std"] }
 async-trait = { workspace = true }
+uuid = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3.27"
-uuid = { workspace = true }

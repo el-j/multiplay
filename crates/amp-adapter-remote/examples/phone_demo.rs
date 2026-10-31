@@ -42,9 +42,13 @@ async fn main() -> std::io::Result<()> {
     if uploads {
         daemon.set_upload_probe(Arc::new(|path: &std::path::Path| {
             let mut dec =
-                amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())?;
+                amp_adapter_decoder::AudioStreamDecoder::open_file(&path.to_string_lossy())
+                    .map_err(|e| e.to_string())?;
             let mut buf = vec![0.0f32; 4096];
-            match dec.read_interleaved_samples(&mut buf)? {
+            match dec
+                .read_interleaved_samples(&mut buf)
+                .map_err(|e| e.to_string())?
+            {
                 0 => Err("no audio".to_string()),
                 _ => Ok(()),
             }

@@ -2,7 +2,7 @@
 
 #![forbid(unsafe_code)]
 
-use crate::audio_driver::AudioPlaybackDriver;
+use crate::engine_factory::{create_headless_engine, create_player_engine};
 use amp_adapter_p2p::SecurePeerNode;
 use amp_adapter_soulseek::SoulseekAdapter;
 use amp_adapter_storage::RedbStorageAdapter;
@@ -11,7 +11,7 @@ use amp_adapter_tui::{
     SearchViewState, WindowId, FACEPLATE_HEIGHT, FACEPLATE_WIDTH,
 };
 use amp_adapter_youtube::PureYouTubeAdapter;
-use amp_core_engine::{EventBus, FilteredSearchCoordinator, PlayerCommand};
+use amp_core_engine::{EventBus, FilteredSearchCoordinator, PlayerCommand, PlayerEngine};
 use amp_domain::source_badge::SourceKind;
 use amp_domain::{AudioSource, PlaybackState, Track, TrackMetadata};
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -24,9 +24,11 @@ use tokio::sync::mpsc;
 pub struct MultiplayApp {
     pub event_bus: EventBus,
     pub storage: Arc<RedbStorageAdapter>,
-    pub search_coordinator: FilteredSearchCoordinator,
+    pub search_coordinator: Arc<FilteredSearchCoordinator>,
     pub docking_mgr: DockingWindowManager,
     pub search_state: SearchViewState,
+    pub search_tx: mpsc::UnboundedSender<Vec<Track>>,
+    pub search_rx: mpsc::UnboundedReceiver<Vec<Track>>,
     pub spectrum: [f32; 16],
     pub playback_state: PlaybackState,
     pub current_title: String,
@@ -36,41 +38,51 @@ pub struct MultiplayApp {
     pub eq_enabled: bool,
     pub playlist: Vec<Track>,
     pub selected_playlist_idx: usize,
-    pub audio_driver: Option<Arc<AudioPlaybackDriver>>,
+    pub audio_driver: Option<Arc<PlayerEngine>>,
 }
 
 impl MultiplayApp {
     /// Creates a new MultiplayApp with real storage, search providers, and audio driver.
     pub fn new() -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
-        Self::with_driver(AudioPlaybackDriver::new().ok())
+        Self::with_driver(create_player_engine().ok())
     }
 
     /// Creates a MultiplayApp that plays into a null sink (tests and CI; no audio hardware).
     pub fn new_headless() -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
-        Self::with_driver(AudioPlaybackDriver::new_headless().ok())
+        Self::with_driver(create_headless_engine().ok())
     }
 
     fn with_driver(
-        audio_driver: Option<AudioPlaybackDriver>,
+        audio_driver: Option<PlayerEngine>,
     ) -> Result<(Self, mpsc::UnboundedReceiver<PlayerCommand>), String> {
         let (event_bus, cmd_rx) = EventBus::new(64);
 
-        let temp_dir = std::env::temp_dir().join(format!("multiplay_db_{}", uuid::Uuid::new_v4()));
-        let _ = std::fs::create_dir_all(&temp_dir);
-        let db_path = temp_dir.join("library.redb");
+        let app_paths = amp_adapter_storage::AppPaths::from_env();
+        let _ = app_paths.ensure_dirs();
+        let storage_adapter = RedbStorageAdapter::open_default(&app_paths).or_else(|_| {
+            let temp_dir =
+                std::env::temp_dir().join(format!("multiplay_db_{}", uuid::Uuid::new_v4()));
+            let _ = std::fs::create_dir_all(&temp_dir);
+            RedbStorageAdapter::new(temp_dir.join("library.redb"))
+        });
         let storage = Arc::new(
-            RedbStorageAdapter::new(&db_path)
-                .map_err(|e| format!("Failed to initialize RedbStorageAdapter: {e}"))?,
+            storage_adapter.map_err(|e| format!("Failed to initialize RedbStorageAdapter: {e}"))?,
         );
 
         let mut search_coordinator = FilteredSearchCoordinator::new();
         if let Ok(yt) = PureYouTubeAdapter::new() {
             search_coordinator.register_provider(SourceKind::YouTube, Arc::new(yt));
         }
+        if let Ok(bc) = amp_adapter_bandcamp::PureBandcampAdapter::new() {
+            search_coordinator.register_provider(SourceKind::Bandcamp, Arc::new(bc));
+        }
         let soulseek = Arc::new(SoulseekAdapter::default());
         search_coordinator.register_provider(SourceKind::Soulseek, soulseek);
         let p2p = Arc::new(SecurePeerNode::default());
         search_coordinator.register_provider(SourceKind::P2PShared, p2p);
+
+        let (search_tx, search_rx) = mpsc::unbounded_channel();
+        let search_coordinator = Arc::new(search_coordinator);
 
         let docking_mgr = DockingWindowManager::new();
         let search_state = SearchViewState::new();
@@ -105,6 +117,8 @@ impl MultiplayApp {
             search_coordinator,
             docking_mgr,
             search_state,
+            search_tx,
+            search_rx,
             spectrum: [0.0; 16],
             playback_state: PlaybackState::Stopped,
             current_title: "1. Aphex Twin - Polynomial-C".to_string(),
@@ -135,22 +149,41 @@ impl MultiplayApp {
                 KeyCode::Tab => self.search_state.cycle_filter_pill(),
                 KeyCode::Down => self.search_state.select_next(),
                 KeyCode::Up => self.search_state.select_prev(),
-                KeyCode::Char(c) => self.search_state.input_query.push(c),
+                KeyCode::Char('a') if !self.search_state.results.is_empty() => {
+                    if let Some(track) = self.search_state.selected_track() {
+                        self.playlist.push(track.clone());
+                    }
+                }
+                KeyCode::Char(c) => {
+                    self.search_state.input_query.push(c);
+                    self.search_state.results.clear();
+                }
                 KeyCode::Backspace => {
                     self.search_state.input_query.pop();
+                    self.search_state.results.clear();
                 }
                 KeyCode::Enter => {
-                    if let Some(track) = self.search_state.selected_track() {
-                        self.current_title =
-                            format!("{} - {}", track.metadata.artist, track.metadata.title);
-                        self.playback_state = PlaybackState::Playing;
-                        if let Some(ref driver) = self.audio_driver {
-                            driver.play(track.clone());
+                    if !self.search_state.results.is_empty() {
+                        if let Some(track) = self.search_state.selected_track() {
+                            self.playlist.push(track.clone());
+                            self.selected_playlist_idx = self.playlist.len() - 1;
+                            self.current_title = format!(
+                                "{}. {} - {}",
+                                self.playlist.len(),
+                                track.metadata.artist,
+                                track.metadata.title
+                            );
+                            self.playback_state = PlaybackState::Playing;
+                            if let Some(ref driver) = self.audio_driver {
+                                driver.play(track.clone());
+                            }
+                            self.event_bus
+                                .send_command(PlayerCommand::PlayTrack(Box::new(track.clone())));
                         }
-                        self.event_bus
-                            .send_command(PlayerCommand::PlayTrack(Box::new(track.clone())));
+                        self.search_state.close();
+                    } else if !self.search_state.input_query.trim().is_empty() {
+                        self.trigger_search();
                     }
-                    self.search_state.close();
                 }
                 _ => {}
             }
@@ -239,8 +272,35 @@ impl MultiplayApp {
         false
     }
 
+    /// Spawns background multi-source search across enabled providers (`TASK-153`).
+    pub fn trigger_search(&mut self) {
+        let q = self.search_state.input_query.trim().to_string();
+        if q.is_empty() {
+            return;
+        }
+        let coordinator = Arc::clone(&self.search_coordinator);
+        let mask = self.search_state.filter_mask.clone();
+        let tx = self.search_tx.clone();
+        tokio::spawn(async move {
+            use amp_ports::driving::{FilteredSearchPort, SearchQueryOptions};
+            let results = coordinator
+                .search(SearchQueryOptions {
+                    text: q,
+                    filter_mask: mask,
+                    timeout_millis: 10_000,
+                })
+                .await;
+            let _ = tx.send(results);
+        });
+    }
+
     /// Synchronizes playback driver state (spectrum, elapsed duration) into UI view model.
     pub fn sync_audio_state(&mut self) {
+        while let Ok(res) = self.search_rx.try_recv() {
+            self.search_state.results = res;
+            self.search_state.selected_result_idx = 0;
+        }
+
         if let Some(ref driver) = self.audio_driver {
             if let Ok(spec) = driver.visualizer_spectrum.try_lock() {
                 self.spectrum = *spec;
