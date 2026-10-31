@@ -39,3 +39,12 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- ADR-005 accepted by the owner: `rusty-opus` `=1.0.2` (pure Rust, SIMD intrinsics only); ADR-004 marked superseded.
+- `crates/amp-adapter-decoder/src/opus.rs`: `OpusDecoder` implements Symphonia's `AudioDecoder`/`RegisterableAudioDecoder` over `rusty_opus::multistream::OpusMSDecoder` (families 0 and 1, up to 8 channels, Vorbis order reordered to Symphonia planes), applies the OpusHead output gain, and trims packets for gapless playback. `probe::codec_registry()` = Symphonia's enabled codecs + Opus, used for opening and for decoder rebuilds.
+- Symphonia 0.6.1 findings: the Ogg reader trims end padding but leaves the pre-skip to the decoder (the adapter drops it from the packet at timestamp 0, also after a rewind), and counts the pre-skip in `num_frames` (the probe subtracts it for Opus).
+- Registry: Opus `Playable`; scanner, dialogs, drop and phone upload accept `.opus`.
+- Fixtures: `opus_stereo.opus`, `opus_mono.opus`, `opus_5_1.opus` (mapping family 1), `opus.webm`; all pass the decode matrix (path, stream, seek) and engine playback; new `ogg_opus_decodes_to_the_exact_encoded_length` proves gapless trimming (48,000 / 24,000 frames exactly).
+- YouTube: format scoring already falls back from AAC (itag 140) to WebM/Opus; those streams are now decodable (live canary still blocked by the rusty_ytdl extractor issue).
+- Gate: verify_pure_rust, cargo-deny, clippy `-D warnings`, `cargo test --workspace --no-fail-fast` 483 passed / 0 failed.

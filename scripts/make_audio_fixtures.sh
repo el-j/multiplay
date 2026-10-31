@@ -59,4 +59,12 @@ stereo 44100 1 "$OUT/vorbis.webm" -c:a vorbis -strict -2 -ac 2 -f webm
 stereo 44100 1 "$OUT/mp2_192.mp2" -c:a mp2 -b:a 192k
 stereo 44100 1 "$OUT/adpcm_ms.wav" -c:a adpcm_ms
 
+# Opus (TASK-229): always decoded at 48 kHz
+stereo 48000 1 "$OUT/opus_stereo.opus" -c:a libopus -b:a 128k
+"${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t):s=48000:d=1" "${TAGS[@]}" \
+    -c:a libopus -b:a 64k "$OUT/opus_mono.opus"
+"${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*550*t)|0.5*sin(2*PI*660*t)|0.5*sin(2*PI*770*t)|0.5*sin(2*PI*880*t)|0.5*sin(2*PI*990*t):s=48000:d=0.5:c=5.1" \
+    "${TAGS[@]}" -c:a libopus -mapping_family 1 -b:a 256k "$OUT/opus_5_1.opus"
+stereo 48000 1 "$OUT/opus.webm" -c:a libopus -b:a 128k -f webm
+
 ls -l "$OUT"

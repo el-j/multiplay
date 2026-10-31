@@ -1,6 +1,6 @@
 # ADR-004: Opus Codec Scope in Pure-Rust Audio Pipeline
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-005](ADR-005-opus-decoder.md) (2026-10-31): Opus plays via `rusty-opus`
 - **Date:** 2026-10-27
 - **Task:** `TASK-139` (`PLAN-039`: Decoder Hardening: Probe Hints, ResetRequired, Accurate Seek, Opus/WebM)
 - **Audit Findings:** `AUD-13`

@@ -4,12 +4,25 @@
 #![forbid(unsafe_code)]
 
 use amp_ports::DecodeError;
+use std::sync::OnceLock;
 use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
+use symphonia::core::codecs::registry::CodecRegistry;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, TrackType};
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::TimeBase;
+
+/// Symphonia's enabled codecs plus Opus (`rusty-opus`, ADR-005).
+pub fn codec_registry() -> &'static CodecRegistry {
+    static REGISTRY: OnceLock<CodecRegistry> = OnceLock::new();
+    REGISTRY.get_or_init(|| {
+        let mut registry = CodecRegistry::new();
+        symphonia::default::register_enabled_codecs(&mut registry);
+        registry.register_audio_decoder::<crate::opus::OpusDecoder>();
+        registry
+    })
+}
 
 /// A probed audio stream with its decoder.
 pub(crate) struct OpenedAudio {
@@ -94,8 +107,15 @@ where
     // in its own time base (Matroska/WebM keep it only on the file).
     let to_frames = |secs: f64| (secs * sample_rate as f64).round() as u64;
     let media = reader.media_info();
+    // Symphonia counts Opus' pre-skip (track delay) in `num_frames`; the decoder drops it.
+    let opus_delay = if params.codec == symphonia::core::codecs::audio::well_known::CODEC_ID_OPUS {
+        u64::from(track.delay.unwrap_or(0))
+    } else {
+        0
+    };
     let duration_frames = track
         .num_frames
+        .map(|n| n.saturating_sub(opus_delay))
         .or_else(|| {
             let t = time_base?.calc_duration(track.duration?)?;
             Some(to_frames(t.as_secs_f64()))
@@ -105,7 +125,7 @@ where
             Some(to_frames(t.as_secs_f64()))
         });
     let track_id = track.id;
-    let decoder = symphonia::default::get_codecs()
+    let decoder = codec_registry()
         .make_audio_decoder(&params, &AudioDecoderOptions::default())
         .map_err(|e| format!("Unsupported codec: {e}"))?;
     Ok(OpenedAudio {

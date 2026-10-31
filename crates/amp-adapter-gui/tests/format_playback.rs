@@ -32,6 +32,10 @@ const FIXTURES: &[(&str, f64)] = &[
     ("vorbis.webm", 1.0),
     ("mp2_192.mp2", 1.0),
     ("adpcm_ms.wav", 1.0),
+    ("opus_stereo.opus", 1.0),
+    ("opus_mono.opus", 1.0),
+    ("opus_5_1.opus", 0.5),
+    ("opus.webm", 1.0),
 ];
 
 fn play_to_end(file: &str, seconds: f64) {

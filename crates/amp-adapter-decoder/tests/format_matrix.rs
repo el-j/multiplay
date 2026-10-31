@@ -26,6 +26,8 @@ enum Kind {
     Lossy,
     /// 5.1 downmixed to stereo: check length and that both sides carry sound.
     Surround,
+    /// One 440 Hz channel, played on both sides: check level and pitch.
+    Mono,
 }
 
 const FIXTURES: &[Fixture] = &[
@@ -140,6 +142,30 @@ const FIXTURES: &[Fixture] = &[
     Fixture {
         file: "adpcm_ms.wav",
         rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossy,
+    }, // TASK-229: Opus (always 48 kHz).
+    Fixture {
+        file: "opus_stereo.opus",
+        rate: 48_000,
+        seconds: 1.0,
+        kind: Kind::Lossy,
+    },
+    Fixture {
+        file: "opus_mono.opus",
+        rate: 48_000,
+        seconds: 1.0,
+        kind: Kind::Mono,
+    },
+    Fixture {
+        file: "opus_5_1.opus",
+        rate: 48_000,
+        seconds: 0.5,
+        kind: Kind::Surround,
+    },
+    Fixture {
+        file: "opus.webm",
+        rate: 48_000,
         seconds: 1.0,
         kind: Kind::Lossy,
     },
@@ -258,6 +284,29 @@ fn check_signal(f: &Fixture, samples: &[f32]) {
                 );
             }
         }
+        Kind::Mono => {
+            let slack = f.rate as usize / 20;
+            assert!(
+                frames.abs_diff(want) <= slack,
+                "{}: {frames} frames, want ~{want}",
+                f.file
+            );
+            let mid = &samples[frames / 2..frames / 2 + (f.rate as usize / 4) * 2];
+            for ch in 0..2 {
+                let level = rms(mid.iter().skip(ch).step_by(2).copied());
+                assert!(
+                    (level - 0.3536).abs() < 0.035,
+                    "{}: ch{ch} rms {level}",
+                    f.file
+                );
+                let p = pitch(mid, ch, f.rate);
+                assert!(
+                    (p - 440.0).abs() / 440.0 < 0.03,
+                    "{}: ch{ch} pitch {p}",
+                    f.file
+                );
+            }
+        }
         Kind::Surround => {
             assert_eq!(frames, want, "{}: frame count", f.file);
             for ch in 0..2 {
@@ -358,5 +407,22 @@ fn every_playable_format_has_a_fixture() {
             "{} is playable but has no golden fixture",
             format.name
         );
+    }
+}
+
+/// Ogg Opus is gapless: the encoder's pre-skip and end padding are trimmed, so each file
+/// decodes to exactly the samples that were encoded.
+#[test]
+fn ogg_opus_decodes_to_the_exact_encoded_length() {
+    for (file, frames) in [
+        ("opus_stereo.opus", 48_000),
+        ("opus_mono.opus", 48_000),
+        ("opus_5_1.opus", 24_000),
+    ] {
+        let p = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures")
+            .join(file);
+        let mut dec = AudioStreamDecoder::open_file(&p.to_string_lossy()).unwrap();
+        assert_eq!(decode_all(&mut dec).len() / 2, frames, "{file}");
     }
 }

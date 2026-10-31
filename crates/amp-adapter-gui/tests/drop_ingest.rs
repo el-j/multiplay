@@ -112,8 +112,8 @@ fn a_drop_on_the_main_window_is_added_once() {
 fn unplayable_audio_is_reported_not_silently_skipped() {
     let (root, mut app, _, album) = setup();
     std::fs::write(album.join("03.wv"), b"wvpk").unwrap();
-    std::fs::write(album.join("04.opus"), b"OggS").unwrap();
-    std::fs::write(album.join("05.opus"), b"OggS").unwrap();
+    std::fs::write(album.join("04.dsf"), b"OggS").unwrap();
+    std::fs::write(album.join("05.dsf"), b"OggS").unwrap();
     std::fs::write(album.join("cover.jpg"), b"jpg").unwrap();
     drop_onto(&mut app, WindowId::Playlist, &[&album]);
     assert_eq!(app.playlist.len(), 2, "the two WAVs");
@@ -123,7 +123,7 @@ fn unplayable_audio_is_reported_not_silently_skipped() {
         .expect("skipped files are reported");
     assert!(notice.contains("3 files skipped"), "{notice}");
     assert!(
-        notice.contains("Opus (2)") && notice.contains("WavPack (1)"),
+        notice.contains("DSD (2)") && notice.contains("WavPack (1)"),
         "{notice}"
     );
     assert!(

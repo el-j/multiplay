@@ -10,4 +10,6 @@ description = "Pure-Rust multi-format audio demuxer and decoder adapter using Sy
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 symphonia = { version = "0.6", default-features = false, features = ["mp1", "mp2", "mp3", "flac", "pcm", "vorbis", "aac", "alac", "adpcm", "isomp4", "ogg", "wav", "aiff", "caf", "mkv"] }
+# Opus (ADR-005): pinned exactly; pure Rust, SIMD intrinsics only.
+rusty-opus = "=1.0.2"
 rtrb = { workspace = true }

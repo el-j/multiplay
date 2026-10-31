@@ -1,9 +1,9 @@
 # ADR-005: Pure-Rust Opus Decoder
 
-- **Status:** Proposed — needs the owner's decision (see *Decision Needed*)
+- **Status:** Accepted (2026-10-31) — option 1, `rusty-opus`, chosen by the owner
 - **Date:** 2026-10-31
 - **Task:** `TASK-228` (`PLAN-058`: Universal Audio Format Support)
-- **Would supersede:** [ADR-004](ADR-004-opus-codec-scope.md) (Opus hidden for lack of a pure-Rust decoder)
+- **Supersedes:** [ADR-004](ADR-004-opus-codec-scope.md) (Opus hidden for lack of a pure-Rust decoder)
 
 ## Context
 
@@ -63,7 +63,7 @@ stricter proxy for the music use case.
 `opus-pure` was not run: it has `unsafe` like `rusty-opus` with less adoption, so it cannot
 beat it on either criterion. `moosicbox_opus_native` is not usable today.
 
-## Decision Needed
+## Options Considered
 
 No candidate meets every criterion of ADR-004 **and** the CPU budget:
 
@@ -76,7 +76,13 @@ No candidate meets every criterion of ADR-004 **and** the CPU budget:
 3. **No-go.** Keep Opus hidden (ADR-004 stays), re-check in 3 months; `opus-decoder` plans
    performance work.
 
-## Integration Plan (TASK-229, once decided)
+## Decision
+
+Adopt `rusty-opus` (option 1), pinned to `=1.0.2`. ADR-004's criterion becomes: **no C code;
+`unsafe` only as SIMD intrinsics inside an exactly pinned, license-checked dependency**. Our own
+crates stay `#![forbid(unsafe_code)]`. Re-evaluate `opus-decoder` when it gains performance work.
+
+## Integration (TASK-229)
 
 - Wrap the chosen decoder as a Symphonia `AudioDecoder` and register it in a custom codec
   registry inside `amp-adapter-decoder`, so Ogg Opus and WebM/MKA Opus use the existing path.

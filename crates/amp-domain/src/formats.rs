@@ -100,7 +100,7 @@ pub const AUDIO_FORMATS: &[AudioFormat] = &[
         &["audio/webm", "audio/x-matroska"],
     ),
     playable("MPEG Layer I/II", &["mp1", "mp2"], &["audio/mpeg"]),
-    planned("Opus", &["opus"], &["audio/opus"], "TASK-229"),
+    playable("Opus", &["opus"], &["audio/opus"]),
     planned("DSD", &["dsf", "dff"], &["audio/dsd"], "TASK-231"),
     unsupported("WavPack", &["wv"], "no pure-Rust WavPack decoder yet"),
     unsupported(

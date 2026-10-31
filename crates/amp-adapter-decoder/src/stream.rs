@@ -154,7 +154,7 @@ impl AudioStreamDecoder {
         if let Some(sr) = params.sample_rate {
             self.sample_rate = sr;
         }
-        self.decoder = symphonia::default::get_codecs()
+        self.decoder = crate::probe::codec_registry()
             .make_audio_decoder(&params, &AudioDecoderOptions::default())
             .map_err(|e| DecodeError::UnsupportedFormat(format!("Unsupported codec: {e}")))?;
         Ok(())
@@ -445,8 +445,8 @@ mod tests {
     fn formats_the_registry_cannot_play_are_rejected_by_name() {
         for (ext, mime, name) in [
             (Some("wv"), None, "WavPack"),
-            (None, Some("audio/opus"), "Opus"),
-            (Some(".OPUS"), None, "Opus"),
+            (None, Some("audio/dsd"), "DSD"),
+            (Some(".DSF"), None, "DSD"),
         ] {
             match AudioStreamDecoder::open_stream_with_hint(Cursor::new(vec![0u8; 64]), ext, mime) {
                 Err(DecodeError::UnsupportedFormat(msg)) => assert!(msg.contains(name), "{msg}"),
@@ -456,16 +456,6 @@ mod tests {
                 ),
             }
         }
-    }
-
-    #[test]
-    fn opus_is_cleanly_rejected_with_unsupported_format() {
-        let res = AudioStreamDecoder::open_stream_with_hint(
-            Cursor::new(vec![0u8; 64]),
-            Some("opus"),
-            Some("audio/opus"),
-        );
-        assert!(matches!(res, Err(DecodeError::UnsupportedFormat(_))));
     }
 
     #[test]

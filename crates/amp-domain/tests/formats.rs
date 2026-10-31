@@ -42,8 +42,8 @@ fn every_extension_belongs_to_one_format() {
 fn audio_that_cannot_play_yet_says_why() {
     let reason = formats::skip_reason(Path::new("song.wv")).expect("WavPack is known");
     assert!(reason.contains("WavPack"), "{reason}");
-    let opus = formats::skip_reason(Path::new("song.opus")).expect("Opus is known");
-    assert!(opus.contains("Opus"), "{opus}");
+    let dsd = formats::skip_reason(Path::new("song.dsf")).expect("DSD is known");
+    assert!(dsd.contains("DSD"), "{dsd}");
     assert_eq!(
         formats::skip_reason(Path::new("song.flac")),
         None,
@@ -69,7 +69,11 @@ fn planned_formats_name_their_task() {
 fn playable_extensions_are_listed_once_in_registry_order() {
     let list: Vec<_> = formats::playable_extensions().collect();
     assert!(list.contains(&"flac") && list.contains(&"mp3"));
-    assert!(!list.contains(&"wv") && !list.contains(&"opus"));
+    assert!(
+        list.contains(&"opus"),
+        "Opus plays since TASK-229 (ADR-005)"
+    );
+    assert!(!list.contains(&"wv"));
     let unique: HashSet<_> = list.iter().collect();
     assert_eq!(unique.len(), list.len());
 }
@@ -132,5 +136,6 @@ fn mime_types_find_their_format() {
         Some("MP3")
     );
     assert_eq!(formats::by_mime("audio/opus").map(|f| f.name), Some("Opus"));
+    assert!(formats::is_playable_extension("opus"));
     assert_eq!(formats::by_mime("text/html"), None);
 }
