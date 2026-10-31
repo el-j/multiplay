@@ -22,7 +22,10 @@ pub(crate) struct OpenedAudio {
 
 /// Refuses formats `amp_domain::formats` does not mark playable (e.g. Opus until TASK-229,
 /// see ADR-004), with a message naming the format instead of an opaque probe error.
-pub(crate) fn reject_unplayable(extension: Option<&str>, mime_type: Option<&str>) -> Result<(), DecodeError> {
+pub(crate) fn reject_unplayable(
+    extension: Option<&str>,
+    mime_type: Option<&str>,
+) -> Result<(), DecodeError> {
     use amp_domain::formats;
     let format = extension
         .and_then(formats::by_extension)

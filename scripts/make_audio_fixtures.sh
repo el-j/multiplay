@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Regenerates the golden audio fixtures used by the decode matrix (TASK-226, PLAN-058).
+#
+# Every fixture carries the same known signal so tests can check the decoded samples:
+#   left 440 Hz, right 660 Hz, amplitude 0.5 (5.1: 440/550/660/770/880/990 Hz).
+# ffmpeg, flac and lame are offline tools for this script only; nothing in multiplay links them.
+#
+# Usage: ./scripts/make_audio_fixtures.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$ROOT/crates/amp-adapter-decoder/tests/fixtures"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$OUT"
+
+for tool in ffmpeg flac lame; do
+    command -v "$tool" >/dev/null || { echo "missing $tool" >&2; exit 1; }
+done
+
+FF=(ffmpeg -hide_banner -loglevel error -y)
+TAGS=(-metadata title="Fixture" -metadata artist="multiplay" -metadata album="Golden Fixtures")
+
+# stereo <rate> <seconds> <output> [codec args...]
+stereo() {
+    local rate=$1 secs=$2 out=$3
+    shift 3
+    "${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*660*t):s=$rate:d=$secs" \
+        "${TAGS[@]}" "$@" "$out"
+}
+
+# Lossless
+stereo 44100 1 "$OUT/flac_16_44k.flac" -c:a flac -sample_fmt s16
+stereo 96000 0.5 "$OUT/flac_24_96k.flac" -c:a flac -sample_fmt s32 -bits_per_raw_sample 24
+stereo 192000 0.25 "$OUT/flac_24_192k.flac" -c:a flac -sample_fmt s32 -bits_per_raw_sample 24
+stereo 44100 1 "$OUT/wav_16.wav" -c:a pcm_s16le
+stereo 48000 0.5 "$OUT/wav_24.wav" -c:a pcm_s24le
+stereo 48000 0.5 "$OUT/wav_f32.wav" -c:a pcm_f32le
+
+stereo 44100 1 "$TMP/plain.wav" -c:a pcm_s16le
+flac --silent --force --no-seektable -T TITLE=Fixture -T ARTIST=multiplay \
+    -o "$OUT/flac_no_seektable.flac" "$TMP/plain.wav"
+
+"${FF[@]}" -f lavfi -i "aevalsrc=0.5*sin(2*PI*440*t)|0.5*sin(2*PI*550*t)|0.5*sin(2*PI*660*t)|0.5*sin(2*PI*770*t)|0.5*sin(2*PI*880*t)|0.5*sin(2*PI*990*t):s=48000:d=0.5:c=5.1" \
+    "${TAGS[@]}" -c:a flac -sample_fmt s16 "$OUT/flac_5_1_48k.flac"
+
+# Lossy
+lame --silent -b 128 --tt Fixture --ta multiplay "$TMP/plain.wav" "$OUT/mp3_cbr_128.mp3"
+lame --silent -V 2 --tt Fixture --ta multiplay "$TMP/plain.wav" "$OUT/mp3_vbr.mp3"
+stereo 44100 1 "$OUT/aac.m4a" -c:a aac -b:a 128k
+stereo 44100 1 "$OUT/vorbis.ogg" -c:a vorbis -strict -2 -ac 2
+
+ls -l "$OUT"

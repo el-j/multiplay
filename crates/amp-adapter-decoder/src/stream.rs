@@ -10,8 +10,8 @@ use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::MediaSource;
 use symphonia::core::units::Timestamp;
 
-use crate::probe::{open_audio_with_hint, reject_unplayable};
 pub use crate::probe::build_probe_hint;
+use crate::probe::{open_audio_with_hint, reject_unplayable};
 use crate::source::GenericMediaSource;
 
 /// Stateless factory implementing `DecoderFactoryPort` using Symphonia.
