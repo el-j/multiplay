@@ -113,7 +113,11 @@ fn process_standard_tick(
         let track_opt = driver.current_track.lock().unwrap().clone();
         if let Some(track) = track_opt {
             match &track.source {
-                AudioSource::LocalFile { path } => match driver.decoder_factory.open_file(path) {
+                AudioSource::LocalFile { path } => match driver
+                    .decoder_factory
+                    .open_file(path)
+                    .and_then(|dec| super::segment::apply_segment(&track, dec))
+                {
                     Ok(dec) => activate_loaded_decoder(driver, dsp_chain, decoder, track, dec),
                     Err(e) => handle_load_failure(driver, &track, &e),
                 },

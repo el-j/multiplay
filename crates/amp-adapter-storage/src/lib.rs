@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analysis;
+pub mod cue;
 pub mod keyring;
 pub mod paths;
 pub mod playlist;
@@ -19,11 +20,12 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
 
+pub use cue::{cue_audio_files, import_cue, parse_cue, CueSheet};
 pub use keyring::{KeyringStorageAdapter, SecretString};
 pub use paths::{expand_tilde, AppPaths};
 pub use playlist::{
-    export_m3u8, export_pls, export_xspf, import_m3u8, import_pls, import_xspf,
-    SessionPlaylistSnapshot,
+    export_m3u8, export_pls, export_xspf, import_m3u8, import_m3u8_with_base, import_pls,
+    import_xspf, SessionPlaylistSnapshot,
 };
 pub use scanner::{
     collect_audio_files, extract_track_from_file, is_playable_path, scan_audio_files,

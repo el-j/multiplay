@@ -12,6 +12,7 @@ pub mod loader;
 pub mod ports;
 pub mod pusher;
 pub mod queue;
+pub mod segment;
 pub mod worker;
 
 pub use dj_link::{DjLink, DjRequest};

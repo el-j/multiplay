@@ -167,6 +167,8 @@ pub struct ScanReport {
     pub files: Vec<PathBuf>,
     /// Format name (e.g. "WavPack") to number of files skipped.
     pub skipped: std::collections::BTreeMap<&'static str, usize>,
+    /// CUE sheets found; the files they cover are not in `files` (TASK-232).
+    pub cue_sheets: Vec<PathBuf>,
 }
 
 impl ScanReport {
@@ -189,6 +191,14 @@ pub fn scan_audio_files(dir: &Path) -> ScanReport {
         &mut HashSet::new(),
         &mut report,
     );
+    // A single-file album with a CUE sheet is played song by song through the sheet.
+    let mut covered = HashSet::new();
+    report.cue_sheets.retain(|cue| {
+        let files = crate::cue::cue_audio_files(cue);
+        covered.extend(files.iter().cloned());
+        !files.is_empty()
+    });
+    report.files.retain(|f| !covered.contains(f));
     report
 }
 
@@ -245,6 +255,11 @@ fn collect_recursive(
             collect_recursive(&path, options, visited_dirs, report);
         } else if is_playable_path(&path) {
             report.files.push(path);
+        } else if path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
+        {
+            report.cue_sheets.push(path);
         } else if let Some(format) = amp_domain::formats::by_path(&path) {
             *report.skipped.entry(format.name).or_default() += 1;
         }

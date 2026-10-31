@@ -220,6 +220,18 @@ pub struct TrackMetadata {
     pub year: Option<u16>,
     #[serde(default)]
     pub genre: Option<String>,
+    /// The part of the source this track covers, e.g. one song of a single-file album with a
+    /// CUE sheet. `None` plays the whole source.
+    #[serde(default)]
+    pub segment: Option<TrackSegment>,
+}
+
+/// A time range within an audio source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrackSegment {
+    pub start: Duration,
+    /// `None`: until the end of the source.
+    pub end: Option<Duration>,
 }
 
 /// ReplayGain's reference loudness: a track with 0 dB ReplayGain gain is about -18 LUFS.
@@ -244,6 +256,7 @@ impl TrackMetadata {
             disc_number: None,
             year: None,
             genre: None,
+            segment: None,
         }
     }
 

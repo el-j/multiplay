@@ -10,14 +10,15 @@ use std::path::PathBuf;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::process::Command;
 
-/// Files the add dialog accepts besides audio: Winamp skins and playlists.
-const NON_AUDIO_EXTENSIONS: [&str; 3] = ["wsz", "m3u", "m3u8"];
+/// Files the add dialog accepts besides audio: Winamp skins.
+const SKIN_EXTENSIONS: [&str; 1] = ["wsz"];
 
 /// Extensions offered by the add dialog: every playable audio format from
-/// `amp_domain::formats`, plus skins and playlists.
+/// `amp_domain::formats`, plus playlists, CUE sheets and skins.
 pub fn dialog_extensions() -> Vec<&'static str> {
     amp_domain::formats::playable_extensions()
-        .chain(NON_AUDIO_EXTENSIONS)
+        .chain(crate::playlist_import::LIST_EXTENSIONS)
+        .chain(SKIN_EXTENSIONS)
         .collect()
 }
 

@@ -35,3 +35,11 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- Domain: `TrackSegment { start, end }` and `TrackMetadata::segment` (`#[serde(default)]`).
+- Engine: `player/segment.rs` `SegmentedStream` decorator (seek to start, EOF at end, duration/elapsed/seek relative to the range) applied in all three decoder open paths (async loader incl. gapless preload, blocking/DJ loader, worker's direct local-file open). Tests `amp-core-engine/tests/segment.rs` (3).
+- Storage: `cue.rs` parses FILE/TRACK/TITLE/PERFORMER/INDEX 01/REM GENRE/DATE, UTF-8 (BOM) or Latin-1, CRLF; resolves a renamed audio file (`album.wav` → `album.flac`); one track per song with album, album artist, genre, year, track number, segment and duration; stable per-song ids. Folder scans list `cue_sheets` and leave out the single files they cover. Tests `amp-adapter-storage/tests/cue.rs` (4) with a 3-tone FLAC + UTF-8 and Latin-1/CRLF sheets.
+- GUI: `playlist_import.rs` imports M3U/M3U8, PLS, XSPF (now relative to the playlist's folder; M3U previously ignored it) and CUE from drop, dialog and folder; dialog offers `.pls/.xspf/.cue`. Tests `amp-adapter-gui/tests/playlist_files.rs` (4), including the real engine playing CUE song 2 for exactly 1 s at 550 Hz.
+- Not done: embedded `CUESHEET` tags inside FLAC files (separate follow-up).
+- Gate: verify_pure_rust, cargo-deny, clippy `-D warnings`, `cargo test --workspace --no-fail-fast` 500 passed / 0 failed.

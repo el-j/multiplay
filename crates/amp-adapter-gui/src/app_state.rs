@@ -6,7 +6,7 @@ use crate::docking::{DockManager, WindowId};
 use crate::engine_factory::{create_headless_engine, create_player_engine};
 use crate::settings_panel::GuiSettingsTab;
 use amp_adapter_storage::{
-    export_m3u8, extract_track_from_file, import_m3u8, scan_audio_files, SessionPlaylistSnapshot,
+    export_m3u8, extract_track_from_file, scan_audio_files, SessionPlaylistSnapshot,
 };
 use amp_core_engine::PlayerEngine;
 use amp_domain::source_badge::SourceKind;
@@ -284,7 +284,7 @@ impl MultiplayGuiApp {
     pub fn import_playlist_from_m3u8(&mut self, src_path: &Path) -> Result<usize, String> {
         let content = std::fs::read_to_string(src_path)
             .map_err(|e| format!("Failed to read M3U8 file: {e}"))?;
-        let tracks = import_m3u8(&content);
+        let tracks = amp_adapter_storage::import_m3u8_with_base(&content, src_path.parent());
         let count = tracks.len();
         self.playlist.extend(tracks);
         self.save_session();
@@ -339,8 +339,7 @@ impl MultiplayGuiApp {
                 let _ = self.load_skin_from_path(path);
                 return;
             }
-            if ext.eq_ignore_ascii_case("m3u") || ext.eq_ignore_ascii_case("m3u8") {
-                let _ = self.import_playlist_from_m3u8(path);
+            if self.import_list_file(path) {
                 return;
             }
         }
@@ -351,6 +350,9 @@ impl MultiplayGuiApp {
                 if let Some(track) = extract_track_from_file(f) {
                     self.playlist.push(track);
                 }
+            }
+            for cue in &report.cue_sheets {
+                self.import_list_file(cue);
             }
             for (format, n) in report.skipped {
                 *skipped.entry(format).or_default() += n;
