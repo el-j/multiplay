@@ -45,6 +45,11 @@ if [ -f "$WORKSPACE_ROOT/scripts/Info.plist" ]; then
     cp "$WORKSPACE_ROOT/scripts/Info.plist" "$BUILD_DIR/macos/Multiplay.app/Contents/Info.plist"
 fi
 cp "$WORKSPACE_ROOT/assets/icon/multiplay.icns" "$BUILD_DIR/macos/Multiplay.app/Contents/Resources/Multiplay.icns"
+# The license bundle Preferences -> About opens (built in CI; locally only if cargo-about is installed).
+if command -v cargo-about >/dev/null 2>&1; then
+    (cd "$WORKSPACE_ROOT" && cargo about generate --locked about.hbs \
+        -o "$BUILD_DIR/macos/Multiplay.app/Contents/Resources/THIRD_PARTY_LICENSES.html")
+fi
 
 # 5. Create Multiplay.command inside build/macos/
 cat << 'EOF' > "$BUILD_DIR/macos/Multiplay.command"

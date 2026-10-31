@@ -39,4 +39,5 @@ image = { version = "0.25", default-features = false, features = ["bmp", "png"] 
 
 [dev-dependencies]
 proptest = "1.12"
+tempfile = "3.27"
 tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }

@@ -23,6 +23,7 @@ pub enum GuiSettingsTab {
     Appearance,
     Plugins,
     Remote,
+    About,
 }
 
 /// Output devices for the audio tab.
@@ -79,6 +80,7 @@ impl SettingsGuiPanel {
                 ui.selectable_value(active_tab, GuiSettingsTab::Appearance, "🎨 Appearance");
                 ui.selectable_value(active_tab, GuiSettingsTab::Plugins, "🔌 Plugins");
                 ui.selectable_value(active_tab, GuiSettingsTab::Remote, "📱 Remote Control");
+                ui.selectable_value(active_tab, GuiSettingsTab::About, "ℹ About");
             });
 
             ui.separator();
@@ -258,6 +260,7 @@ impl SettingsGuiPanel {
                 GuiSettingsTab::Plugins => {
                     ui.label("No external plugins currently loaded.");
                 }
+                GuiSettingsTab::About => crate::about::show(ui),
                 GuiSettingsTab::Remote => {
                     ui.label(
                         RichText::new("📱 SMARTPHONE REMOTE CONTROL & PAIRING")

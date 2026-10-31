@@ -64,6 +64,24 @@ jobs:
         with:
           command: check
 
+      # Every release download ships this file; building it here catches a dependency whose
+      # license cargo-about cannot resolve before a release is tagged.
+      - name: Install cargo-about
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.3
+
+      - name: Third-party license bundle
+        run: cargo about generate --locked about.hbs -o THIRD_PARTY_LICENSES.html
+
+      - name: Upload the license bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: third-party-licenses
+          path: THIRD_PARTY_LICENSES.html
+          if-no-files-found: error
+          retention-days: 14
+
   matrix-test:
     name: Tests (${{ matrix.os }})
     needs: quality-gate

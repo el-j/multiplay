@@ -1,6 +1,6 @@
 //! Embeds the app icon into the Windows executable. The `.res` is written in pure Rust from the
 //! committed PNGs and passed to the MSVC linker, which accepts compiled resources directly, so no
-//! resource compiler (rc.exe, windres) is needed.
+//! resource compiler (rc.exe, windres) is needed. Also exports the release version and commit.
 
 #![forbid(unsafe_code)]
 
@@ -8,9 +8,13 @@
 #[path = "src/app_icon/formats.rs"]
 mod formats;
 
+#[path = "../../build-support/build_info.rs"]
+mod build_info;
+
 use std::path::PathBuf;
 
 fn main() {
+    build_info::export();
     println!("cargo:rerun-if-changed=../../assets/icon");
     println!("cargo:rerun-if-changed=src/app_icon/formats.rs");
     let target = |key: &str| std::env::var(key).unwrap_or_default();

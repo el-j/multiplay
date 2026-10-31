@@ -29,3 +29,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31, branch feat/beta-release-polish) — partial
+- Done: `--version`/`-V` on `multiplay-gui` and `amp-app` (`multiplay 0.1.0 (abc1234)`); `build-support/build_info.rs` takes the release tag from `MULTIPLAY_VERSION` (set in release.yml) and the commit from `GITHUB_SHA` or git. Tests `crates/amp-app/tests/version.rs`, `crates/amp-adapter-gui/tests/about.rs`.
+- Done: hand-written `CHANGELOG.md` (Keep a Changelog), shipped in every download.
+- Open: single `multiplay` binary with `--tui`/`--headless` (objective 1); git-cliff automation.

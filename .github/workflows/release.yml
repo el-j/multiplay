@@ -63,6 +63,8 @@ jobs:
       signing: ${{ steps.notarize.outputs.signing }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      # Shown by `--version` and Preferences -> About (build-support/build_info.rs).
+      MULTIPLAY_VERSION: ${{ needs.version.outputs.version }}
       # Optional. Without these the app is ad-hoc signed and the release notes explain the
       # first-launch step; see docs/RELEASING.md for how to get them.
       MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
@@ -76,6 +78,9 @@ jobs:
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
+        with:
+          name: third-party-licenses
 
       - name: Build (Apple Silicon and Intel)
         run: |
@@ -99,7 +104,8 @@ jobs:
           lipo -create "$A/amp-app" "$X/amp-app" -output "$DMG/multiplay-tui"
           chmod +x "$APP/MacOS/Multiplay" "$DMG/multiplay-tui"
           lipo -info "$APP/MacOS/Multiplay"
-          cp README.md LICENSE "$DMG/"
+          cp THIRD_PARTY_LICENSES.html "$APP/Resources/"
+          cp README.md LICENSE CHANGELOG.md docs/privacy.md THIRD_PARTY_LICENSES.html "$DMG/"
           ln -s /Applications "$DMG/Applications"
 
       - name: Import Developer ID certificate
@@ -192,6 +198,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      # Shown by `--version` and Preferences -> About (build-support/build_info.rs).
+      MULTIPLAY_VERSION: ${{ needs.version.outputs.version }}
       ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v7
@@ -199,6 +207,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $LINUX_DEPS desktop-file-utils
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
+        with:
+          name: third-party-licenses
       - name: Build
         run: cargo build --release --locked -p amp-app -p amp-adapter-gui
 
@@ -214,7 +225,7 @@ jobs:
           strip "$S/multiplay" "$S/multiplay-tui"
           cp assets/linux/multiplay.desktop "$S/"
           cp assets/icon/multiplay-256.png "$S/multiplay.png"
-          cp README.md LICENSE "$S/"
+          cp README.md LICENSE CHANGELOG.md docs/privacy.md THIRD_PARTY_LICENSES.html "$S/"
           tar -czf "dist/$NAME.tar.gz" -C staging "$NAME"
           echo "STAGED=$S" >> "$GITHUB_ENV"
 
@@ -230,7 +241,7 @@ jobs:
           D=AppDir
           ICONS="$D/usr/share/icons/hicolor"
           mkdir -p "$D/usr/bin" "$D/usr/share/applications"
-          cp "$STAGED/multiplay" "$STAGED/multiplay-tui" "$D/usr/bin/"
+          cp "$STAGED/multiplay" "$STAGED/multiplay-tui" "$STAGED/THIRD_PARTY_LICENSES.html" "$D/usr/bin/"
           cp assets/linux/multiplay.desktop "$D/"
           cp assets/linux/multiplay.desktop "$D/usr/share/applications/"
           for s in 16 24 32 48 64 128 256 512; do
@@ -258,6 +269,8 @@ jobs:
       signing: ${{ steps.stage.outputs.signing }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      # Shown by `--version` and Preferences -> About (build-support/build_info.rs).
+      MULTIPLAY_VERSION: ${{ needs.version.outputs.version }}
       # Bundle the C runtime so the .exe runs without the Visual C++ redistributable.
       RUSTFLAGS: -C target-feature=+crt-static
       # Optional Azure Artifact Signing (formerly Trusted Signing); see docs/RELEASING.md.
@@ -266,6 +279,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
+        with:
+          name: third-party-licenses
       - name: Build
         run: cargo build --release --locked -p amp-app -p amp-adapter-gui
 
@@ -279,7 +295,7 @@ jobs:
           mkdir -p "$S"
           cp target/release/multiplay-gui.exe "$S/multiplay.exe"
           cp target/release/amp-app.exe "$S/multiplay-tui.exe"
-          cp README.md LICENSE "$S/"
+          cp README.md LICENSE CHANGELOG.md docs/privacy.md THIRD_PARTY_LICENSES.html "$S/"
           echo "NAME=$NAME" >> "$GITHUB_ENV"
           echo "signing=$([ -n "$AZURE_CLIENT_ID" ] && echo signed || echo unsigned)" >> "$GITHUB_OUTPUT"
 
@@ -317,6 +333,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      # Shown by `--version` and Preferences -> About (build-support/build_info.rs).
+      MULTIPLAY_VERSION: ${{ needs.version.outputs.version }}
       MACOS_SIGNING: ${{ needs.macos.outputs.signing }}
       WINDOWS_SIGNING: ${{ needs.windows.outputs.signing }}
     steps:
@@ -324,6 +342,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: dist
+          pattern: multiplay-*
           merge-multiple: true
 
       # The first-launch workarounds are only kept for platforms that shipped unsigned.

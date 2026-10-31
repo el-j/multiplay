@@ -27,3 +27,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31, branch feat/beta-release-polish)
+- `docs/privacy.md`: every connection (YouTube, Bandcamp, streams, About links), remote-control defaults (off, 127.0.0.1:9002, LAN opt-in), stored files, Soulseek/P2P not connected yet. Linked from README and Preferences → About.
+- Guard test `crates/amp-app/tests/privacy_statement.rs`: every host in a production `const` must appear in the statement; remote defaults and "No telemetry" checked.
+- User-Agent: `amp_domain::about::user_agent()` = `multiplay/<version> (+https://github.com/el-j/multiplay)` for amp-adapter-http and Bandcamp (was a browser-style string); `crates/amp-domain/tests/about.rs`. Live Bandcamp tests (`--ignored`) pass with it. YouTube requests still use rusty_ytdl's own headers (documented).

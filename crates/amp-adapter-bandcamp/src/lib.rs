@@ -89,7 +89,8 @@ impl PureBandcampAdapter {
         let mut default_headers = HeaderMap::new();
         default_headers.insert(
             "User-Agent",
-            HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) multiplay/1.0"),
+            HeaderValue::from_str(&amp_domain::about::user_agent())
+                .expect("the User-Agent is plain ASCII"),
         );
 
         let client = reqwest::Client::builder()

@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod about;
 pub mod analysis;
 pub mod config;
 pub mod deck_assign;
