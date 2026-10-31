@@ -84,29 +84,22 @@ pub const AUDIO_FORMATS: &[AudioFormat] = &[
         &["audio/ogg", "audio/vorbis"],
     ),
     playable(
-        "AAC / M4A",
+        "AAC / ALAC (M4A)",
         &["m4a", "m4b", "aac"],
         &["audio/mp4", "audio/aac", "audio/x-m4a"],
     ),
-    planned(
+    playable(
         "AIFF",
         &["aif", "aiff", "aifc"],
         &["audio/aiff", "audio/x-aiff"],
-        "TASK-227",
     ),
-    planned("Core Audio (CAF)", &["caf"], &["audio/x-caf"], "TASK-227"),
-    planned(
+    playable("Core Audio (CAF)", &["caf"], &["audio/x-caf"]),
+    playable(
         "Matroska / WebM audio",
         &["mka", "webm"],
         &["audio/webm", "audio/x-matroska"],
-        "TASK-227",
     ),
-    planned(
-        "MPEG Layer I/II",
-        &["mp1", "mp2"],
-        &["audio/mpeg"],
-        "TASK-227",
-    ),
+    playable("MPEG Layer I/II", &["mp1", "mp2"], &["audio/mpeg"]),
     planned("Opus", &["opus"], &["audio/opus"], "TASK-229"),
     planned("DSD", &["dsf", "dff"], &["audio/dsd"], "TASK-231"),
     unsupported("WavPack", &["wv"], "no pure-Rust WavPack decoder yet"),

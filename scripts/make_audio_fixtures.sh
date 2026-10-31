@@ -50,4 +50,13 @@ lame --silent -V 2 --tt Fixture --ta multiplay "$TMP/plain.wav" "$OUT/mp3_vbr.mp
 stereo 44100 1 "$OUT/aac.m4a" -c:a aac -b:a 128k
 stereo 44100 1 "$OUT/vorbis.ogg" -c:a vorbis -strict -2 -ac 2
 
+# Formats enabled by TASK-227
+stereo 44100 1 "$OUT/alac.m4a" -c:a alac -sample_fmt s16p
+stereo 44100 1 "$OUT/aiff_16.aiff" -c:a pcm_s16be
+stereo 44100 1 "$OUT/caf_16.caf" -c:a pcm_s16le -f caf
+stereo 44100 1 "$OUT/flac.mka" -c:a flac -sample_fmt s16 -f matroska
+stereo 44100 1 "$OUT/vorbis.webm" -c:a vorbis -strict -2 -ac 2 -f webm
+stereo 44100 1 "$OUT/mp2_192.mp2" -c:a mp2 -b:a 192k
+stereo 44100 1 "$OUT/adpcm_ms.wav" -c:a adpcm_ms
+
 ls -l "$OUT"

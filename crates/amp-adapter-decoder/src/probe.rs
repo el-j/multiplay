@@ -9,6 +9,7 @@ use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, TrackType};
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
+use symphonia::core::units::TimeBase;
 
 /// A probed audio stream with its decoder.
 pub(crate) struct OpenedAudio {
@@ -18,6 +19,8 @@ pub(crate) struct OpenedAudio {
     pub sample_rate: u32,
     pub channels: u16,
     pub duration_frames: Option<u64>,
+    /// Unit of the track's timestamps; `None` means one tick per sample frame.
+    pub time_base: Option<TimeBase>,
 }
 
 /// Refuses formats `amp_domain::formats` does not mark playable (e.g. Opus until TASK-229,
@@ -85,7 +88,23 @@ where
         .and_then(|p| p.audio())
         .ok_or_else(|| "No playable audio tracks found".to_string())?
         .clone();
-    let (track_id, duration_frames) = (track.id, track.num_frames);
+    let sample_rate = params.sample_rate.unwrap_or(44_100);
+    let time_base = track.time_base;
+    // Frame count when the container has it; otherwise the track's or the whole file's duration
+    // in its own time base (Matroska/WebM keep it only on the file).
+    let to_frames = |secs: f64| (secs * sample_rate as f64).round() as u64;
+    let media = reader.media_info();
+    let duration_frames = track
+        .num_frames
+        .or_else(|| {
+            let t = time_base?.calc_duration(track.duration?)?;
+            Some(to_frames(t.as_secs_f64()))
+        })
+        .or_else(|| {
+            let t = media.time_base?.calc_duration(media.duration?)?;
+            Some(to_frames(t.as_secs_f64()))
+        });
+    let track_id = track.id;
     let decoder = symphonia::default::get_codecs()
         .make_audio_decoder(&params, &AudioDecoderOptions::default())
         .map_err(|e| format!("Unsupported codec: {e}"))?;
@@ -93,8 +112,9 @@ where
         reader,
         decoder,
         track_id,
-        sample_rate: params.sample_rate.unwrap_or(44_100),
+        sample_rate,
         channels: params.channels.as_ref().map_or(2, |c| c.count() as u16),
         duration_frames,
+        time_base,
     })
 }

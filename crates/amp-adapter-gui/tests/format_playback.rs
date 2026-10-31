@@ -25,6 +25,13 @@ const FIXTURES: &[(&str, f64)] = &[
     ("mp3_vbr.mp3", 1.0),
     ("aac.m4a", 1.0),
     ("vorbis.ogg", 1.0),
+    ("alac.m4a", 1.0),
+    ("aiff_16.aiff", 1.0),
+    ("caf_16.caf", 1.0),
+    ("flac.mka", 1.0),
+    ("vorbis.webm", 1.0),
+    ("mp2_192.mp2", 1.0),
+    ("adpcm_ms.wav", 1.0),
 ];
 
 fn play_to_end(file: &str, seconds: f64) {

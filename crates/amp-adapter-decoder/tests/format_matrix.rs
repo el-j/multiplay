@@ -5,7 +5,7 @@
 
 #![forbid(unsafe_code)]
 
-use amp_adapter_decoder::AudioStreamDecoder;
+use amp_adapter_decoder::{AudioStreamDecoder, GenericMediaSource};
 use amp_domain::formats::{self, FormatStatus};
 use std::f64::consts::PI;
 use std::path::{Path, PathBuf};
@@ -100,8 +100,73 @@ const FIXTURES: &[Fixture] = &[
         rate: 44_100,
         seconds: 1.0,
         kind: Kind::Lossy,
+    }, // TASK-227: Symphonia formats switched on.
+    Fixture {
+        file: "alac.m4a",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossless,
+    },
+    Fixture {
+        file: "aiff_16.aiff",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossless,
+    },
+    Fixture {
+        file: "caf_16.caf",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossless,
+    },
+    Fixture {
+        file: "flac.mka",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossless,
+    },
+    Fixture {
+        file: "vorbis.webm",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossy,
+    },
+    Fixture {
+        file: "mp2_192.mp2",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossy,
+    },
+    Fixture {
+        file: "adpcm_ms.wav",
+        rate: 44_100,
+        seconds: 1.0,
+        kind: Kind::Lossy,
     },
 ];
+
+/// Runs `check` on every fixture and reports all failing ones together.
+fn each_fixture(check: impl Fn(&Fixture) + std::panic::RefUnwindSafe) {
+    let failures: Vec<String> = FIXTURES
+        .iter()
+        .filter_map(|f| {
+            let err = std::panic::catch_unwind(|| check(f)).err()?;
+            let msg = err
+                .downcast_ref::<String>()
+                .cloned()
+                .or_else(|| err.downcast_ref::<&str>().map(|s| s.to_string()))
+                .unwrap_or_default();
+            Some(format!("  {}: {msg}", f.file))
+        })
+        .collect();
+    assert!(
+        failures.is_empty(),
+        "{} of {} fixtures failed:\n{}",
+        failures.len(),
+        FIXTURES.len(),
+        failures.join("\n")
+    );
+}
 
 fn path(f: &Fixture) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -209,7 +274,7 @@ fn check_signal(f: &Fixture, samples: &[f32]) {
 
 #[test]
 fn every_fixture_decodes_from_its_path() {
-    for f in FIXTURES {
+    each_fixture(|f| {
         let mut dec = AudioStreamDecoder::open_file(&path(f).to_string_lossy())
             .unwrap_or_else(|e| panic!("{}: {e}", f.file));
         assert_eq!(dec.sample_rate(), f.rate, "{}", f.file);
@@ -222,25 +287,32 @@ fn every_fixture_decodes_from_its_path() {
             f.file
         );
         check_signal(f, &decode_all(&mut dec));
-    }
+    });
 }
 
 /// Streams (network, phone uploads) arrive without a file name: content alone must suffice.
 #[test]
 fn every_fixture_decodes_from_a_stream_without_hints() {
-    for f in FIXTURES {
+    each_fixture(|f| {
         let file = std::fs::File::open(path(f)).unwrap();
-        let mut dec =
-            AudioStreamDecoder::open_stream(file).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+        // Symphonia's CAF reader needs the stream length (known for files and for downloads
+        // with a Content-Length); every other format must work without it.
+        let len = f
+            .file
+            .ends_with(".caf")
+            .then(|| file.metadata().unwrap().len());
+        let source = GenericMediaSource::with_byte_len(file, len);
+        let mut dec = AudioStreamDecoder::open_media_source(source)
+            .unwrap_or_else(|e| panic!("{}: {e}", f.file));
         assert_eq!(dec.sample_rate(), f.rate, "{}", f.file);
         check_signal(f, &decode_all(&mut dec));
-    }
+    });
 }
 
 /// Seeking lands on the exact frame for lossless files, and near it for lossy ones.
 #[test]
 fn every_fixture_seeks_to_the_middle() {
-    for f in FIXTURES {
+    each_fixture(|f| {
         let mut dec = AudioStreamDecoder::open_file(&path(f).to_string_lossy()).unwrap();
         let target = Duration::from_secs_f64(f.seconds / 2.0);
         let landed = dec
@@ -255,11 +327,20 @@ fn every_fixture_seeks_to_the_middle() {
         let n = dec.read_interleaved_samples(&mut buf).unwrap();
         assert!(n > 0, "{}: nothing after seek", f.file);
         if f.kind == Kind::Lossless {
-            let first = (target.as_secs_f64() * f.rate as f64).round() as usize;
-            let err = max_error(&buf[..n], first, f.rate);
+            // Matroska stores timestamps in whole milliseconds, so a seek there can only be
+            // exact to the millisecond; every other lossless container must be sample-exact.
+            let slack = if f.file.ends_with(".mka") {
+                (f.rate / 1000 + 1) as i64
+            } else {
+                0
+            };
+            let first = (target.as_secs_f64() * f.rate as f64).round() as i64;
+            let err = (-slack..=slack)
+                .map(|d| max_error(&buf[..n], (first + d).max(0) as usize, f.rate))
+                .fold(f32::MAX, f32::min);
             assert!(err < 1e-3, "{}: off by {err} after seek", f.file);
         }
-    }
+    });
 }
 
 /// Every format the registry calls playable has a fixture here.

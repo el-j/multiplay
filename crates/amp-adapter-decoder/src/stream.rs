@@ -8,7 +8,7 @@ use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::MediaSource;
-use symphonia::core::units::Timestamp;
+use symphonia::core::units::{Time, TimeBase, Timestamp};
 
 pub use crate::probe::build_probe_hint;
 use crate::probe::{open_audio_with_hint, reject_unplayable};
@@ -45,6 +45,12 @@ pub struct AudioStreamDecoder {
     pending_idx: usize,
     /// Frames still to drop after a seek landed before its target (sample-accurate seeking).
     skip_frames: u64,
+    /// Unit of the track's timestamps; `None` means one tick per sample frame.
+    time_base: Option<TimeBase>,
+    /// Target frame of the last seek until a packet arrives after it. Some readers report a
+    /// seek as done but leave the stream at its end (Symphonia 0.6.1, ADPCM in WAV); then the
+    /// decoder rewinds and decodes forward to this frame instead.
+    seek_target: Option<u64>,
 }
 
 impl AudioStreamDecoder {
@@ -99,8 +105,12 @@ impl AudioStreamDecoder {
     {
         let opened = open_audio_with_hint(source, &hint).map_err(DecodeError::UnsupportedFormat)?;
         let (reader, decoder) = (opened.reader, opened.decoder);
-        let (track_id, sample_rate, duration_frames) =
-            (opened.track_id, opened.sample_rate, opened.duration_frames);
+        let (track_id, sample_rate, duration_frames, time_base) = (
+            opened.track_id,
+            opened.sample_rate,
+            opened.duration_frames,
+            opened.time_base,
+        );
 
         Ok(Self {
             reader,
@@ -109,6 +119,8 @@ impl AudioStreamDecoder {
             track_id,
             sample_rate,
             duration_frames,
+            time_base,
+            seek_target: None,
             frames_played: 0,
             pending_samples: Vec::new(),
             pending_idx: 0,
@@ -138,6 +150,7 @@ impl AudioStreamDecoder {
             })?
             .clone();
         self.track_id = track.id;
+        self.time_base = track.time_base;
         if let Some(sr) = params.sample_rate {
             self.sample_rate = sr;
         }
@@ -171,6 +184,10 @@ impl AudioStreamDecoder {
             let packet = match self.reader.next_packet() {
                 Ok(Some(pkt)) => pkt,
                 Ok(None) => {
+                    if let Some(target) = self.seek_target.take() {
+                        self.rewind_and_skip_to(target)?;
+                        continue;
+                    }
                     eof_reached = true;
                     break; // End of the track
                 }
@@ -197,6 +214,7 @@ impl AudioStreamDecoder {
             if packet.track_id != self.track_id {
                 continue;
             }
+            self.seek_target = None;
 
             match self.decoder.decode(&packet) {
                 Ok(audio_buf) => {
@@ -254,9 +272,15 @@ impl AudioStreamDecoder {
         &mut self,
         target: std::time::Duration,
     ) -> Result<std::time::Duration, DecodeError> {
-        let ts = (target.as_secs_f64() * self.sample_rate as f64).round() as u64;
+        // Timestamps are in the track's time base, which is not always one tick per sample
+        // (Matroska/WebM count in their own ticks); rounding keeps sample-based seeks exact.
+        let secs = target.as_secs_f64();
+        let ticks = match self.time_base {
+            Some(tb) => secs * tb.denom.get() as f64 / tb.numer.get() as f64,
+            None => secs * self.sample_rate as f64,
+        };
         let seek_to = SeekTo::Timestamp {
-            ts: Timestamp::new(ts as i64),
+            ts: Timestamp::new(ticks.round() as i64),
             track_id: self.track_id,
         };
         // The reader lands on a packet boundary at or before the target; the frames between
@@ -265,8 +289,8 @@ impl AudioStreamDecoder {
             .reader
             .seek(SeekMode::Accurate, seek_to)
             .map_err(|e| DecodeError::SeekFailed(format!("Seek failed: {e}")))?;
-        let actual_ts = landed.actual_ts.get().max(0) as u64;
-        let required_ts = landed.required_ts.get().max(0) as u64;
+        let actual_ts = self.ts_to_frames(landed.actual_ts);
+        let required_ts = self.ts_to_frames(landed.required_ts);
         self.skip_frames = required_ts.saturating_sub(actual_ts);
 
         self.decoder.reset();
@@ -274,7 +298,34 @@ impl AudioStreamDecoder {
         self.pending_idx = 0;
         let effective_frames = actual_ts + self.skip_frames;
         self.frames_played = effective_frames;
+        self.seek_target = Some(required_ts);
         Ok(self.elapsed())
+    }
+
+    /// Fallback for a reader whose seek left it at the end: start over and drop frames up to
+    /// `target`.
+    fn rewind_and_skip_to(&mut self, target: u64) -> Result<(), DecodeError> {
+        let start = SeekTo::Time {
+            time: Time::try_from_secs_f64(0.0).unwrap_or_default(),
+            track_id: Some(self.track_id),
+        };
+        self.reader
+            .seek(SeekMode::Accurate, start)
+            .map_err(|e| DecodeError::SeekFailed(format!("Rewind after failed seek: {e}")))?;
+        self.decoder.reset();
+        self.skip_frames = target;
+        Ok(())
+    }
+
+    /// Sample frames for a timestamp in this track's time base.
+    fn ts_to_frames(&self, ts: Timestamp) -> u64 {
+        let ticks = ts.get().max(0) as u64;
+        match self.time_base {
+            Some(tb) => tb.calc_time(ts).map_or(ticks, |t| {
+                (t.as_secs_f64().max(0.0) * self.sample_rate as f64).round() as u64
+            }),
+            None => ticks,
+        }
     }
 
     pub fn sample_rate(&self) -> u32 {
