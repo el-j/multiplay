@@ -4,7 +4,7 @@
 #![forbid(unsafe_code)]
 
 use amp_adapter_decoder::{AudioStreamDecoder, GenericMediaSource};
-use amp_ports::SharedPrecacheBuffer;
+use amp_ports::{DecodeError, SharedPrecacheBuffer};
 use std::io::Read;
 use std::time::{Duration, Instant};
 
@@ -57,7 +57,7 @@ fn decodes_every_sample_when_data_trickles_in() {
         match decoder.read_interleaved_samples(&mut out) {
             Ok(0) => break,
             Ok(n) => decoded.extend_from_slice(&out[..n]),
-            Err(e) if e == "WouldBlock" => std::thread::sleep(Duration::from_millis(1)),
+            Err(DecodeError::WouldBlock) => std::thread::sleep(Duration::from_millis(1)),
             Err(e) => panic!("underrun must not be fatal: {e}"),
         }
     }

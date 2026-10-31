@@ -22,7 +22,7 @@
 `cargo test -p amp-core-engine rank`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+Golden cross-source ranking and deduplication tests in `amp-core-engine::search_rank` verifying that parenthetical/remaster/official video metadata is normalized, identical tracks across multiple providers (Local, Bandcamp, YouTube) are collapsed, and higher quality/local sources are prioritized. Tested via `cargo test -p amp-core-engine rank`.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed

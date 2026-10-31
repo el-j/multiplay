@@ -9,6 +9,9 @@ use eframe::egui::{Key, KeyboardShortcut, Modifiers};
 /// Ctrl+P (Cmd+P on macOS) opens and closes Settings, as in classic Winamp.
 pub const SETTINGS: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::P);
 
+/// Ctrl+K (Cmd+K on macOS) opens and closes Universal Omnibox Search.
+pub const SEARCH: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::K);
+
 /// Where a `w` x `h` overlay opens: centered on the screen when it is known, otherwise over the
 /// main window; never above or left of the screen's top-left corner.
 pub fn centered(w: f32, h: f32, screen: Option<DockRect>, main: DockRect) -> DockRect {

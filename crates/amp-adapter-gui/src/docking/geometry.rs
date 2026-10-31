@@ -18,6 +18,8 @@ pub enum WindowId {
     DjConsole,
     /// Remote & Sharing: phone requests, paired devices, pairing (TASK-214).
     Remote,
+    /// Universal Omnibox Search Window (TASK-153): YouTube, Bandcamp & Library.
+    Search,
 }
 
 /// 2D rectangular bounding box for floating windows.

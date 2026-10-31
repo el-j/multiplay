@@ -382,16 +382,16 @@ M3.5 holds the last features before release ([design](file:///Users/rex-fab-alt/
 | [TASK-138](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-138-http-range-seeking.md) | HTTP Range Requests for Seekable Remote Files | Pending | integrations | `cargo test -p amp-adapter-http range` |
 | [TASK-139](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-139-decoder-hardening-hints-reset-seek-opus.md) | Decoder Hardening: Probe Hints, ResetRequired, Accurate Seek, Opus/WebM | Pending | audio_engine | `cargo test -p amp-adapter-decoder` |
 
-### PLAN-040: Audiophile DSP Transparency & Correctness (Pending · P1 · M2 — Sounds right)
+### PLAN-040: Audiophile DSP Transparency & Correctness (Completed · P1 · M2 — Sounds right)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-140](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-140-bit-transparent-default-path-and-null-test.md) | Bit-Transparent Default Path & CI Null Test | Pending | dsp_engineering | `cargo test -p amp-core-engine null_test` |
-| [TASK-141](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-141-lookahead-oversampled-true-peak-limiter.md) | Lookahead, Oversampled True-Peak Limiter | Pending | dsp_engineering | `cargo test -p amp-core-engine limiter` |
-| [TASK-142](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-142-streaming-correct-resampler.md) | Streaming-Correct Resampler (No Mid-Stream Padding, Per-Stream Instances) | Pending | dsp_engineering | `cargo test -p amp-core-engine resampler` |
-| [TASK-143](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-143-correct-replaygain-and-r128-normalization.md) | Correct ReplayGain/R128 Normalization (+ Optional BS.1770 Analysis) | Pending | dsp_engineering | `cargo test -p amp-core-engine loudness && cargo test -p amp-adapter-storage` |
-| [TASK-144](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-144-correct-log-spaced-mono-visualizer.md) | Visualizer: Mono Downmix, Log-Spaced Bands, dB Scaling | Pending | dsp_engineering | `cargo test -p amp-core-engine visualizer` |
-| [TASK-145](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-145-gapless-first-crossfade-policy.md) | Gapless-First Crossfade Policy (Off by Default, Album-Aware, Rate-Matched) | Pending | dsp_engineering | `cargo test -p amp-core-engine gapless` |
-| [TASK-146](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-146-perceptual-volume-taper-and-dither.md) | Perceptual Volume Taper & TPDF Dither | Pending | dsp_engineering | `cargo test -p amp-core-engine volume` |
+| [TASK-140](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-140-bit-transparent-default-path-and-null-test.md) | Bit-Transparent Default Path & CI Null Test | Completed | dsp_engineering | `cargo test -p amp-core-engine null_test` |
+| [TASK-141](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-141-lookahead-oversampled-true-peak-limiter.md) | Lookahead, Oversampled True-Peak Limiter | Completed | dsp_engineering | `cargo test -p amp-core-engine limiter` |
+| [TASK-142](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-142-streaming-correct-resampler.md) | Streaming-Correct Resampler (No Mid-Stream Padding, Per-Stream Instances) | Completed | dsp_engineering | `cargo test -p amp-core-engine resampler` |
+| [TASK-143](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-143-correct-replaygain-and-r128-normalization.md) | Correct ReplayGain/R128 Normalization (+ Optional BS.1770 Analysis) | Completed | dsp_engineering | `cargo test -p amp-core-engine loudness && cargo test -p amp-adapter-storage` |
+| [TASK-144](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-144-correct-log-spaced-mono-visualizer.md) | Visualizer: Mono Downmix, Log-Spaced Bands, dB Scaling | Completed | dsp_engineering | `cargo test -p amp-core-engine visualizer` |
+| [TASK-145](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-145-gapless-first-crossfade-policy.md) | Gapless-First Crossfade Policy (Off by Default, Album-Aware, Rate-Matched) | Completed | dsp_engineering | `cargo test -p amp-core-engine gapless` |
+| [TASK-146](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-146-perceptual-volume-taper-and-dither.md) | Perceptual Volume Taper & TPDF Dither | Completed | dsp_engineering | `cargo test -p amp-core-engine volume` |
 
 ### PLAN-041: Persistent Library, Configuration & Secrets (Pending · P0 · M1 — It plays, reliably)
 | Task ID | Title | Status | Role | Verification Command |
@@ -403,24 +403,24 @@ M3.5 holds the last features before release ([design](file:///Users/rex-fab-alt/
 | [TASK-151](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-151-os-keychain-credential-vault.md) | OS Keychain Credential Vault (with Encrypted-File Fallback) | Pending | security | `cargo test -p amp-adapter-storage keyring` |
 | [TASK-152](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-152-lossless-playlist-io-m3u-pls-xspf.md) | Lossless Playlist I/O: M3U/M3U8 (relative paths), PLS, XSPF | Pending | storage_and_state | `cargo test -p amp-adapter-storage playlist` |
 
-### PLAN-042: Universal Search Wired End-to-End (Pending · P0 · M3 — Finds everything)
+### PLAN-042: Universal Search Wired End-to-End (Completed · P0 · M3 — Finds everything)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-153](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-153-async-omnibox-search-in-gui-and-tui.md) | Async Omnibox Search in GUI & TUI with Streaming Results | Pending | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
-| [TASK-154](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-154-per-provider-status-and-error-surfacing.md) | Per-Provider Status, Timeouts & Error Surfacing | Pending | integrations | `cargo test -p amp-core-engine search` |
-| [TASK-155](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-155-cross-source-ranking-and-dedupe.md) | Cross-Source Ranking & Deduplication | Pending | integrations | `cargo test -p amp-core-engine rank` |
+| [TASK-153](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-153-async-omnibox-search-in-gui-and-tui.md) | Async Omnibox Search in GUI & TUI with Streaming Results | Completed | frontend_gui | `./scripts/verify_pure_rust.sh && cargo test --workspace` |
+| [TASK-154](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-154-per-provider-status-and-error-surfacing.md) | Per-Provider Status, Timeouts & Error Surfacing | Completed | integrations | `cargo test -p amp-core-engine search` |
+| [TASK-155](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-155-cross-source-ranking-and-dedupe.md) | Cross-Source Ranking & Deduplication | Completed | integrations | `cargo test -p amp-core-engine rank` |
 
-### PLAN-043: YouTube Resolver & Offline Downloader Hardening (Pending · P1 · M3 — Finds everything)
+### PLAN-043: YouTube Resolver & Offline Downloader Hardening (Completed · P1 · M3 — Finds everything)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-156](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-156-youtube-url-and-id-normalization.md) | YouTube URL/ID Normalization (watch, youtu.be, shorts, music, playlists) | Pending | integrations | `cargo test -p amp-domain source_url` |
-| [TASK-157](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-157-youtube-format-selection-retry-and-canary.md) | YouTube Format Selection, URL Refresh, Retry & Daily Canary | Pending | integrations | `cargo test -p amp-adapter-youtube && gh workflow run canary` |
-| [TASK-158](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-158-working-offline-downloader.md) | Working Offline Downloader (Async, Correct Containers, Safe Names, Progress) | Pending | integrations | `cargo test -p amp-core-engine downloader` |
+| [TASK-156](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-156-youtube-url-and-id-normalization.md) | YouTube URL/ID Normalization (watch, youtu.be, shorts, music, playlists) | Completed | integrations | `cargo test -p amp-domain source_url` |
+| [TASK-157](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-157-youtube-format-selection-retry-and-canary.md) | YouTube Format Selection, URL Refresh, Retry & Daily Canary | Completed | integrations | `cargo test -p amp-adapter-youtube && gh workflow run canary` |
+| [TASK-158](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-158-working-offline-downloader.md) | Working Offline Downloader (Async, Correct Containers, Safe Names, Progress) | Completed | integrations | `cargo test -p amp-core-engine downloader` |
 
 ### PLAN-044: Bandcamp & SoundCloud Resolvers (Pending · P1 · M3 — Finds everything)
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-159](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-159-bandcamp-adapter.md) | New `amp-adapter-bandcamp`: Search, Album/Track Parsing, Streams, Purchase Links | Pending | integrations | `cargo test -p amp-adapter-bandcamp` |
+| [TASK-159](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-159-bandcamp-adapter.md) | New `amp-adapter-bandcamp`: Search, Album/Track Parsing, Streams, Purchase Links | Completed | integrations | `cargo test -p amp-adapter-bandcamp` |
 | [TASK-160](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-160-soundcloud-adapter.md) | New `amp-adapter-soundcloud`: client_id Discovery, Search, Progressive/HLS Streams | Pending | integrations | `cargo test -p amp-adapter-soundcloud` |
 | [TASK-161](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-161-scraper-contract-tests-and-canaries.md) | Recorded-Fixture Contract Tests & Live Canaries for Scraping Adapters | Pending | qa_and_hardening | `cargo test --workspace provider_contract` |
 

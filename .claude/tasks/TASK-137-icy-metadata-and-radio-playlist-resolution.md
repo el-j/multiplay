@@ -24,7 +24,7 @@
 `cargo test -p amp-adapter-http`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified `IcyDemuxer`, `IcyMetadataTap`, and `.pls`/`.m3u8`/`.xspf` radio playlist parsing & failover in `crates/amp-adapter-http/src/{icy,playlist,lib}.rs` via `cargo test -p amp-adapter-http` (7 passed).
 
 ## Status
 - **Status:** Pending

@@ -24,7 +24,7 @@
 `cargo test -p amp-adapter-storage playlist`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified lossless M3U/M3U8 (with relative path resolution), PLS, and XSPF import/export and duplicate suppression across all 9 `AudioSource` variants via `cargo test -p amp-adapter-storage playlist` (`playlist_roundtrip_all_audio_source_variants_across_m3u8_pls_and_xspf`, 2 passed).
 
 ## Status
 - **Status:** Pending

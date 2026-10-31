@@ -94,7 +94,7 @@ impl MultiplayGuiApp {
     }
 
     /// Lookup thread, started on first use with the injected or the real providers.
-    fn lookup(&mut self) -> &RemoteLookup {
+    pub(crate) fn lookup(&mut self) -> &RemoteLookup {
         if self.remote_lookup.is_none() {
             let services = self
                 .lookup_services
@@ -197,6 +197,17 @@ impl MultiplayGuiApp {
                 query,
                 items,
             } => self.remote.send_search_results(&device, &query, items),
+            LookupResult::OmniSearch {
+                query,
+                tracks,
+                failures,
+            } => {
+                if self.search_query_text.trim() == query {
+                    self.search_results = tracks;
+                    self.search_status = (!failures.is_empty()).then(|| failures.join("\n"));
+                    self.is_searching = false;
+                }
+            }
         }
     }
 

@@ -2,12 +2,13 @@
 
 #![forbid(unsafe_code)]
 
-use crate::audio_driver::AudioPlaybackDriver;
 use crate::docking::{DockManager, WindowId};
+use crate::engine_factory::{create_headless_engine, create_player_engine};
 use crate::settings_panel::GuiSettingsTab;
 use amp_adapter_storage::{
     collect_audio_files, export_m3u8, extract_track_from_file, import_m3u8, SessionPlaylistSnapshot,
 };
+use amp_core_engine::PlayerEngine;
 use amp_domain::source_badge::SourceKind;
 use amp_domain::{AppConfig, AudioSource, Track};
 use std::collections::HashSet;
@@ -16,11 +17,20 @@ use std::sync::atomic::Ordering;
 
 /// Core GUI application state container.
 pub struct MultiplayGuiApp {
-    pub audio_driver: AudioPlaybackDriver,
+    pub audio_driver: PlayerEngine,
     pub playlist: Vec<Track>,
     pub selected_track_idx: usize,
     pub search_query: String,
     pub filter_source: Option<SourceKind>,
+    pub search_query_text: String,
+    pub search_url_text: String,
+    pub search_results: Vec<Track>,
+    pub is_searching: bool,
+    pub search_status: Option<String>,
+    /// Why the last track could not be played, until another one starts.
+    pub playback_notice: Option<String>,
+    pub(crate) playback_events:
+        Option<tokio::sync::broadcast::Receiver<amp_core_engine::events::PlayerEvent>>,
     pub dock_manager: DockManager,
     pub initialized_viewports: HashSet<WindowId>,
     /// Title-bar drag in progress (app-driven, live magnetic snapping).
@@ -56,6 +66,7 @@ pub struct MultiplayGuiApp {
     /// Main window size to restore when DJ mode ends.
     pub normal_main_size: Option<eframe::egui::Vec2>,
     pub settings_tab: GuiSettingsTab,
+    pub config_store: amp_core_engine::ConfigStore,
     pub config: AppConfig,
     pub volume: f32,
     pub eq_preamp: f32,
@@ -86,7 +97,7 @@ impl MultiplayGuiApp {
     /// Initializes GUI state on the default audio device with the user's home directories.
     pub fn new() -> Result<Self, String> {
         Self::with_parts(
-            AudioPlaybackDriver::new()?,
+            create_player_engine()?,
             crate::app_paths::AppPaths::for_user(),
         )
     }
@@ -94,20 +105,22 @@ impl MultiplayGuiApp {
     /// Hardware-free instance whose state lives under `root` (tests and CI).
     pub fn headless(root: &Path) -> Result<Self, String> {
         Self::with_parts(
-            AudioPlaybackDriver::new_headless()?,
+            create_headless_engine()?,
             crate::app_paths::AppPaths::in_dir(root),
         )
     }
 
     /// Initializes GUI state from an audio driver and filesystem locations.
     pub fn with_parts(
-        audio_driver: AudioPlaybackDriver,
+        audio_driver: PlayerEngine,
         paths: crate::app_paths::AppPaths,
     ) -> Result<Self, String> {
         // The remote daemon stays off until the user enables it (audit SEC-01).
         let mut remote =
             crate::remote_manager::RemoteGuiManager::new(Some(paths.remote_sessions_file()));
         remote.upload_dir = Some(paths.remote_uploads_dir());
+        let config_store = amp_core_engine::ConfigStore::load_or_default(paths.config_file(), None);
+        let config = config_store.current();
 
         let mut app = Self {
             audio_driver,
@@ -115,6 +128,13 @@ impl MultiplayGuiApp {
             selected_track_idx: 0,
             search_query: String::new(),
             filter_source: None,
+            search_query_text: String::new(),
+            search_url_text: String::new(),
+            search_results: Vec::new(),
+            is_searching: false,
+            search_status: None,
+            playback_notice: None,
+            playback_events: None,
             dock_manager: DockManager::default(),
             initialized_viewports: HashSet::new(),
             window_drag: None,
@@ -134,7 +154,8 @@ impl MultiplayGuiApp {
             dj_phones_error: None,
             dj_hint_done: false,
             settings_tab: GuiSettingsTab::default(),
-            config: AppConfig::default(),
+            config_store,
+            config,
             volume: 0.85,
             eq_preamp: 0.0,
             eq_gains: [0.0; 10],
@@ -153,11 +174,34 @@ impl MultiplayGuiApp {
             paths,
         };
 
+        app.playback_events = app.audio_driver.subscribe_events();
+        app.apply_config_to_engine();
         app.load_layout();
         if !app.load_session() {
             app.scan_user_music_dir();
         }
         Ok(app)
+    }
+
+    /// Applies every setting in `self.config` to the live `PlayerEngine` and UI state (`TASK-150`).
+    pub fn apply_config_to_engine(&mut self) {
+        self.audio_driver
+            .set_crossfade_seconds(self.config.audio.crossfade_duration_ms as f32 / 1000.0);
+        if let Some(skin_path) = self.config.ui.active_skin_path.clone() {
+            let p = Path::new(&skin_path);
+            if p.exists() {
+                let _ = self.load_skin_from_path(p);
+            }
+        }
+    }
+
+    /// Atomically persists `self.config` through `self.config_store` and applies it to the engine (`TASK-150`).
+    pub fn save_and_apply_config(&mut self) {
+        let updated = self.config.clone();
+        let _ = self.config_store.update(move |cfg| {
+            *cfg = updated;
+        });
+        self.apply_config_to_engine();
     }
 
     /// Loads last active session playlist and EQ parameters from disk.
@@ -292,27 +336,6 @@ impl MultiplayGuiApp {
         self.save_session();
     }
 
-    /// Ingests a stream URL (e.g. YouTube, Spotify, HTTP stream).
-    pub fn ingest_url(&mut self, url: &str) {
-        let trimmed = url.trim();
-        if trimmed.is_empty() {
-            return;
-        }
-
-        let s = trimmed.to_string();
-        let (source, title) = if s.contains("youtube.com") || s.contains("youtu.be") {
-            (AudioSource::YouTube { video_id: s }, "YouTube Stream")
-        } else if s.contains("spotify.com") {
-            (AudioSource::Spotify { track_uri: s }, "Spotify Track")
-        } else {
-            (AudioSource::DirectHttp { url: s }, "Direct HTTP Stream")
-        };
-
-        let meta = amp_domain::TrackMetadata::new(title, "Network Source");
-        self.playlist.push(Track::new(source, meta));
-        self.save_session();
-    }
-
     /// Scans the configured music folder (normally ~/Music).
     pub fn scan_user_music_dir(&mut self) {
         if let Some(music_dir) = self.paths.music_dir.clone() {
@@ -322,7 +345,7 @@ impl MultiplayGuiApp {
         }
     }
 
-    /// Opens native OS file dialog to pick audio files or skins.
+    /// Opens native OS file dialog to pick audio files (and folders on macOS) or skins.
     pub fn open_file_dialog(&mut self) {
         // A cancelled dialog returns nothing and changes nothing (audit UX-07).
         for file in crate::file_dialog::pick_audio_files() {
@@ -330,9 +353,9 @@ impl MultiplayGuiApp {
         }
     }
 
-    /// Opens native OS folder dialog to pick a music folder.
+    /// Opens native OS folder dialog to pick music folders.
     pub fn open_folder_dialog(&mut self) {
-        if let Some(folder) = crate::file_dialog::pick_folder() {
+        for folder in crate::file_dialog::pick_folders() {
             self.ingest_path(&folder);
         }
     }

@@ -2,7 +2,7 @@
 //! carries the master mix and the right channel the headphone cue, with deck B silent on master
 //! but heard in the headphones.
 
-use amp_adapter_gui::audio_driver::AudioPlaybackDriver;
+use amp_adapter_gui::create_capture_engine;
 use amp_adapter_gui::dj_session::DjSession;
 use amp_core_engine::dj::engine::CueRouting;
 use amp_domain::{AudioSource, Track, TrackMetadata};
@@ -63,7 +63,7 @@ fn dj_split_routing_puts_master_left_and_prelisten_right() {
             TrackMetadata::new(name, "Test"),
         ));
     }
-    let (driver, captured) = AudioPlaybackDriver::new_capture().expect("capture driver");
+    let (driver, captured) = create_capture_engine().expect("capture driver");
     let mut dj = DjSession::new(&driver, None);
     dj.enter(&driver);
     let start = Instant::now();

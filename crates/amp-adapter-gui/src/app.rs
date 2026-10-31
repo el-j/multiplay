@@ -8,8 +8,9 @@ pub use crate::app_state::MultiplayGuiApp;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amp_adapter_decoder::AudioStreamDecoder;
+    use amp_adapter_decoder::SymphoniaDecoderFactory;
     use amp_domain::{AudioSource, Track};
+    use amp_ports::DecoderFactoryPort;
     use std::path::{Path, PathBuf};
     use std::time::Duration;
 
@@ -83,9 +84,26 @@ mod tests {
         app.ingest_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
         assert_eq!(app.playlist.len(), initial_len + 2);
         assert!(matches!(
-            app.playlist[initial_len + 1].source,
-            AudioSource::YouTube { .. }
+            &app.playlist[initial_len + 1].source,
+            AudioSource::YouTube { video_id } if video_id == "dQw4w9WgXcQ"
         ));
+
+        app.ingest_url("https://aphextwin.bandcamp.com/track/windowlicker");
+        assert_eq!(app.playlist.len(), initial_len + 3);
+        assert!(matches!(
+            app.playlist[initial_len + 2].source,
+            AudioSource::Bandcamp { .. }
+        ));
+
+        let sample = Track::new(
+            AudioSource::Bandcamp {
+                stream_url: "https://artist.bandcamp.com/track/test".into(),
+            },
+            amp_domain::TrackMetadata::new("Song", "Band"),
+        );
+        app.add_search_result(sample);
+        assert_eq!(app.playlist.len(), initial_len + 4);
+        assert_eq!(app.playlist.last().unwrap().metadata.title, "Song");
 
         let _ = std::fs::remove_file(test_file);
     }
@@ -112,13 +130,15 @@ mod tests {
         let test_file = temp_dir.join("test_real_stream_song.wav");
         create_test_wav(&test_file);
 
-        let mut decoder = AudioStreamDecoder::open_file(test_file.to_str().unwrap())
+        let factory = SymphoniaDecoderFactory;
+        let mut decoder = factory
+            .open_file(test_file.to_str().unwrap())
             .expect("Failed to open real decoder");
         assert_eq!(decoder.sample_rate(), 44100);
 
         let mut pcm_buf = vec![0.0f32; 16];
         let read = decoder
-            .read_interleaved_samples(&mut pcm_buf)
+            .read_interleaved(&mut pcm_buf)
             .expect("decode failed");
         assert!(read > 0);
 
@@ -131,12 +151,14 @@ mod tests {
         let test_file = temp_dir.join("test_tracking_song.wav");
         create_test_wav(&test_file);
 
-        let mut decoder = AudioStreamDecoder::open_file(test_file.to_str().unwrap())
+        let factory = SymphoniaDecoderFactory;
+        let mut decoder = factory
+            .open_file(test_file.to_str().unwrap())
             .expect("Failed to open real decoder");
         assert_eq!(decoder.elapsed(), Duration::ZERO);
 
         let mut pcm_buf = vec![0.0f32; 16];
-        let _ = decoder.read_interleaved_samples(&mut pcm_buf);
+        let _ = decoder.read_interleaved(&mut pcm_buf);
         assert!(decoder.elapsed() >= Duration::ZERO);
 
         let seek_res = decoder.seek(Duration::from_millis(0));
@@ -215,6 +237,35 @@ mod persistence_tests {
         let pl = reloaded.dock_manager.get_rect(WindowId::Playlist);
         assert_eq!((pl.x - main.x, pl.y - main.y), (480.0, 0.0));
         assert_eq!((pl.width, pl.height), (360.0, 420.0));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn config_survives_restart_and_applies_to_engine() {
+        let root =
+            std::env::temp_dir().join(format!("multiplay-gui-config-{}", uuid::Uuid::new_v4()));
+        let mut app = MultiplayGuiApp::headless(&root).expect("headless app");
+        app.config.audio.loudness_normalization = false;
+        app.config.audio.target_lufs = -18;
+        app.config.audio.crossfade_duration_ms = 4500;
+        app.config.audio.headphone_crossfeed = "Standard".to_string();
+        app.config.ui.compact_mode = true;
+        app.config.ui.visualizer_fps = 120;
+        app.save_and_apply_config();
+
+        assert!(app.paths.config_file().exists());
+
+        let reloaded = MultiplayGuiApp::headless(&root).expect("reload");
+        assert!(!reloaded.config.audio.loudness_normalization);
+        assert_eq!(reloaded.config.audio.target_lufs, -18);
+        assert_eq!(reloaded.config.audio.crossfade_duration_ms, 4500);
+        assert_eq!(reloaded.config.audio.headphone_crossfeed, "Standard");
+        assert!(reloaded.config.ui.compact_mode);
+        assert_eq!(reloaded.config.ui.visualizer_fps, 120);
+        assert!(
+            (*reloaded.audio_driver.crossfade_seconds.lock().unwrap() - 4.5).abs() < 1e-4,
+            "crossfade_seconds should be applied from config on reload"
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 }

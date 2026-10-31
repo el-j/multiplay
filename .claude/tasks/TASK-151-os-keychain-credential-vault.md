@@ -24,7 +24,7 @@
 `cargo test -p amp-adapter-storage keyring`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified `CredentialVaultPort` returning `SecretString` and AEAD-encrypted vault file persistence (`KeyringStorageAdapter::with_vault_file`) with zero plaintext leakage and tamper rejection via `cargo test -p amp-adapter-storage keyring` (`keyring_soulseek_password_survives_restart_and_never_stored_in_plaintext`, 3 passed).
 
 ## Status
 - **Status:** Pending

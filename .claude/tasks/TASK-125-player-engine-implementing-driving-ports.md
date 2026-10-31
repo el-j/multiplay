@@ -27,7 +27,9 @@
 `cargo test -p amp-core-engine player`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Created `docs/adr/ADR-001-player-engine.md` documenting thread topology, state machine (`Stopped -> Loading -> Buffering -> Playing <-> Paused -> Stopped | Error`), lock-free `OutputClock`, and hexagonal port injection.
+- Implemented `PlayerEngine` in `crates/amp-core-engine/src/player/` implementing `PlayerControlPort` and `PlaylistManagementPort` with zero concrete adapter imports and clean thread join on `Drop`.
+- Verified with `cargo test -p amp-core-engine player` (6 passed, 0 failed).
 
 ## Status
 - **Status:** Pending

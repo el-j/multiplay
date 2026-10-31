@@ -21,17 +21,9 @@ impl eframe::App for MultiplayGuiApp {
 
         // 1. Automatic Gapless Track Advancement & Audio Parameters Sync
         self.check_gapless_advancement();
+        self.poll_playback_events();
         self.audio_driver
             .set_crossfade_seconds(self.config.audio.crossfade_duration_ms as f32 / 1000.0);
-
-        // 2. OS-Native Drag-and-Drop Ingestion (Files & Folders on Main Player)
-        let dropped_files = ctx.input(|i| i.raw.dropped_files.clone());
-        for f in dropped_files {
-            let path = f.path().to_path_buf();
-            if !path.as_os_str().is_empty() {
-                self.ingest_path(&path);
-            }
-        }
 
         self.sync_dj_headphones();
 
@@ -70,7 +62,8 @@ impl eframe::App for MultiplayGuiApp {
         let action = chrome::title_bar(self, ui, WindowId::Main, "multiplay", true, true);
         chrome::apply_action(self, ctx, WindowId::Main, action);
 
-        // 4. Render Main Player Content in Root Viewport (hidden while shaded)
+        // 4. Render Main Player Content in Root Viewport (hidden while shaded); like every
+        //    window, it also adds files and folders dropped onto it.
         crate::viewports::show_body(self, ui, WindowId::Main);
 
         // 5. Render Modular Satellite OS Native Windows

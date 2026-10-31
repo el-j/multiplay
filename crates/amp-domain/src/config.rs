@@ -91,7 +91,7 @@ impl Default for AudioHardwareConfig {
             sample_rate: 48000,
             buffer_frames: 1024,
             precache_ram_mb: 64,
-            crossfade_duration_ms: 2000,
+            crossfade_duration_ms: 0,
             loudness_normalization: true,
             target_lufs: -14,
             headphone_crossfeed: "Off".to_string(),

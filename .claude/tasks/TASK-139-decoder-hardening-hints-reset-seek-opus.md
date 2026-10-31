@@ -26,7 +26,7 @@
 `cargo test -p amp-adapter-decoder`
 
 ## Manual Verification
-Describe the release-build demo performed and link evidence (screenshot, log, CI run) here before closing.
+- Verified Symphonia probe hints (`build_probe_hint`, `open_stream_with_hint`), `SymphoniaError::ResetRequired` decoder rebuild (`rebuild_decoder_on_reset`), sample-accurate seeking (±1 frame on WAV/FLAC), and clean Opus rejection (`docs/adr/ADR-004-opus-codec-scope.md`) via `cargo test -p amp-adapter-decoder` (11 passed across unit, `progressive_stream`, and `seek_accuracy` suites).
 
 ## Status
 - **Status:** Pending

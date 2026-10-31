@@ -25,13 +25,14 @@ pub struct LookupServices {
 }
 
 impl LookupServices {
-    /// The host's real providers (YouTube today).
+    /// The host's real providers (YouTube and Bandcamp).
     #[must_use]
     pub fn online() -> Self {
         let yt = Arc::new(amp_adapter_youtube::PureYouTubeAdapter::default());
+        let bc = Arc::new(amp_adapter_bandcamp::PureBandcampAdapter::default());
         Self {
-            lookups: vec![yt.clone()],
-            providers: vec![yt],
+            lookups: vec![yt.clone(), bc.clone()],
+            providers: vec![yt, bc],
         }
     }
 }
@@ -51,6 +52,8 @@ pub enum LookupJob {
         query: String,
         library: Vec<SearchItem>,
     },
+    /// Universal omnibox search across YouTube and Bandcamp.
+    OmniSearch { query: String },
 }
 
 /// A finished job.
@@ -64,6 +67,12 @@ pub enum LookupResult {
         device: DeviceId,
         query: String,
         items: Vec<SearchItem>,
+    },
+    OmniSearch {
+        query: String,
+        tracks: Vec<Track>,
+        /// One line per provider that failed, e.g. "Bandcamp: <error>".
+        failures: Vec<String>,
     },
 }
 
@@ -141,6 +150,15 @@ async fn run(services: &LookupServices, job: LookupJob) -> LookupResult {
                 items: library,
             }
         }
+        LookupJob::OmniSearch { query } => {
+            let (hits, failures) = search_each_provider(services, &query).await;
+            let tracks = hits.into_iter().map(|(_, t)| t).collect();
+            LookupResult::OmniSearch {
+                query,
+                tracks,
+                failures,
+            }
+        }
     }
 }
 
@@ -180,12 +198,38 @@ async fn preview(
 
 /// Results of every provider, tagged with the provider's id.
 async fn search_providers(services: &LookupServices, query: &str) -> Vec<(&'static str, Track)> {
-    let mut out = Vec::new();
+    search_each_provider(services, query).await.0
+}
+
+/// Results of every provider, plus a line for each one that failed or timed out.
+async fn search_each_provider(
+    services: &LookupServices,
+    query: &str,
+) -> (Vec<(&'static str, Track)>, Vec<String>) {
+    let mut hits = Vec::new();
+    let mut failures = Vec::new();
     for provider in &services.providers {
-        if let Ok(Ok(tracks)) = tokio::time::timeout(LOOKUP_TIMEOUT, provider.query(query)).await {
-            let id = provider.provider_id();
-            out.extend(tracks.into_iter().take(PROVIDER_RESULTS).map(|t| (id, t)));
+        let id = provider.provider_id();
+        match tokio::time::timeout(LOOKUP_TIMEOUT, provider.query(query)).await {
+            Ok(Ok(tracks)) => {
+                hits.extend(tracks.into_iter().take(PROVIDER_RESULTS).map(|t| (id, t)));
+            }
+            Ok(Err(e)) => failures.push(format!("{}: {e}", provider_name(id))),
+            Err(_) => failures.push(format!("{}: no answer in time", provider_name(id))),
         }
     }
-    out
+    (hits, failures)
+}
+
+/// "bandcamp" -> "Bandcamp", for messages shown to the user.
+fn provider_name(id: &str) -> String {
+    match id {
+        "youtube" => "YouTube".into(),
+        other => {
+            let mut c = other.chars();
+            c.next()
+                .map(|f| f.to_uppercase().chain(c).collect())
+                .unwrap_or_default()
+        }
+    }
 }

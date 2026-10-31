@@ -4,9 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-use crate::audio_driver::AudioPlaybackDriver;
-use crate::dj_link::DjRequest;
-use crate::track_loader::load_track_decoder;
+use amp_adapter_decoder::SymphoniaDecoderFactory;
 use amp_adapter_storage::RedbStorageAdapter;
 use amp_core_engine::dj::analysis::spawn_analysis;
 use amp_core_engine::dj::automix::{
@@ -15,10 +13,13 @@ use amp_core_engine::dj::automix::{
 use amp_core_engine::dj::engine::{
     DjControl, DjEngine, DjParams, DjStatus, TrackBuffer, CROSSFADER_LEFT, HOT_CUES,
 };
+use amp_core_engine::player::{
+    default_runtime_handle, open_track_blocking, DjRequest, PlayerEngine, DEFAULT_RESOLVE_TIMEOUT,
+};
 use amp_domain::{
     analysis_key, next_for_deck, DeckAssignment, HotCues, Track, TrackAnalysis, TrackId,
 };
-use amp_ports::{AnalysisCachePort, HotCueStorePort, PcmStreamPort, StreamResolverPort};
+use amp_ports::{AnalysisCachePort, HotCueStorePort, StreamResolverPort};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
@@ -67,7 +68,7 @@ impl std::fmt::Debug for DjSession {
 impl DjSession {
     /// Creates the engine at the sound card's rate and hands it to the audio worker.
     /// `library` caches analysis and stores hot cues.
-    pub fn new(driver: &AudioPlaybackDriver, library: Option<Arc<RedbStorageAdapter>>) -> Self {
+    pub fn new(driver: &PlayerEngine, library: Option<Arc<RedbStorageAdapter>>) -> Self {
         let (engine, control) = DjEngine::new(driver.sample_rate(), 2);
         let p = control.params();
         for d in 0..2 {
@@ -111,7 +112,7 @@ impl DjSession {
     }
 
     /// Turns DJ mode on: the playing track continues as deck A.
-    pub fn enter(&mut self, driver: &AudioPlaybackDriver) {
+    pub fn enter(&mut self, driver: &PlayerEngine) {
         if self.active {
             return;
         }
@@ -124,7 +125,7 @@ impl DjSession {
     }
 
     /// Turns DJ mode off: the deck on air carries on as normal playback.
-    pub fn leave(&mut self, driver: &AudioPlaybackDriver) {
+    pub fn leave(&mut self, driver: &PlayerEngine) {
         if !self.active {
             return;
         }
@@ -164,12 +165,7 @@ impl DjSession {
     }
 
     /// Loads `track` onto `deck` (paused at the start) and starts decoding and analysing it.
-    pub fn load(
-        &mut self,
-        driver: &AudioPlaybackDriver,
-        deck: usize,
-        track: Track,
-    ) -> Arc<TrackBuffer> {
+    pub fn load(&mut self, driver: &PlayerEngine, deck: usize, track: Track) -> Arc<TrackBuffer> {
         let resolvers = driver
             .resolvers
             .lock()
@@ -318,7 +314,16 @@ pub fn prepare_track(
 ) -> Prepared {
     let source = track.clone();
     let buffer = amp_core_engine::dj::engine::spawn_loader(move || {
-        load_track_decoder(&source, &resolvers).map(|d| Box::new(d) as Box<dyn PcmStreamPort>)
+        let factory: Arc<dyn amp_ports::DecoderFactoryPort> = Arc::new(SymphoniaDecoderFactory);
+        let handle = default_runtime_handle();
+        open_track_blocking(
+            &handle,
+            &source,
+            &factory,
+            &resolvers,
+            DEFAULT_RESOLVE_TIMEOUT,
+        )
+        .map_err(|e| e.to_string())
     });
     let key = analysis_key(&track.source);
     let cache = library.map(|l| l as Arc<dyn AnalysisCachePort>);

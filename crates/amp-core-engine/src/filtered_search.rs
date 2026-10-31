@@ -4,11 +4,12 @@
 
 use amp_domain::source_badge::SourceKind;
 use amp_domain::Track;
-use amp_ports::driven::ProviderSearchPort;
-use amp_ports::driving::{FilteredSearchPort, SearchQueryOptions};
+use amp_ports::driven::{ProviderError, ProviderSearchPort};
+use amp_ports::driving::{FilteredSearchPort, ProviderOutcome, SearchQueryOptions};
 use async_trait::async_trait;
+use std::collections::HashSet;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
 
 pub struct FilteredSearchCoordinator {
@@ -41,39 +42,59 @@ impl Default for FilteredSearchCoordinator {
 #[async_trait]
 impl FilteredSearchPort for FilteredSearchCoordinator {
     async fn search(&self, options: SearchQueryOptions) -> Vec<Track> {
+        let outcomes = self.search_outcomes(options).await;
+        let mut aggregated = Vec::new();
+        for outcome in outcomes {
+            if let Ok(tracks) = outcome.result {
+                aggregated.extend(tracks);
+            }
+        }
+        aggregated
+    }
+
+    async fn search_outcomes(&self, options: SearchQueryOptions) -> Vec<ProviderOutcome> {
         let mut join_set = JoinSet::new();
+        let mut pending_kinds = Vec::new();
 
         // Spawn parallel search tasks ONLY for enabled sources
         for (kind, provider) in &self.providers {
             if !options.filter_mask.is_enabled(*kind) {
-                continue; // Skip excluded provider
+                continue;
             }
 
             let p = Arc::clone(provider);
             let q = options.text.clone();
             let k = *kind;
+            pending_kinds.push(k);
 
             join_set.spawn(async move {
-                let results = p.query(&q).await.unwrap_or_default();
-                (k, results)
+                let start = Instant::now();
+                let result = p.query(&q).await;
+                let latency = start.elapsed();
+                (k, result, latency)
             });
         }
 
-        let mut aggregated = Vec::new();
-        let timeout_sleep = tokio::time::sleep(Duration::from_millis(options.timeout_millis));
+        let mut outcomes = Vec::new();
+        let mut completed_kinds = HashSet::new();
+        let timeout_dur = Duration::from_millis(options.timeout_millis);
+        let timeout_sleep = tokio::time::sleep(timeout_dur);
         tokio::pin!(timeout_sleep);
 
         loop {
             tokio::select! {
                 next_res = join_set.join_next() => {
                     match next_res {
-                        Some(Ok((_kind, tracks))) => {
-                            aggregated.extend(tracks);
+                        Some(Ok((kind, result, latency))) => {
+                            completed_kinds.insert(kind);
+                            outcomes.push(ProviderOutcome {
+                                kind,
+                                result,
+                                latency,
+                            });
                         }
-                        Some(Err(join_err)) => {
-                            eprintln!("Search provider task error: {join_err}");
-                        }
-                        None => break, // All spawned tasks completed
+                        Some(Err(_join_err)) => {}
+                        None => break,
                     }
                 }
                 _ = &mut timeout_sleep => {
@@ -83,7 +104,18 @@ impl FilteredSearchPort for FilteredSearchCoordinator {
             }
         }
 
-        aggregated
+        // Flag any unfinished provider as timed out
+        for kind in pending_kinds {
+            if !completed_kinds.contains(&kind) {
+                outcomes.push(ProviderOutcome {
+                    kind,
+                    result: Err(ProviderError::Timeout),
+                    latency: timeout_dur,
+                });
+            }
+        }
+
+        outcomes
     }
 }
 
@@ -174,5 +206,97 @@ mod tests {
 
         assert_eq!(res2.len(), 1);
         assert_eq!(res2[0].metadata.title, "YT Song");
+    }
+
+    struct FailingProvider {
+        error: ProviderError,
+    }
+
+    #[async_trait]
+    impl ProviderSearchPort for FailingProvider {
+        fn provider_id(&self) -> &'static str {
+            "failing"
+        }
+
+        async fn query(&self, _query: &str) -> Result<Vec<Track>, ProviderError> {
+            Err(self.error.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_failing_provider_surfaces_error_without_hiding_other_results() {
+        let mut coord = FilteredSearchCoordinator::new();
+
+        let track_yt = Track::new(
+            AudioSource::YouTube {
+                video_id: "good_yt".into(),
+            },
+            TrackMetadata::new("Good Song", "Good Artist"),
+        );
+
+        coord.register_provider(
+            SourceKind::YouTube,
+            Arc::new(MockProvider {
+                id: "YouTube",
+                results: vec![track_yt],
+                delay_ms: 5,
+            }),
+        );
+        coord.register_provider(
+            SourceKind::Spotify,
+            Arc::new(FailingProvider {
+                error: ProviderError::RateLimited,
+            }),
+        );
+        coord.register_provider(
+            SourceKind::Bandcamp,
+            Arc::new(MockProvider {
+                id: "Bandcamp",
+                results: vec![],
+                delay_ms: 200, // Timeout trigger
+            }),
+        );
+
+        let outcomes = coord
+            .search_outcomes(SearchQueryOptions {
+                text: "test".into(),
+                filter_mask: SourceFilterMask::default(),
+                timeout_millis: 50,
+            })
+            .await;
+
+        assert_eq!(outcomes.len(), 3);
+
+        let yt_outcome = outcomes
+            .iter()
+            .find(|o| o.kind == SourceKind::YouTube)
+            .unwrap();
+        assert!(yt_outcome.result.is_ok());
+        assert_eq!(yt_outcome.status_chip().0, "✓");
+
+        let spot_outcome = outcomes
+            .iter()
+            .find(|o| o.kind == SourceKind::Spotify)
+            .unwrap();
+        assert_eq!(spot_outcome.result, Err(ProviderError::RateLimited));
+        assert_eq!(spot_outcome.status_chip(), ("⚠", "Rate limited"));
+
+        let bc_outcome = outcomes
+            .iter()
+            .find(|o| o.kind == SourceKind::Bandcamp)
+            .unwrap();
+        assert_eq!(bc_outcome.result, Err(ProviderError::Timeout));
+        assert_eq!(bc_outcome.status_chip(), ("⏳", "Timed out"));
+
+        // `search()` flattens successfully returned results without erroring
+        let tracks = coord
+            .search(SearchQueryOptions {
+                text: "test".into(),
+                filter_mask: SourceFilterMask::default(),
+                timeout_millis: 50,
+            })
+            .await;
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].metadata.title, "Good Song");
     }
 }
