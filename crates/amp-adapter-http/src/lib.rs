@@ -38,7 +38,8 @@ impl HttpStreamResolver {
         default_headers.insert("Icy-MetaData", HeaderValue::from_static("1"));
         default_headers.insert(
             "User-Agent",
-            HeaderValue::from_static("Multiplay/1.0 (Pure-Rust Audiophile Player)"),
+            HeaderValue::from_str(&amp_domain::about::user_agent())
+                .expect("the User-Agent is plain ASCII"),
         );
 
         let client = reqwest::Client::builder()

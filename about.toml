@@ -1,0 +1,27 @@
+# Third-party license bundle (TASK-182): `cargo about generate about.hbs -o THIRD_PARTY_LICENSES.html`.
+# The accepted list matches `[licenses] allow` in deny.toml; cargo-deny is what enforces it.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "0BSD",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MPL-2.0",
+    "OFL-1.1",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+    "LicenseRef-UFL-1.0",
+    # egui's Ubuntu font, by its SPDX name (deny.toml clarifies it as LicenseRef-UFL-1.0).
+    "Ubuntu-font-1.0",
+]
+# Only what ships: the GUI and TUI binaries, without dev-dependencies.
+ignore-dev-dependencies = true
+ignore-build-dependencies = false
+# Our own crates are not third-party (publish = false).
+private = { ignore = true }

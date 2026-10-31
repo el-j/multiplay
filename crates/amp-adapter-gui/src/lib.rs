@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod about;
 pub mod app;
 pub mod app_icon;
 pub mod app_paths;

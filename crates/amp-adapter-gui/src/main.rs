@@ -11,6 +11,13 @@ use amp_adapter_gui::MultiplayGuiApp;
 use eframe::egui::{Pos2, Vec2};
 
 fn main() -> eframe::Result<()> {
+    if std::env::args()
+        .skip(1)
+        .any(|a| a == "--version" || a == "-V")
+    {
+        println!("{}", amp_adapter_gui::about::version_line());
+        return Ok(());
+    }
     let native_options = eframe::NativeOptions {
         // The app id ties the window to `multiplay.desktop` (and its icon) on Wayland and X11.
         viewport: classic_viewport("multiplay", false)

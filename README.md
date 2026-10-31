@@ -45,8 +45,14 @@ terminal (TUI) front end.
 
 Beta builds for macOS (universal `.dmg`), Windows (`.zip`) and Linux (x86_64 and ARM64,
 `.AppImage` or `.tar.gz`) are on the [Releases page](https://github.com/el-j/multiplay/releases).
-Each release's notes explain how to install it. Maintainers: see
-[docs/RELEASING.md](docs/RELEASING.md).
+Each release's notes explain how to install it; [CHANGELOG.md](CHANGELOG.md) lists what changed.
+Maintainers: see [docs/RELEASING.md](docs/RELEASING.md).
+
+## Privacy
+
+No telemetry, no accounts, no update checks. multiplay only goes online when you search, play a
+stream or link, or turn on remote control. [docs/privacy.md](docs/privacy.md) lists every
+connection and what is sent.
 
 ## Quickstart
 
@@ -112,5 +118,7 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUC
 
 ## License
 
-[Mozilla Public License 2.0](LICENSE). "Winamp" is a trademark of its respective owner;
+[Mozilla Public License 2.0](LICENSE). Every download includes `THIRD_PARTY_LICENSES.html`
+with the licenses of the open-source crates multiplay is built on (generate it with
+`cargo about generate about.hbs -o THIRD_PARTY_LICENSES.html`). "Winamp" is a trademark of its respective owner;
 multiplay is not affiliated with it and only reads classic `.wsz` skin files.

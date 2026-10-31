@@ -11,7 +11,8 @@
 | Linux x86_64 | `multiplay-{{VERSION}}-linux-x86_64.AppImage` or `.tar.gz` |
 | Linux ARM64 (e.g. Raspberry Pi 4/5 with a 64-bit OS) | `multiplay-{{VERSION}}-linux-aarch64.AppImage` or `.tar.gz` |
 
-Each package has the desktop app (`multiplay`) and the terminal version (`multiplay-tui`).
+Each package has the desktop app (`multiplay`) and the terminal version (`multiplay-tui`), plus
+`CHANGELOG.md`, `privacy.md` (every connection the app makes) and `THIRD_PARTY_LICENSES.html`.
 
 ### macOS
 

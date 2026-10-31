@@ -140,6 +140,7 @@ dependencies = [
  "rtrb",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tokio-tungstenite",
  "uuid",

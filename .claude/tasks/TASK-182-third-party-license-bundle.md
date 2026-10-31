@@ -28,3 +28,10 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31, branch feat/beta-release-polish)
+- `about.toml` (accepted list = deny.toml allow list, own crates ignored) + `about.hbs` (responsive, light/dark HTML).
+- CI `supply-chain` job installs cargo-about 0.9.3, generates `THIRD_PARTY_LICENSES.html` and uploads it; release.yml copies it into the dmg (also `Multiplay.app/Contents/Resources`), the Linux tarballs and AppImage, and the Windows zip.
+- Preferences → About opens the bundled file (`amp-adapter-gui/src/about.rs`, `licenses_file_near`); test `crates/amp-adapter-gui/tests/about.rs`.
+- Local: `cargo about generate --offline about.hbs -o …` → 575 KB, 284 license texts, no amp-* crates.
+- Not yet verified: a tagged release run (needs a tag).
