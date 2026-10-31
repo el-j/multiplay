@@ -41,3 +41,10 @@
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31)
+- `crates/amp-domain/src/formats.rs`: `AUDIO_FORMATS` with `Playable` / `Planned { task }` / `Unsupported { reason }`; lookups by extension, path and MIME; `playable_extensions`, `playable_names`, `skip_reason`.
+- Derived from it: scanner (`is_playable_path`, new `scan_audio_files` → `ScanReport` with skipped counts per format), file dialogs (`dialog_extensions`), phone upload allow-list, `LibraryConfig` default, playlist hint text, decoder rejection (`probe::reject_unplayable`, replacing ADR-004's hard-coded Opus checks).
+- GUI imports are one batch (`ingest_paths`) for drop and dialogs; unplayable audio is summed up in `import_notice` ("3 files skipped: Opus (2), WavPack (1) – not supported yet").
+- Tests: `amp-domain/tests/formats.rs` (8, incl. a guard that fails when any crate keeps its own extension list), `amp-adapter-storage/tests/scan_report.rs`, `drop_ingest::unplayable_audio_is_reported_not_silently_skipped`, decoder `formats_the_registry_cannot_play_are_rejected_by_name`.
+- Gate: pure-Rust check, clippy `-D warnings`, `cargo test --workspace` green.

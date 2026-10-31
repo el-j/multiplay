@@ -16,8 +16,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
-/// Canonical list of local audio file extensions supported by the pure-Rust Symphonia pipeline (`TASK-139`, `TASK-149`).
-pub const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &["mp3", "flac", "wav", "ogg", "m4a", "aac"];
+/// Whether a file is a playable audio file; the format list lives in `amp_domain::formats` (TASK-225).
+pub use amp_domain::formats::is_playable_path;
 
 /// Options controlling directory traversal and incremental scanning (`TASK-149`).
 #[derive(Debug, Clone, Default)]
@@ -164,24 +164,50 @@ impl LibraryScanner {
     }
 }
 
+/// Playable files found under a folder, and how many audio files of each unplayable format
+/// were left out (TASK-225).
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ScanReport {
+    pub files: Vec<PathBuf>,
+    /// Format name (e.g. "WavPack") to number of files skipped.
+    pub skipped: std::collections::BTreeMap<&'static str, usize>,
+}
+
+impl ScanReport {
+    pub fn skipped_count(&self) -> usize {
+        self.skipped.values().sum()
+    }
+}
+
 /// Collects supported audio files recursively under `dir` without following symlinks (`TASK-149`).
 pub fn collect_audio_files(dir: &Path) -> Vec<PathBuf> {
     collect_audio_files_with_options(dir, &ScanOptions::default())
 }
 
+/// Like [`collect_audio_files`], and also counts audio files that cannot be played.
+pub fn scan_audio_files(dir: &Path) -> ScanReport {
+    let mut report = ScanReport::default();
+    collect_recursive(
+        dir,
+        &ScanOptions::default(),
+        &mut HashSet::new(),
+        &mut report,
+    );
+    report
+}
+
 /// Collects supported audio files under `dir` honoring [`ScanOptions`] (symlink policy and cancellation).
 pub fn collect_audio_files_with_options(dir: &Path, options: &ScanOptions) -> Vec<PathBuf> {
-    let mut results = Vec::new();
-    let mut visited_dirs = HashSet::new();
-    collect_recursive(dir, options, &mut visited_dirs, &mut results);
-    results
+    let mut report = ScanReport::default();
+    collect_recursive(dir, options, &mut HashSet::new(), &mut report);
+    report.files
 }
 
 fn collect_recursive(
     dir: &Path,
     options: &ScanOptions,
     visited_dirs: &mut HashSet<PathBuf>,
-    results: &mut Vec<PathBuf>,
+    report: &mut ScanReport,
 ) {
     if options
         .cancel_flag
@@ -220,11 +246,11 @@ fn collect_recursive(
         }
 
         if path.is_dir() {
-            collect_recursive(&path, options, visited_dirs, results);
-        } else if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if SUPPORTED_AUDIO_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()) {
-                results.push(path);
-            }
+            collect_recursive(&path, options, visited_dirs, report);
+        } else if is_playable_path(&path) {
+            report.files.push(path);
+        } else if let Some(format) = amp_domain::formats::by_path(&path) {
+            *report.skipped.entry(format.name).or_default() += 1;
         }
     }
 }

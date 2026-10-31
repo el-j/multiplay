@@ -39,16 +39,41 @@ impl MultiplayGuiApp {
     }
 }
 
-/// Shows the playback notice, if any, as one line the user can dismiss.
+/// "3 files skipped: Opus (2), WavPack (1) – not supported yet", or `None` when nothing was.
+pub fn skipped_summary(
+    skipped: &std::collections::BTreeMap<&'static str, usize>,
+) -> Option<String> {
+    let total: usize = skipped.values().sum();
+    if total == 0 {
+        return None;
+    }
+    let formats: Vec<String> = skipped.iter().map(|(f, n)| format!("{f} ({n})")).collect();
+    let files = if total == 1 { "file" } else { "files" };
+    Some(format!(
+        "{total} {files} skipped: {} – not supported yet",
+        formats.join(", ")
+    ))
+}
+
+/// Shows the playback and import notices, if any, each as one line the user can dismiss.
 pub fn notice_line(app: &mut MultiplayGuiApp, ui: &mut eframe::egui::Ui) {
-    use eframe::egui::{Color32, Label, RichText};
-    let Some(notice) = app.playback_notice.clone() else {
-        return;
-    };
-    crate::responsive::row_rtl(ui, |ui| {
-        if ui.small_button("🗙").on_hover_text("Dismiss").clicked() {
+    if let Some(notice) = app.playback_notice.clone() {
+        if dismissable(ui, &notice) {
             app.playback_notice = None;
         }
+    }
+    if let Some(notice) = app.import_notice.clone() {
+        if dismissable(ui, &notice) {
+            app.import_notice = None;
+        }
+    }
+}
+
+/// One warning line with a dismiss button; true when dismissed.
+fn dismissable(ui: &mut eframe::egui::Ui, notice: &str) -> bool {
+    use eframe::egui::{Color32, Label, RichText};
+    crate::responsive::row_rtl(ui, |ui| {
+        let dismissed = ui.small_button("🗙").on_hover_text("Dismiss").clicked();
         ui.add(
             Label::new(
                 RichText::new(format!("⚠ {notice}"))
@@ -57,6 +82,7 @@ pub fn notice_line(app: &mut MultiplayGuiApp, ui: &mut eframe::egui::Ui) {
             )
             .truncate(),
         )
-        .on_hover_text(&notice);
-    });
+        .on_hover_text(notice);
+        dismissed
+    })
 }

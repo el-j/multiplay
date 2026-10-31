@@ -6,11 +6,12 @@ use amp_ports::{AudioSourceStream, DecodeError, DecoderFactoryPort, PcmStreamPor
 use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
-use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
-use symphonia::core::io::{MediaSource, MediaSourceStream};
-use symphonia::core::meta::MetadataOptions;
+use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, TrackType};
+use symphonia::core::io::MediaSource;
 use symphonia::core::units::Timestamp;
 
+use crate::probe::{open_audio_with_hint, reject_unplayable};
+pub use crate::probe::build_probe_hint;
 use crate::source::GenericMediaSource;
 
 /// Stateless factory implementing `DecoderFactoryPort` using Symphonia.
@@ -56,12 +57,7 @@ impl AudioStreamDecoder {
         let ext = std::path::Path::new(path)
             .extension()
             .and_then(|e| e.to_str());
-        if ext.is_some_and(|e| e.eq_ignore_ascii_case("opus")) {
-            return Err(DecodeError::UnsupportedFormat(
-                "Opus codec (.opus) is not supported in the pure-Rust Symphonia pipeline (see ADR-004)"
-                    .to_string(),
-            ));
-        }
+        reject_unplayable(ext, None)?;
         let hint = build_probe_hint(ext, None);
         Self::open_media_source_with_hint(file, hint)
     }
@@ -83,14 +79,7 @@ impl AudioStreamDecoder {
     where
         S: std::io::Read + std::io::Seek + Send + Sync + 'static,
     {
-        if extension.is_some_and(|e| e.trim_start_matches('.').eq_ignore_ascii_case("opus"))
-            || mime_type.is_some_and(|m| m.to_ascii_lowercase().contains("opus"))
-        {
-            return Err(DecodeError::UnsupportedFormat(
-                "Opus codec is not supported in the pure-Rust Symphonia pipeline (see ADR-004)"
-                    .to_string(),
-            ));
-        }
+        reject_unplayable(extension, mime_type)?;
         let hint = build_probe_hint(extension, mime_type);
         Self::open_media_source_with_hint(GenericMediaSource::new(stream), hint)
     }
@@ -346,79 +335,6 @@ pub fn downmix_frame(samples: &[f32], frame_idx: usize, channels: usize) -> (f32
     }
 }
 
-/// A probed audio stream with its decoder.
-pub(crate) struct OpenedAudio {
-    pub reader: Box<dyn FormatReader>,
-    pub decoder: Box<dyn AudioDecoder>,
-    pub track_id: u32,
-    pub sample_rate: u32,
-    pub channels: u16,
-    pub duration_frames: Option<u64>,
-}
-
-/// Builds a Symphonia probe [`Hint`] from an optional file extension and/or MIME type (`TASK-139`).
-pub fn build_probe_hint(extension: Option<&str>, mime_type: Option<&str>) -> Hint {
-    let mut hint = Hint::new();
-    if let Some(ext) = extension {
-        let trimmed = ext.trim().trim_start_matches('.');
-        if !trimmed.is_empty() {
-            hint.with_extension(trimmed);
-        }
-    }
-    if let Some(mime) = mime_type {
-        let clean = mime.split(';').next().unwrap_or(mime).trim();
-        if !clean.is_empty() {
-            hint.mime_type(clean);
-        }
-    }
-    hint
-}
-
-/// Probes `source`, picks its first decodable audio track and makes a (gapless) decoder.
-pub(crate) fn open_audio<S>(source: S) -> Result<OpenedAudio, String>
-where
-    S: MediaSource + 'static,
-{
-    open_audio_with_hint(source, &Hint::new())
-}
-
-/// Probes `source` with an explicit [`Hint`], picks its first decodable audio track and makes a decoder.
-pub(crate) fn open_audio_with_hint<S>(source: S, hint: &Hint) -> Result<OpenedAudio, String>
-where
-    S: MediaSource + 'static,
-{
-    let mss = MediaSourceStream::new(Box::new(source), Default::default());
-    let reader = symphonia::default::get_probe()
-        .probe(
-            hint,
-            mss,
-            FormatOptions::default(),
-            MetadataOptions::default(),
-        )
-        .map_err(|e| format!("Unrecognized audio format: {e}"))?;
-    let track = reader
-        .first_track_known_codec(TrackType::Audio)
-        .ok_or_else(|| "No playable audio tracks found".to_string())?;
-    let params = track
-        .codec_params
-        .as_ref()
-        .and_then(|p| p.audio())
-        .ok_or_else(|| "No playable audio tracks found".to_string())?
-        .clone();
-    let (track_id, duration_frames) = (track.id, track.num_frames);
-    let decoder = symphonia::default::get_codecs()
-        .make_audio_decoder(&params, &AudioDecoderOptions::default())
-        .map_err(|e| format!("Unsupported codec: {e}"))?;
-    Ok(OpenedAudio {
-        reader,
-        decoder,
-        track_id,
-        sample_rate: params.sample_rate.unwrap_or(44_100),
-        channels: params.channels.as_ref().map_or(2, |c| c.count() as u16),
-        duration_frames,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -472,6 +388,23 @@ mod tests {
         assert_eq!(dec.read_interleaved_samples(&mut out).unwrap(), 64);
         dec.rebuild_decoder_on_reset().unwrap();
         assert_eq!(dec.read_interleaved_samples(&mut out).unwrap(), 64);
+    }
+
+    #[test]
+    fn formats_the_registry_cannot_play_are_rejected_by_name() {
+        for (ext, mime, name) in [
+            (Some("wv"), None, "WavPack"),
+            (None, Some("audio/opus"), "Opus"),
+            (Some(".OPUS"), None, "Opus"),
+        ] {
+            match AudioStreamDecoder::open_stream_with_hint(Cursor::new(vec![0u8; 64]), ext, mime) {
+                Err(DecodeError::UnsupportedFormat(msg)) => assert!(msg.contains(name), "{msg}"),
+                other => panic!(
+                    "{ext:?}/{mime:?}: expected UnsupportedFormat, got {:?}",
+                    other.err()
+                ),
+            }
+        }
     }
 
     #[test]

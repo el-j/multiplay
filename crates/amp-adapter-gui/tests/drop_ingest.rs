@@ -107,3 +107,32 @@ fn a_drop_on_the_main_window_is_added_once() {
     drop_onto(&mut app, WindowId::Main, &[&single]);
     assert_eq!(app.playlist.len(), 1);
 }
+
+#[test]
+fn unplayable_audio_is_reported_not_silently_skipped() {
+    let (root, mut app, _, album) = setup();
+    std::fs::write(album.join("03.wv"), b"wvpk").unwrap();
+    std::fs::write(album.join("04.opus"), b"OggS").unwrap();
+    std::fs::write(album.join("05.opus"), b"OggS").unwrap();
+    std::fs::write(album.join("cover.jpg"), b"jpg").unwrap();
+    drop_onto(&mut app, WindowId::Playlist, &[&album]);
+    assert_eq!(app.playlist.len(), 2, "the two WAVs");
+    let notice = app
+        .import_notice
+        .clone()
+        .expect("skipped files are reported");
+    assert!(notice.contains("3 files skipped"), "{notice}");
+    assert!(
+        notice.contains("Opus (2)") && notice.contains("WavPack (1)"),
+        "{notice}"
+    );
+    assert!(
+        !notice.contains("jpg"),
+        "non-audio files are not mentioned: {notice}"
+    );
+
+    // A clean import clears the report.
+    let single = root.0.join("music/single.wav");
+    drop_onto(&mut app, WindowId::Playlist, &[&single]);
+    assert!(app.import_notice.is_none());
+}

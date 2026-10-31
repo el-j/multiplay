@@ -6,6 +6,7 @@
 pub mod analysis;
 pub mod config;
 pub mod deck_assign;
+pub mod formats;
 pub mod jam_crdt;
 pub mod source_badge;
 pub mod source_url;

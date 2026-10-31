@@ -29,7 +29,7 @@ impl PureDecoderEngine {
     where
         S: MediaSource + 'static,
     {
-        let opened = crate::stream::open_audio(stream)?;
+        let opened = crate::probe::open_audio(stream)?;
         let (mut reader, mut decoder, track_id) = (opened.reader, opened.decoder, opened.track_id);
         let spec = DecodedStreamSpec {
             sample_rate: opened.sample_rate,

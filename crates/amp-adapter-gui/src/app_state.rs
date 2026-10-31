@@ -6,7 +6,7 @@ use crate::docking::{DockManager, WindowId};
 use crate::engine_factory::{create_headless_engine, create_player_engine};
 use crate::settings_panel::GuiSettingsTab;
 use amp_adapter_storage::{
-    collect_audio_files, export_m3u8, extract_track_from_file, import_m3u8, SessionPlaylistSnapshot,
+    export_m3u8, extract_track_from_file, import_m3u8, scan_audio_files, SessionPlaylistSnapshot,
 };
 use amp_core_engine::PlayerEngine;
 use amp_domain::source_badge::SourceKind;
@@ -27,6 +27,8 @@ pub struct MultiplayGuiApp {
     pub search_results: Vec<Track>,
     pub is_searching: bool,
     pub search_status: Option<String>,
+    /// Audio left out of the last import because its format cannot be played yet.
+    pub import_notice: Option<String>,
     /// Why the last track could not be played, until another one starts.
     pub playback_notice: Option<String>,
     pub(crate) playback_events:
@@ -134,6 +136,7 @@ impl MultiplayGuiApp {
             is_searching: false,
             search_status: None,
             playback_notice: None,
+            import_notice: None,
             playback_events: None,
             dock_manager: DockManager::default(),
             initialized_viewports: HashSet::new(),
@@ -312,6 +315,25 @@ impl MultiplayGuiApp {
 
     /// Ingests dropped or selected file/directory path into playlist.
     pub fn ingest_path(&mut self, path: &Path) {
+        self.ingest_paths(&[path.to_path_buf()]);
+    }
+
+    /// Ingests files and folders as one import: playable audio is added, skins and playlists
+    /// are loaded, and audio that cannot be played is summed up in [`Self::import_notice`].
+    pub fn ingest_paths(&mut self, paths: &[std::path::PathBuf]) {
+        let mut skipped = std::collections::BTreeMap::new();
+        for path in paths {
+            self.ingest_one(path, &mut skipped);
+        }
+        self.import_notice = crate::playback_notice::skipped_summary(&skipped);
+        self.save_session();
+    }
+
+    fn ingest_one(
+        &mut self,
+        path: &Path,
+        skipped: &mut std::collections::BTreeMap<&'static str, usize>,
+    ) {
         if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
             if ext.eq_ignore_ascii_case("wsz") {
                 let _ = self.load_skin_from_path(path);
@@ -324,16 +346,22 @@ impl MultiplayGuiApp {
         }
 
         if path.is_dir() {
-            let files = collect_audio_files(path);
-            for f in files {
-                if let Some(track) = extract_track_from_file(&f) {
+            let report = scan_audio_files(path);
+            for f in &report.files {
+                if let Some(track) = extract_track_from_file(f) {
                     self.playlist.push(track);
                 }
             }
+            for (format, n) in report.skipped {
+                *skipped.entry(format).or_default() += n;
+            }
+        } else if let Some(format) = amp_domain::formats::by_path(path)
+            .filter(|f| f.status != amp_domain::formats::FormatStatus::Playable)
+        {
+            *skipped.entry(format.name).or_default() += 1;
         } else if let Some(track) = extract_track_from_file(path) {
             self.playlist.push(track);
         }
-        self.save_session();
     }
 
     /// Scans the configured music folder (normally ~/Music).
@@ -348,15 +376,17 @@ impl MultiplayGuiApp {
     /// Opens native OS file dialog to pick audio files (and folders on macOS) or skins.
     pub fn open_file_dialog(&mut self) {
         // A cancelled dialog returns nothing and changes nothing (audit UX-07).
-        for file in crate::file_dialog::pick_audio_files() {
-            self.ingest_path(&file);
+        let files = crate::file_dialog::pick_audio_files();
+        if !files.is_empty() {
+            self.ingest_paths(&files);
         }
     }
 
     /// Opens native OS folder dialog to pick music folders.
     pub fn open_folder_dialog(&mut self) {
-        for folder in crate::file_dialog::pick_folders() {
-            self.ingest_path(&folder);
+        let folders = crate::file_dialog::pick_folders();
+        if !folders.is_empty() {
+            self.ingest_paths(&folders);
         }
     }
 

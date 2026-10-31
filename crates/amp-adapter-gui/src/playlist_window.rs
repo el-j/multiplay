@@ -135,9 +135,13 @@ fn render_empty_playlist_drop_zone(app: &mut MultiplayGuiApp, ui: &mut Ui) {
                         .color(Color32::from_rgb(0, 235, 136)),
                 );
                 ui.label(
-                    RichText::new("mp3 · flac · wav · ogg · m4a")
-                        .size(10.0)
-                        .color(Color32::from_rgb(170, 190, 210)),
+                    RichText::new(
+                        amp_domain::formats::playable_names()
+                            .collect::<Vec<_>>()
+                            .join(" · "),
+                    )
+                    .size(10.0)
+                    .color(Color32::from_rgb(170, 190, 210)),
                 );
             });
             ui.horizontal_wrapped(|ui| {

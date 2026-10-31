@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod engine;
+pub mod probe;
 pub mod source;
 pub mod stream;
 

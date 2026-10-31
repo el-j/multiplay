@@ -56,14 +56,9 @@ impl Default for LibraryConfig {
             music_directories: vec!["~/Music".into()],
             watch_filesystem: true,
             rescan_interval_secs: 3600,
-            supported_extensions: vec![
-                "flac".into(),
-                "mp3".into(),
-                "wav".into(),
-                "ogg".into(),
-                "m4a".into(),
-                "aac".into(),
-            ],
+            supported_extensions: crate::formats::playable_extensions()
+                .map(String::from)
+                .collect(),
         }
     }
 }
