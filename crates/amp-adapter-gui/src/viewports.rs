@@ -48,6 +48,7 @@ pub fn show_body(app: &mut MultiplayGuiApp, ui: &mut Ui, window: WindowId) {
     let ctx = &ui.ctx().clone();
     ingest_dropped_files(app, ctx);
     chrome::zoom::shortcut(ctx);
+    crate::transport::handle_keys(app, ctx);
     if ctx.input_mut(|i| i.consume_shortcut(&chrome::overlay::SETTINGS)) {
         app.dock_manager.toggle_visible(WindowId::Settings);
     }

@@ -24,6 +24,12 @@ pub struct MultiplayGuiApp {
     pub filter_source: Option<SourceKind>,
     pub search_query_text: String,
     pub search_url_text: String,
+    /// Ctrl+L asked for the cursor in the search window's link field.
+    pub focus_location_field: bool,
+    /// The open file dialog, if any (it runs on its own thread).
+    pub dialog_job: Option<crate::dialog_jobs::DialogJob>,
+    /// Scrubber drag state (seek on release).
+    pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
     pub is_searching: bool,
     pub search_status: Option<String>,
@@ -132,6 +138,9 @@ impl MultiplayGuiApp {
             filter_source: None,
             search_query_text: String::new(),
             search_url_text: String::new(),
+            focus_location_field: false,
+            dialog_job: None,
+            scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,
             search_status: None,
@@ -392,23 +401,6 @@ impl MultiplayGuiApp {
             if music_dir.exists() {
                 self.ingest_path(&music_dir);
             }
-        }
-    }
-
-    /// Opens native OS file dialog to pick audio files (and folders on macOS) or skins.
-    pub fn open_file_dialog(&mut self) {
-        // A cancelled dialog returns nothing and changes nothing (audit UX-07).
-        let files = crate::file_dialog::pick_audio_files();
-        if !files.is_empty() {
-            self.ingest_paths(&files);
-        }
-    }
-
-    /// Opens native OS folder dialog to pick music folders.
-    pub fn open_folder_dialog(&mut self) {
-        let folders = crate::file_dialog::pick_folders();
-        if !folders.is_empty() {
-            self.ingest_paths(&folders);
         }
     }
 
