@@ -151,6 +151,10 @@ pub struct UiAndThemeConfig {
     pub show_equalizer: bool,
     pub show_playlist: bool,
     pub show_dj_console: bool,
+    /// The first-run setup was finished or skipped (TASK-171). Missing in older configs, so
+    /// people upgrading see it once.
+    #[serde(default)]
+    pub first_run_done: bool,
 }
 
 impl Default for UiAndThemeConfig {
@@ -163,6 +167,7 @@ impl Default for UiAndThemeConfig {
             show_equalizer: true,
             show_playlist: true,
             show_dj_console: false,
+            first_run_done: false,
         }
     }
 }

@@ -49,6 +49,8 @@ pub enum AboutAction {
     CopyDiagnostics,
     SaveDiagnostics,
     OpenLogFolder,
+    /// Run the first-run setup again (the app handles this one).
+    RunSetup,
 }
 
 /// Runs an About-tab action and returns the line to show under the buttons.
@@ -59,7 +61,7 @@ pub fn run_action(
     log_dir: &Path,
 ) -> Option<String> {
     match action {
-        AboutAction::None => None,
+        AboutAction::None | AboutAction::RunSetup => None,
         AboutAction::CopyDiagnostics => {
             ctx.copy_text(diagnostics_for(config, log_dir));
             Some("Diagnostics copied. Paste them into your issue.".into())
@@ -176,6 +178,9 @@ pub fn show(ui: &mut Ui, action: &mut AboutAction) {
         ui.label(RichText::new(notice).size(10.0));
     }
     ui.add_space(6.0);
+    if ui.button("Run the first-run setup again").clicked() {
+        *action = AboutAction::RunSetup;
+    }
     if ui.button("Source code and issues").clicked() {
         open_with_system(REPOSITORY_URL);
     }

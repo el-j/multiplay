@@ -137,6 +137,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
         WindowId::Remote => crate::remote_window::render(app, ui),
         WindowId::Search => crate::search_window::render_search_window_content(app, ui),
         WindowId::Library => crate::library_window::render_library_window(app, ui),
+        WindowId::Settings if app.onboarding.is_some() => crate::onboarding::render(app, ui),
         WindowId::Settings => {
             let mut opens = crate::settings_panel::SettingsOpens::default();
             let devices: Vec<String> = app
@@ -163,6 +164,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             }
             if opens.skin_dialog {
                 app.open_skin_dialog();
+            }
+            if opens.about == crate::about::AboutAction::RunSetup {
+                app.start_onboarding();
             }
             let log_dir = app.paths.log_dir();
             if let Some(notice) =

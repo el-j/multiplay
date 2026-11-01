@@ -27,3 +27,10 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-047-ux-2)
+- `crates/amp-adapter-gui/src/onboarding.rs`: steps Music folders (~/Music suggested, add/remove; folder dialog off the UI thread) → Output device → Online sources (YouTube / Bandcamp with what each sends) → Remote control (off) → Start. Shown once in the Preferences overlay when `ui.first_run_done` is false (`#[serde(default)]`, so existing configs see it once); Skip also marks it done; Preferences → About → "Run the first-run setup again".
+- Finishing scans the chosen folders on a background thread with a live count (`import_jobs.rs`, `import_paths_with_progress`), then adds them to the playlist and library ("Added N tracks").
+- Online sources are now real switches: search, phone search and request previews only ask the providers switched on in Preferences → Accounts; with both off nothing is sent (privacy.md updated).
+- Tests: `tests/onboarding.rs` (step order, choices land in settings, background scan with progress, skip), `tests/omnibox.rs` (switched-off provider not asked; all off → nothing sent).
+- Not done: the "first track playing in under 60 s" usability check by hand.

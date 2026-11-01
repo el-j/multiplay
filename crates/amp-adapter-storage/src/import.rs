@@ -60,9 +60,19 @@ pub fn import_list_file(path: &Path) -> Option<Vec<Track>> {
 /// Imports `paths`. `fallback` makes a track for a playable file no tag reader understands
 /// (DSD), typically from the decoder's duration and rate.
 pub fn import_paths(paths: &[PathBuf], fallback: &dyn Fn(&Path) -> Option<Track>) -> ImportReport {
+    import_paths_with_progress(paths, fallback, &|_| {})
+}
+
+/// Like [`import_paths`], calling `progress` with the number of tracks found so far as it goes,
+/// for a progress line while a large folder is scanned.
+pub fn import_paths_with_progress(
+    paths: &[PathBuf],
+    fallback: &dyn Fn(&Path) -> Option<Track>,
+    progress: &dyn Fn(usize),
+) -> ImportReport {
     let mut report = ImportReport::default();
     for path in paths {
-        import_one(path, fallback, &mut report);
+        import_one(path, fallback, &mut report, progress);
     }
     report
 }
@@ -75,7 +85,12 @@ fn read_track(path: &Path, fallback: &dyn Fn(&Path) -> Option<Track>) -> Option<
     })
 }
 
-fn import_one(path: &Path, fallback: &dyn Fn(&Path) -> Option<Track>, report: &mut ImportReport) {
+fn import_one(
+    path: &Path,
+    fallback: &dyn Fn(&Path) -> Option<Track>,
+    report: &mut ImportReport,
+    progress: &dyn Fn(usize),
+) {
     if extension(path).is_some_and(|e| SKIN_EXTENSIONS.contains(&e.as_str())) {
         report.skins.push(path.to_path_buf());
         return;
@@ -86,9 +101,12 @@ fn import_one(path: &Path, fallback: &dyn Fn(&Path) -> Option<Track>, report: &m
     }
     if path.is_dir() {
         let scan = scan_audio_files(path);
-        report
-            .tracks
-            .extend(scan.files.iter().filter_map(|f| read_track(f, fallback)));
+        for file in &scan.files {
+            if let Some(track) = read_track(file, fallback) {
+                report.tracks.push(track);
+                progress(report.tracks.len());
+            }
+        }
         for cue in &scan.cue_sheets {
             report
                 .tracks

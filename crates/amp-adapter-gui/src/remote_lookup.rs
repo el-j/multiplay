@@ -40,20 +40,24 @@ impl LookupServices {
 /// Work for the lookup thread.
 #[derive(Debug, Clone)]
 pub enum LookupJob {
-    /// Find what request `id` would add. `providers` allows searching providers for a query.
+    /// Find what request `id` would add, asking only the `enabled` providers.
     Preview {
         id: RequestId,
         reference: ValidReference,
-        providers: bool,
+        enabled: Vec<&'static str>,
     },
-    /// Answer a phone's search: `library` hits first, then provider results.
+    /// Answer a phone's search: `library` hits first, then results of the `enabled` providers.
     Search {
         device: DeviceId,
         query: String,
         library: Vec<SearchItem>,
+        enabled: Vec<&'static str>,
     },
-    /// Universal omnibox search across YouTube and Bandcamp.
-    OmniSearch { query: String },
+    /// The search window: every `enabled` provider (switched on in the Accounts tab of Preferences).
+    OmniSearch {
+        query: String,
+        enabled: Vec<&'static str>,
+    },
 }
 
 /// A finished job.
@@ -124,17 +128,18 @@ async fn run(services: &LookupServices, job: LookupJob) -> LookupResult {
         LookupJob::Preview {
             id,
             reference,
-            providers,
+            enabled,
         } => LookupResult::Preview {
             id,
-            result: preview(services, &reference, providers).await.map(Box::new),
+            result: preview(services, &reference, &enabled).await.map(Box::new),
         },
         LookupJob::Search {
             device,
             query,
             mut library,
+            enabled,
         } => {
-            for (provider, track) in search_providers(services, &query).await {
+            for (provider, track) in search_providers(services, &query, &enabled).await {
                 if let Some(link) = crate::remote_requests::shareable_link(&track.source) {
                     library.push(SearchItem {
                         title: track.metadata.title.clone(),
@@ -151,8 +156,8 @@ async fn run(services: &LookupServices, job: LookupJob) -> LookupResult {
                 items: library,
             }
         }
-        LookupJob::OmniSearch { query } => {
-            let (hits, failures) = search_each_provider(services, &query).await;
+        LookupJob::OmniSearch { query, enabled } => {
+            let (hits, failures) = search_each_provider(services, &query, &enabled).await;
             let tracks = hits.into_iter().map(|(_, t)| t).collect();
             LookupResult::OmniSearch {
                 query,
@@ -166,9 +171,12 @@ async fn run(services: &LookupServices, job: LookupJob) -> LookupResult {
 async fn preview(
     services: &LookupServices,
     reference: &ValidReference,
-    providers: bool,
+    enabled: &[&'static str],
 ) -> Result<Track, String> {
     match reference {
+        ValidReference::YouTube { .. } if !enabled.contains(&"youtube") => {
+            Err("YouTube is switched off in the Accounts tab of Preferences".into())
+        }
         ValidReference::YouTube { video_id } => {
             let source = AudioSource::YouTube {
                 video_id: video_id.clone(),
@@ -184,12 +192,14 @@ async fn preview(
                 Err(_) => Err("The lookup timed out".into()),
             }
         }
-        ValidReference::Search(query) if providers => search_providers(services, query)
-            .await
-            .into_iter()
-            .map(|(_, t)| t)
-            .next()
-            .ok_or_else(|| format!("Nothing found for “{query}”")),
+        ValidReference::Search(query) if !enabled.is_empty() => {
+            search_providers(services, query, enabled)
+                .await
+                .into_iter()
+                .map(|(_, t)| t)
+                .next()
+                .ok_or_else(|| format!("Nothing found for “{query}”"))
+        }
         ValidReference::Search(query) => Err(format!("Nothing in the library matches “{query}”")),
         ValidReference::Library(_) | ValidReference::Upload { .. } => {
             Err("Not in the library".into())
@@ -198,19 +208,27 @@ async fn preview(
 }
 
 /// Results of every provider, tagged with the provider's id.
-async fn search_providers(services: &LookupServices, query: &str) -> Vec<(&'static str, Track)> {
-    search_each_provider(services, query).await.0
+async fn search_providers(
+    services: &LookupServices,
+    query: &str,
+    enabled: &[&'static str],
+) -> Vec<(&'static str, Track)> {
+    search_each_provider(services, query, enabled).await.0
 }
 
 /// Results of every provider, plus a line for each one that failed or timed out.
 async fn search_each_provider(
     services: &LookupServices,
     query: &str,
+    enabled: &[&'static str],
 ) -> (Vec<(&'static str, Track)>, Vec<String>) {
     let mut hits = Vec::new();
     let mut failures = Vec::new();
     for provider in &services.providers {
         let id = provider.provider_id();
+        if !enabled.contains(&id) {
+            continue;
+        }
         match tokio::time::timeout(LOOKUP_TIMEOUT, provider.query(query)).await {
             Ok(Ok(tracks)) => {
                 hits.extend(tracks.into_iter().take(PROVIDER_RESULTS).map(|t| (id, t)));
