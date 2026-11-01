@@ -19,3 +19,4 @@ rtrb = { workspace = true }
 
 [dev-dependencies]
 proptest = "1.12"
+cap = "0.1"
