@@ -40,3 +40,23 @@ fn the_license_bundle_is_found_next_to_the_executable_or_in_the_app_bundle() {
     let bare = tempfile::tempdir().unwrap();
     assert_eq!(licenses_file_near(&bare.path().join("multiplay-gui")), None);
 }
+
+#[test]
+fn diagnostics_carry_the_version_and_the_settings_and_save_as_a_zip() {
+    use amp_adapter_gui::about::{diagnostics_for, save_diagnostics};
+    let logs = tempfile::tempdir().unwrap();
+    std::fs::write(
+        logs.path().join("multiplay.2026-10-31.log"),
+        "INFO track started\n",
+    )
+    .unwrap();
+    let config = amp_domain::AppConfig::default();
+
+    let text = diagnostics_for(&config, logs.path());
+    assert!(text.starts_with(&version_line()), "{text}");
+    assert!(text.contains("port = 9002"), "settings as TOML: {text}");
+    assert!(text.contains("INFO track started"), "{text}");
+
+    let zip = save_diagnostics(&config, logs.path()).unwrap();
+    assert!(zip.starts_with(logs.path()) && zip.extension().is_some_and(|e| e == "zip"));
+}

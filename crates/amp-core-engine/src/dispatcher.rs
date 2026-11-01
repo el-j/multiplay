@@ -39,7 +39,26 @@ impl EventBus {
 
     /// Emits a state change event to all active observers.
     pub fn emit_event(&self, event: PlayerEvent) {
+        log_event(&event);
         let _ = self.event_broadcaster.send(event);
+    }
+}
+
+/// The events worth a line in the log file (TASK-177); per-frame ones (position, spectrum) are not.
+fn log_event(event: &PlayerEvent) {
+    match event {
+        PlayerEvent::Error {
+            kind,
+            source,
+            message,
+            recoverable,
+        } => tracing::warn!(?kind, ?source, recoverable, "playback error: {message}"),
+        PlayerEvent::TrackStarted(track) => {
+            tracing::info!(source = ?track.source, "track started: {}", track.metadata.title);
+        }
+        PlayerEvent::PlaybackStateChanged(state) => tracing::debug!(?state, "playback state"),
+        PlayerEvent::BufferHealth { .. } => tracing::trace!(?event, "buffer health"),
+        _ => {}
     }
 }
 

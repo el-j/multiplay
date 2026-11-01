@@ -10,6 +10,7 @@ name = "multiplay-gui"
 path = "src/main.rs"
 
 [dependencies]
+tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 amp-core-engine = { path = "../amp-core-engine" }

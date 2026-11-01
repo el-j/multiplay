@@ -7,6 +7,7 @@ publish = false
 description = "Pure-Rust multi-format audio demuxer and decoder adapter using Symphonia"
 
 [dependencies]
+tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 symphonia = { version = "0.6", default-features = false, features = ["mp1", "mp2", "mp3", "flac", "pcm", "vorbis", "aac", "alac", "adpcm", "isomp4", "ogg", "wav", "aiff", "caf", "mkv"] }

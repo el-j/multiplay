@@ -99,9 +99,12 @@ impl PlaybackDspChain {
         self.limiter.set_config(config);
     }
 
-    /// Output frames by which the resampler delays the audio (0 when not resampling).
-    pub fn resampler_delay_frames(&self) -> usize {
-        self.resampler.as_ref().map_or(0, |r| r.output_delay())
+    /// Output frames by which the resampler delays the audio, including input it still holds
+    /// (0 when not resampling).
+    pub fn resampler_delay_frames(&self) -> f64 {
+        self.resampler
+            .as_ref()
+            .map_or(0.0, PureResampler::latency_frames)
     }
 
     /// Returns whether the resampler is currently active.
@@ -153,7 +156,7 @@ impl PlaybackDspChain {
         // Fast-path bit-transparent identity when neutral settings (`TASK-140`, `DSP-01`, `DSP-02`)
         if self.is_bit_perfect(volume, preamp, eq_gains, eq_enabled, track_lufs) {
             self.visualizer.push_samples(input_pcm);
-            let bands = self.visualizer.compute_spectrum_bands();
+            let bands = self.visualizer.spectrum_bands_throttled();
             return (input_pcm.to_vec(), bands);
         }
 
@@ -213,7 +216,7 @@ impl PlaybackDspChain {
 
         // 6. Real-time 16-band FFT visualizer
         self.visualizer.push_samples(&samples);
-        let bands = self.visualizer.compute_spectrum_bands();
+        let bands = self.visualizer.spectrum_bands_throttled();
 
         (samples, bands)
     }

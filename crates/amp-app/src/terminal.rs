@@ -38,6 +38,13 @@ impl TerminalGuard {
     }
 }
 
+/// Leaves raw mode and the alternate screen and shows the cursor. Safe to call more than once;
+/// the crash hook calls it so a panic message lands on a usable terminal.
+pub fn restore_terminal() {
+    let _ = disable_raw_mode();
+    let _ = execute!(stdout(), LeaveAlternateScreen, crossterm::cursor::Show);
+}
+
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
         let _ = disable_raw_mode();

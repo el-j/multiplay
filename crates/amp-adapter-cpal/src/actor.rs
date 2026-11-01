@@ -55,7 +55,7 @@ fn build_typed_stream(
     let device_channels = usize::from(config.channels);
     let err_flag = Arc::clone(&stream_error);
     let err_fn = move |err| {
-        eprintln!("Audio stream callback error: {err}");
+        tracing::warn!("audio output stream error: {err}");
         err_flag.store(true, Ordering::Release);
     };
 

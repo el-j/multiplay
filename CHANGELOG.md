@@ -9,6 +9,12 @@ What changed for people using multiplay. The format follows
 The first public beta, to be tagged `v0.1.0-beta.1`.
 
 ### Added
+- **Logs and crash reports** in `~/.multiplay/logs` (a file per day, a week kept). If multiplay
+  crashes it writes a crash report there, and the TUI leaves the terminal usable.
+- **Preferences → About → Copy diagnostics / Save diagnostics (.zip) / Open log folder** for bug
+  reports: version, system, settings with passwords removed, the end of the log, the last crash.
+- **Measured CPU and memory budgets** ([docs/performance.md](docs/performance.md)), re-measured
+  in CI on every run.
 - **Preferences → About:** version and commit, a summary of what goes online, and links to the
   privacy statement and the bundled third-party licenses.
 - `multiplay --version` and `multiplay-tui --version` (also `-V`).
@@ -39,6 +45,9 @@ The first public beta, to be tagged `v0.1.0-beta.1`.
   AppImage) and Windows x86_64, with SHA256 checksums.
 
 ### Changed
+- **Uses about half the CPU while playing** (about 3% → 1.6% of one core on Apple Silicon): a
+  faster resampler with the same measured quality, the spectrum analyzer computed at most 60
+  times a second, and fewer idle wake-ups.
 - HTTP requests (Bandcamp, radio, stream links) send an honest User-Agent with the real version,
   `multiplay/<version> (+https://github.com/el-j/multiplay)`, instead of a browser-like one.
 

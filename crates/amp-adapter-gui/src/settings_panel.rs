@@ -10,6 +10,8 @@ use eframe::egui::{self, Color32, RichText, Ui};
 pub struct SettingsOpens {
     pub skin_dialog: bool,
     pub remote_window: bool,
+    /// A button in the About tab.
+    pub about: crate::about::AboutAction,
 }
 
 /// Active preferences tab category for GUI settings window.
@@ -260,7 +262,7 @@ impl SettingsGuiPanel {
                 GuiSettingsTab::Plugins => {
                     ui.label("No external plugins currently loaded.");
                 }
-                GuiSettingsTab::About => crate::about::show(ui),
+                GuiSettingsTab::About => crate::about::show(ui, &mut opens.about),
                 GuiSettingsTab::Remote => {
                     ui.label(
                         RichText::new("📱 SMARTPHONE REMOTE CONTROL & PAIRING")

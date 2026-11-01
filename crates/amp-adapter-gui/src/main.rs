@@ -8,6 +8,7 @@
 
 use amp_adapter_gui::chrome::classic_viewport;
 use amp_adapter_gui::MultiplayGuiApp;
+use amp_core_engine::diagnostics::{self, AppInfo};
 use eframe::egui::{Pos2, Vec2};
 
 fn main() -> eframe::Result<()> {
@@ -18,6 +19,20 @@ fn main() -> eframe::Result<()> {
         println!("{}", amp_adapter_gui::about::version_line());
         return Ok(());
     }
+    let logs = amp_adapter_gui::app_paths::AppPaths::for_user().log_dir();
+    // Kept alive until the window closes so buffered log lines are flushed on exit.
+    let _logging = diagnostics::init_logging(&logs, "info");
+    let app_info = AppInfo {
+        name: "multiplay",
+        version_line: amp_adapter_gui::about::version_line(),
+    };
+    tracing::info!(
+        os = std::env::consts::OS,
+        arch = std::env::consts::ARCH,
+        "{} starting",
+        app_info.version_line
+    );
+    diagnostics::install_crash_hook(app_info, logs, None);
     let native_options = eframe::NativeOptions {
         // The app id ties the window to `multiplay.desktop` (and its icon) on Wayland and X11.
         viewport: classic_viewport("multiplay", false)

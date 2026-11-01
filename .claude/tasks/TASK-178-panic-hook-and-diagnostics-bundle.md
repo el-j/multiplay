@@ -27,3 +27,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-10-31, branch feat/plan-048-observability)
+- `install_crash_hook`: `crash-<unix time>.txt` (version, OS/arch, thread, message, location, forced backtrace), runs a cleanup first (TUI: `terminal::restore_terminal`), then the previous hook. Test `crates/amp-core-engine/tests/crash_hook.rs` (forced panic → report + cleanup ran).
+- Preferences → About: Copy diagnostics (clipboard), Save diagnostics (.zip with diagnostics.txt, logs, crash reports, written to the log folder), Open log folder. Tests: `tests/diagnostics.rs` (zip contents), `amp-adapter-gui/tests/about.rs`.
+- Not done: a forced panic in the real TUI binary (covered by the in-process hook test only).

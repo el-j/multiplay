@@ -7,6 +7,7 @@ publish = false
 description = "Pure-Rust hardware audio sink adapter using CPAL and lock-free ring buffer"
 
 [dependencies]
+tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 cpal = "0.18"

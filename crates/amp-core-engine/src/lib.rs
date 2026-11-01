@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod config_store;
+pub mod diagnostics;
 pub mod dispatcher;
 pub mod dj;
 pub mod downloader;
