@@ -8,7 +8,7 @@ use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::MediaSource;
-use symphonia::core::units::{Time, TimeBase, Timestamp};
+use symphonia::core::units::{TimeBase, Timestamp};
 
 pub use crate::probe::build_probe_hint;
 use crate::probe::{open_audio_with_hint, reject_unplayable};
@@ -55,7 +55,10 @@ impl DecoderFactoryPort for SymphoniaDecoderFactory {
 
 /// Stateful streaming audio decoder session for interactive track playback and seeking.
 pub struct AudioStreamDecoder {
-    reader: Box<dyn FormatReader>,
+    /// `None` only while [`Self::reopen_at_start`] swaps it.
+    reader: Option<Box<dyn FormatReader>>,
+    /// The probe hint, to open the stream again from its start.
+    hint: Hint,
     decoder: Box<dyn AudioDecoder>,
     /// The last decoded packet, interleaved in the stream's own channel layout.
     decoded: Vec<f32>,
@@ -126,7 +129,7 @@ impl AudioStreamDecoder {
         S: MediaSource + 'static,
     {
         let opened = open_audio_with_hint(source, &hint).map_err(DecodeError::UnsupportedFormat)?;
-        let (reader, decoder) = (opened.reader, opened.decoder);
+        let (reader, decoder) = (Some(opened.reader), opened.decoder);
         let (track_id, sample_rate, duration_frames, time_base) = (
             opened.track_id,
             opened.sample_rate,
@@ -136,6 +139,7 @@ impl AudioStreamDecoder {
 
         Ok(Self {
             reader,
+            hint,
             decoder,
             decoded: Vec::new(),
             track_id,
@@ -155,6 +159,8 @@ impl AudioStreamDecoder {
     pub fn rebuild_decoder_on_reset(&mut self) -> Result<(), DecodeError> {
         let track = self
             .reader
+            .as_ref()
+            .ok_or_else(|| DecodeError::CorruptStream("the stream could not be reopened".into()))?
             .first_track_known_codec(TrackType::Audio)
             .ok_or_else(|| {
                 DecodeError::UnsupportedFormat(
@@ -203,7 +209,7 @@ impl AudioStreamDecoder {
 
         // 2. Decode next packets until buffer is filled or EOF
         while written < output.len() {
-            let packet = match self.reader.next_packet() {
+            let packet = match self.reader()?.next_packet() {
                 Ok(Some(pkt)) => pkt,
                 Ok(None) => {
                     if let Some(target) = self.seek_target.take() {
@@ -220,11 +226,24 @@ impl AudioStreamDecoder {
                 Err(SymphoniaError::IoError(e))
                     if e.kind() == std::io::ErrorKind::UnexpectedEof =>
                 {
+                    // MP4 reports its end this way, also after a seek that "worked" once the
+                    // end was reached: start over from the top, as for `Ok(None)` above.
+                    if let Some(target) = self.seek_target.take() {
+                        self.rewind_and_skip_to(target)?;
+                        continue;
+                    }
                     eof_reached = true;
                     break; // Real EOF
                 }
                 Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     break; // Temporary network buffer underrun
+                }
+                // Right after a seek, Symphonia 0.6.1's MP4 reader can fail with "no atom
+                // pending read" once it had reached the end: start over, as above.
+                Err(_) if self.seek_target.is_some() => {
+                    let target = self.seek_target.take().unwrap_or_default();
+                    self.rewind_and_skip_to(target)?;
+                    continue;
                 }
                 Err(e) => {
                     return Err(DecodeError::CorruptStream(format!(
@@ -312,10 +331,20 @@ impl AudioStreamDecoder {
         };
         // The reader lands on a packet boundary at or before the target; the frames between
         // there and the target are decoded and dropped, so playback resumes on the exact frame.
-        let landed = self
-            .reader
-            .seek(SeekMode::Accurate, seek_to)
-            .map_err(|e| DecodeError::SeekFailed(format!("Seek failed: {e}")))?;
+        let landed = match self.reader()?.seek(SeekMode::Accurate, seek_to) {
+            Ok(landed) => landed,
+            // Some readers refuse to seek once they have reached the end (Matroska in Symphonia
+            // 0.6.1): open the stream again and decode forward to the target instead.
+            Err(e) => {
+                tracing::debug!("seek refused ({e}); reopening the stream");
+                let frames = (secs * self.sample_rate as f64).round() as u64;
+                self.rewind_and_skip_to(frames)?;
+                self.decoder.reset();
+                self.frames_played = frames;
+                self.seek_target = None;
+                return Ok(self.elapsed());
+            }
+        };
         let actual_ts = self.ts_to_frames(landed.actual_ts);
         let required_ts = self.ts_to_frames(landed.required_ts);
         self.skip_frames = required_ts.saturating_sub(actual_ts);
@@ -329,18 +358,35 @@ impl AudioStreamDecoder {
         Ok(self.elapsed())
     }
 
-    /// Fallback for a reader whose seek left it at the end: start over and drop frames up to
-    /// `target`.
-    fn rewind_and_skip_to(&mut self, target: u64) -> Result<(), DecodeError> {
-        let start = SeekTo::Time {
-            time: Time::try_from_secs_f64(0.0).unwrap_or_default(),
-            track_id: Some(self.track_id),
-        };
+    fn reader(&mut self) -> Result<&mut Box<dyn FormatReader>, DecodeError> {
         self.reader
-            .seek(SeekMode::Accurate, start)
-            .map_err(|e| DecodeError::SeekFailed(format!("Rewind after failed seek: {e}")))?;
-        self.decoder.reset();
+            .as_mut()
+            .ok_or_else(|| DecodeError::CorruptStream("the stream could not be reopened".into()))
+    }
+
+    /// Fallback for a reader whose seek left it at the end (ADPCM in WAV, and MP4 once it has
+    /// reached its end; Symphonia 0.6.1): open the stream again from its start and drop frames
+    /// up to `target`. A fresh reader and decoder, so no state of the stuck one survives.
+    fn rewind_and_skip_to(&mut self, target: u64) -> Result<(), DecodeError> {
+        self.reopen_at_start()?;
         self.skip_frames = target;
+        Ok(())
+    }
+
+    fn reopen_at_start(&mut self) -> Result<(), DecodeError> {
+        let reader = self
+            .reader
+            .take()
+            .ok_or_else(|| DecodeError::CorruptStream("the stream could not be reopened".into()))?;
+        let mut source = reader.into_inner();
+        std::io::Seek::seek(&mut source, std::io::SeekFrom::Start(0))
+            .map_err(|e| DecodeError::SeekFailed(format!("Rewind: {e}")))?;
+        let opened = open_audio_with_hint(source, &self.hint).map_err(DecodeError::SeekFailed)?;
+        self.reader = Some(opened.reader);
+        self.decoder = opened.decoder;
+        self.track_id = opened.track_id;
+        self.pending_samples.clear();
+        self.pending_idx = 0;
         Ok(())
     }
 
@@ -375,7 +421,10 @@ impl PcmStreamPort for AudioStreamDecoder {
     }
 
     fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, DecodeError> {
-        let n = self.read_interleaved_samples(out)?;
+        // Whole stereo pairs only: half a pair would start the next read on the right channel
+        // and swap the channels from then on (found by the port contract, TASK-187).
+        let pairs = out.len() / 2 * 2;
+        let n = self.read_interleaved_samples(&mut out[..pairs])?;
         sanitize(&mut out[..n]);
         Ok(n)
     }

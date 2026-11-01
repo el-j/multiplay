@@ -220,6 +220,7 @@ version = "0.1.0"
 dependencies = [
  "amp-domain",
  "amp-ports",
+ "amp-test-support",
  "cap",
  "proptest",
  "rtrb",
@@ -351,6 +352,7 @@ version = "0.1.0"
 dependencies = [
  "amp-domain",
  "amp-ports",
+ "amp-test-support",
  "async-trait",
  "image",
  "lofty",
@@ -468,6 +470,14 @@ dependencies = [
  "amp-domain",
  "async-trait",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "amp-test-support"
+version = "0.1.0"
+dependencies = [
+ "amp-domain",
+ "amp-ports",
 ]
 
 [[package]]

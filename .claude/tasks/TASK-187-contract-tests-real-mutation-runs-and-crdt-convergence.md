@@ -30,3 +30,10 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-049-release) — partial
+- Contract kit: new dev-only crate `crates/amp-test-support` — `check_pcm_stream` (rate, whole stereo pairs into odd buffers, finite samples, sticky EOF, monotonic elapsed matching frames, duration within 2%, seek accuracy, replay after seeking to 0) and `check_library_storage` (store, replace, search by title/artist, remove).
+- Applied: 17 fixtures through `SymphoniaDecoderFactory::open_file` and 5 through `open_stream` (incl. our Opus, DSD, WavPack) in `amp-adapter-decoder/tests/contract.rs`; redb in `amp-adapter-storage/tests/contract.rs`.
+- Bugs the contract found and fixed: the Symphonia decoder split stereo pairs into odd buffers (channels would swap from then on); AAC/M4A and MKA could not play again after reaching the end and seeking back (Symphonia 0.6.1 reader states) — the decoder now reopens the stream from its start (`reopen_at_start`) when a reader refuses or fails after a seek.
+- Mutation testing: `.github/workflows/mutants.yml` (weekly, domain + DSP + library index + update check). Score not recorded yet (first run pending).
+- Not done: the CRDT fixes — the jam CRDT is unused; fixing or deleting it waits on the TASK-167 decision.

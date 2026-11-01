@@ -26,5 +26,6 @@ uuid = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
 [dev-dependencies]
+amp-test-support = { path = "../amp-test-support" }
 proptest = "1.12"
 tempfile = "3.27"
