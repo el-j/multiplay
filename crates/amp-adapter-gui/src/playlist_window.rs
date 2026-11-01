@@ -251,7 +251,10 @@ fn render_track_rows(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
                             if next[deck] == Some(i) {
                                 let tag = ["⏵A", "⏵B"][deck];
                                 ui.label(RichText::new(tag).size(9.0).strong().color(color))
-                                    .on_hover_text(format!("Next on deck {}", ["A", "B"][deck]));
+                                    .on_hover_text(format!(
+                                        "Next on deck {}",
+                                        crate::dj_strip::DECK_NAMES[deck.min(3)]
+                                    ));
                             }
                         }
                     }
