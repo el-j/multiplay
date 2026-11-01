@@ -7,6 +7,12 @@
 use amp_adapter_decoder::SymphoniaDecoderFactory;
 use amp_ports::DecoderFactoryPort;
 use proptest::prelude::*;
+
+/// A damaged header once asked for 64 GiB: on Linux that aborts the process, which no error
+/// handling can catch, while macOS hands out the memory lazily and passed. A 1 GiB ceiling makes
+/// such a request fail the same way on every system.
+#[global_allocator]
+static ALLOC: cap::Cap<std::alloc::System> = cap::Cap::new(std::alloc::System, 1 << 30);
 use std::io::Cursor;
 use std::path::Path;
 use std::time::{Duration, Instant};
