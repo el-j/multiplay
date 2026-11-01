@@ -43,6 +43,9 @@ pub struct MultiplayGuiApp {
     pub dialog_for_onboarding: bool,
     /// A background import (first-run folders, "Scan ~/Music").
     pub import_job: Option<crate::import_jobs::ImportJob>,
+    /// A running update check, and a newer release it found (TASK-183).
+    pub update_job: Option<crate::update_notice::UpdateJob>,
+    pub update_available: Option<amp_domain::about::ReleaseInfo>,
     /// Scrubber drag state (seek on release).
     pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
@@ -171,6 +174,8 @@ impl MultiplayGuiApp {
             onboarding: None,
             dialog_for_onboarding: false,
             import_job: None,
+            update_job: None,
+            update_available: None,
             scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,

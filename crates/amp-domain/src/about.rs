@@ -29,3 +29,28 @@ pub fn user_agent() -> String {
         env!("CARGO_PKG_VERSION")
     )
 }
+
+/// One published release.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseInfo {
+    /// `v0.1.0-beta.2`.
+    pub tag: String,
+    pub name: String,
+    pub prerelease: bool,
+    /// The release page, opened in the browser.
+    pub url: String,
+    /// Release notes (Markdown).
+    pub body: String,
+}
+
+impl ReleaseInfo {
+    /// True when the notes mark it as fixing YouTube, Bandcamp or another online source, the
+    /// kind of break a player cannot fix by itself.
+    #[must_use]
+    pub fn fixes_online_source(&self) -> bool {
+        let notes = self.body.to_lowercase();
+        notes.contains("provider fix")
+            || notes.contains("provider-fix")
+            || notes.contains("[hotfix]")
+    }
+}

@@ -272,6 +272,8 @@ dependencies = [
  "proptest",
  "reqwest",
  "rustls",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tokio",
 ]
@@ -436,6 +438,7 @@ dependencies = [
  "rtrb",
  "rubato",
  "rustfft",
+ "semver",
  "serde",
  "tempfile",
  "thiserror 2.0.21",
