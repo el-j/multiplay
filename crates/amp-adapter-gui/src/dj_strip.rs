@@ -14,17 +14,23 @@ use amp_core_engine::dj::engine::CueRouting;
 use eframe::egui::{self, Color32, Rect, Response, RichText, Ui, Vec2};
 use std::time::Instant;
 
-/// Deck colours (A, B).
-pub const DECK_COLORS: [Color32; 2] = [
+/// Deck colours (A, B, C, D).
+pub const DECK_COLORS: [Color32; 4] = [
     Color32::from_rgb(0, 200, 255),
     Color32::from_rgb(255, 150, 40),
+    Color32::from_rgb(120, 230, 120),
+    Color32::from_rgb(230, 110, 220),
 ];
+
+/// Deck letters.
+pub const DECK_NAMES: [&str; 4] = ["A", "B", "C", "D"];
 
 /// Requests that need the whole app.
 pub(crate) enum UiOut {
     LoadNext(usize),
     ToggleAuto,
     Leave,
+    Record,
 }
 
 /// What the console widgets work on.
@@ -110,7 +116,7 @@ pub(crate) fn deck_strip(p: &mut Panel<'_>, ui: &mut Ui, deck: usize) {
             p.out.push(UiOut::LoadNext(deck));
         }
         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-            ui.label(RichText::new(["A", "B"][deck]).strong().color(color));
+            ui.label(RichText::new(DECK_NAMES[deck]).strong().color(color));
             let t = RichText::new(title).color(Color32::from_rgb(220, 230, 240));
             ui.add(egui::Label::new(t).truncate());
         });
@@ -291,6 +297,21 @@ pub(crate) fn mixer_column(p: &mut Panel<'_>, ui: &mut Ui, width: f32) {
                 RichText::new("AUTO").size(10.0),
                 auto,
             );
+            let recording = p.dj.control().recorder().is_recording();
+            let label = crate::dj_record::rec_label(p.dj);
+            let rec = RichText::new(label).size(10.0);
+            let rec = if recording {
+                rec.color(Color32::from_rgb(255, 70, 70))
+            } else {
+                rec
+            };
+            if ui
+                .add(egui::Button::selectable(recording, rec))
+                .on_hover_text("Record the master mix to a FLAC file; press again to save it")
+                .clicked()
+            {
+                p.out.push(UiOut::Record);
+            }
             act(
                 p,
                 ui,
@@ -300,12 +321,12 @@ pub(crate) fn mixer_column(p: &mut Panel<'_>, ui: &mut Ui, width: f32) {
             );
         });
         let params = p.dj.control().params_handle();
-        for deck in 0..2 {
+        for deck in 0..p.dj.deck_count() {
             let mut fader = params.deck(deck).fader();
-            ui.spacing_mut().slider_width = width - 24.0;
+            ui.spacing_mut().slider_width = width - 44.0;
             ui.horizontal(|ui| {
                 ui.label(
-                    RichText::new(["A", "B"][deck])
+                    RichText::new(DECK_NAMES[deck])
                         .size(10.0)
                         .color(DECK_COLORS[deck]),
                 );
@@ -315,6 +336,7 @@ pub(crate) fn mixer_column(p: &mut Panel<'_>, ui: &mut Ui, width: f32) {
                 {
                     params.deck(deck).set_fader(fader);
                 }
+                side_badge(ui, params.deck(deck));
             });
         }
         let mut xf = params.crossfader();
@@ -389,4 +411,23 @@ fn routing_name(r: CueRouting) -> &'static str {
 fn clock(secs: f64) -> String {
     let s = secs.max(0.0) as u64;
     format!("{}:{:02}", s / 60, s % 60)
+}
+
+/// The deck's crossfader assignment; a click cycles left, right, through.
+fn side_badge(ui: &mut Ui, deck: &amp_core_engine::dj::engine::DeckParams) {
+    use amp_core_engine::dj::engine::CrossfaderSide;
+    let (text, next) = match deck.side() {
+        CrossfaderSide::Left => ("L", CrossfaderSide::Right),
+        CrossfaderSide::Right => ("R", CrossfaderSide::Thru),
+        CrossfaderSide::Thru => ("T", CrossfaderSide::Left),
+    };
+    if ui
+        .small_button(RichText::new(text).size(9.0))
+        .on_hover_text(
+            "Crossfader side: L (left), R (right) or T (through, not crossfaded). Click to change.",
+        )
+        .clicked()
+    {
+        deck.set_side(next);
+    }
 }

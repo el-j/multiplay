@@ -17,6 +17,7 @@ use super::status::DjStatus;
 use super::strip::{band_gain, ChannelStrip};
 use super::sync::{phase_error, pick_master, steered_speed, sync_speed, DeckBeat};
 use super::track_buffer::TrackBuffer;
+use crate::dj::recorder::{mix_recorder, MixRecorder, RecordTap};
 use crate::dsp::GraphicEqualizer;
 use std::sync::Arc;
 
@@ -52,6 +53,7 @@ pub struct DjEngine {
     master_eq: GraphicEqualizer,
     limiter: Limiter,
     cue_delay: LookaheadDelay,
+    record: RecordTap,
 }
 
 /// Control side; owned by the UI or automation.
@@ -61,6 +63,7 @@ pub struct DjControl {
     status: Arc<DjStatus>,
     commands: rtrb::Producer<DjCommand>,
     retired: rtrb::Consumer<Arc<TrackBuffer>>,
+    recorder: MixRecorder,
 }
 
 impl DjEngine {
@@ -70,6 +73,7 @@ impl DjEngine {
         let (old_tx, old_rx) = rtrb::RingBuffer::new(QUEUE);
         let params = Arc::new(DjParams::default());
         let status = Arc::new(DjStatus::default());
+        let (record, recorder) = mix_recorder(sample_rate);
         let engine = Self {
             sample_rate,
             deck_count: decks.clamp(1, MAX_DECKS),
@@ -83,12 +87,14 @@ impl DjEngine {
             master_eq: GraphicEqualizer::new(sample_rate as f32),
             limiter: Limiter::new(sample_rate),
             cue_delay: LookaheadDelay::default(),
+            record,
         };
         let control = DjControl {
             params,
             status,
             commands: cmd_tx,
             retired: old_rx,
+            recorder,
         };
         (engine, control)
     }
@@ -191,6 +197,7 @@ impl DjEngine {
         }
         let lowest = self.limiter.process(master);
         self.status.publish_master(measure(master), lowest);
+        self.record.push(master);
     }
 
     /// Speed of every deck for the next block: its own pitch and nudge, or, when synced, the
@@ -357,6 +364,11 @@ impl DjControl {
     /// Jumps to hot cue `slot`.
     pub fn jump_hot_cue(&mut self, deck: usize, slot: usize) -> bool {
         self.deck_command(deck, DeckCommand::JumpHotCue(slot))
+    }
+
+    /// Records the master mix to a file (TASK-224).
+    pub fn recorder(&mut self) -> &mut MixRecorder {
+        &mut self.recorder
     }
 
     /// Frees tracks the render thread has let go of.

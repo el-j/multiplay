@@ -113,7 +113,7 @@ jobs:
       - name: DJ release-build checks (10-minute soak, speed budgets)
         shell: bash
         run: |
-          cargo test --release --locked -p amp-core-engine --test dj_soak --test dj_analysis --test dj_mixer
+          cargo test --release --locked -p amp-core-engine --test dj_soak --test dj_four_deck --test dj_analysis --test dj_mixer
           cargo test --release --locked -p amp-adapter-gui --test dj_waveform_perf
 
       # Measured CPU and memory of the engine idle and playing FLAC/MP3 (TASK-179). The table

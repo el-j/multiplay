@@ -8,6 +8,8 @@ pub mod beat_detector;
 pub mod deck;
 pub mod engine;
 pub mod mixer;
+pub mod recorder;
+mod recorder_sinks;
 pub mod wsola;
 
 pub use beat_detector::RealtimeBpmDetector;

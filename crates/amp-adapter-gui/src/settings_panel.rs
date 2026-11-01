@@ -168,6 +168,12 @@ impl SettingsGuiPanel {
                         ui.colored_label(Color32::from_rgb(240, 160, 60), err);
                     }
                     ui.horizontal_wrapped(|ui| {
+                        ui.label("DJ decks:");
+                        ui.radio_value(&mut config.audio.dj_deck_count, 2, "2 (A, B)");
+                        ui.radio_value(&mut config.audio.dj_deck_count, 4, "4 (A, B, C, D)")
+                            .on_hover_text("C and D are not crossfaded until you assign them a side (L/R) in the mixer");
+                    });
+                    ui.horizontal_wrapped(|ui| {
                         ui.label("Binaural Headphone Crossfeed:");
                         egui::ComboBox::from_id_salt("crossfeed_cb")
                             .selected_text(&config.audio.headphone_crossfeed)

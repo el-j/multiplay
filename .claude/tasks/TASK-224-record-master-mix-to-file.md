@@ -29,3 +29,10 @@ Describe the release-build demo performed and link evidence (screenshot, screen 
 
 ## Status
 - **Status:** Pending
+
+## Evidence (2026-11-01, branch feat/plan-057-dj)
+- `crates/amp-core-engine/src/dj/recorder.rs` (tap + control, rtrb ring, writer thread) and `recorder_sinks.rs` (streaming float WAV, streaming 24-bit FLAC via pure-Rust `flacenc` with default features off, lofty tags).
+- `cargo test -p amp-core-engine dj_record`: WAV bit-identical to the rendered master over a scripted two-deck mix with crossfader moves; FLAC within 24-bit rounding, decodes with our Symphonia adapter, tagged title/artist; second start and unwritable path refused; render allocates 0 times while recording (allocation guard).
+- `crates/amp-adapter-gui/tests/dj_record.rs`: REC in the console saves `multiplay mix <date>.flac` beside the music folder (else the app folder) and the mix reaches the playlist.
+- verify_pure_rust (+ self-test), cargo deny, clippy -D warnings, cargo test --workspace: 635 passed.
+- Not yet: a release-build manual demo; format choice in the UI (FLAC only from the button).

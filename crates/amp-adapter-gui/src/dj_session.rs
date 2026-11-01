@@ -11,7 +11,8 @@ use amp_core_engine::dj::automix::{
     AutoMix, AutoMixConfig, AutoMixSource, AutoMixState, AutoMixTrack,
 };
 use amp_core_engine::dj::engine::{
-    DjControl, DjEngine, DjParams, DjStatus, TrackBuffer, CROSSFADER_LEFT, HOT_CUES,
+    CrossfaderSide, DjControl, DjEngine, DjParams, DjStatus, TrackBuffer, CROSSFADER_LEFT,
+    HOT_CUES, MAX_DECKS,
 };
 use amp_core_engine::player::{
     default_runtime_handle, open_track_blocking, DjRequest, PlayerEngine, DEFAULT_RESOLVE_TIMEOUT,
@@ -50,7 +51,8 @@ impl DeckSlot {
 /// DJ mode as seen from the GUI.
 pub struct DjSession {
     control: DjControl,
-    decks: [Option<DeckSlot>; 2],
+    decks: [Option<DeckSlot>; MAX_DECKS],
+    deck_count: usize,
     active: bool,
     library: Option<Arc<RedbStorageAdapter>>,
     automix: Option<AutoMix>,
@@ -69,9 +71,10 @@ impl DjSession {
     /// Creates the engine at the sound card's rate and hands it to the audio worker.
     /// `library` caches analysis and stores hot cues.
     pub fn new(driver: &PlayerEngine, library: Option<Arc<RedbStorageAdapter>>) -> Self {
-        let (engine, control) = DjEngine::new(driver.sample_rate(), 2);
+        // The engine always runs four decks; the console shows two or four.
+        let (engine, control) = DjEngine::new(driver.sample_rate(), MAX_DECKS);
         let p = control.params();
-        for d in 0..2 {
+        for d in 0..MAX_DECKS {
             p.deck(d).set_sync(true);
             p.deck(d).set_quantize(true);
         }
@@ -79,7 +82,8 @@ impl DjSession {
         driver.dj.install_engine(engine);
         Self {
             control,
-            decks: [None, None],
+            decks: Default::default(),
+            deck_count: 2,
             active: false,
             library,
             automix: None,
@@ -99,6 +103,22 @@ impl DjSession {
     /// The engine's control handle (loops, cues, seeks).
     pub fn control(&mut self) -> &mut DjControl {
         &mut self.control
+    }
+
+    /// Decks on the console.
+    pub fn deck_count(&self) -> usize {
+        self.deck_count
+    }
+
+    /// Shows two or four decks; decks that disappear stop playing.
+    pub fn set_deck_count(&mut self, count: usize) {
+        let count = if count >= 4 { MAX_DECKS } else { 2 };
+        if count < self.deck_count {
+            for d in count..self.deck_count {
+                self.params().deck(d).set_playing(false);
+            }
+        }
+        self.deck_count = count;
     }
 
     /// The track on `deck`.
@@ -144,24 +164,26 @@ impl DjSession {
     /// The deck the audience hears: the tempo master if there is one, else the loudest playing
     /// deck, else deck A.
     pub fn on_air_deck(&self) -> usize {
-        if let Some(d) = (0..2).find(|d| self.status().deck(*d).is_master()) {
+        if let Some(d) = (0..self.deck_count).find(|d| self.status().deck(*d).is_master()) {
             return d;
         }
         let p = self.params();
         let (l, r) = amp_core_engine::dj::engine::curve_gains(p.master().curve(), p.crossfader());
         let loud = |d: usize| {
-            let side = if d == 0 { l } else { r };
+            let side = match p.deck(d).side() {
+                CrossfaderSide::Left => l,
+                CrossfaderSide::Right => r,
+                CrossfaderSide::Thru => 1.0,
+            };
             if p.deck(d).playing() {
-                p.deck(d).fader() * side
+                // A side's gain can round to a hair below zero at the far end.
+                (p.deck(d).fader() * side).max(0.0)
             } else {
                 0.0
             }
         };
-        if loud(1) > loud(0) {
-            1
-        } else {
-            0
-        }
+        // The first of equally loud decks wins, so a silent console stays on deck A.
+        (0..self.deck_count).fold(0, |best, d| if loud(d) > loud(best) { d } else { best })
     }
 
     /// Loads `track` onto `deck` (paused at the start) and starts decoding and analysing it.
@@ -265,7 +287,7 @@ impl DjSession {
 
     /// Call every UI frame: applies finished analyses and saves changed hot cues.
     pub fn poll(&mut self) {
-        for deck in 0..2 {
+        for deck in 0..MAX_DECKS {
             let Some(slot) = self.decks[deck].as_mut() else {
                 continue;
             };
