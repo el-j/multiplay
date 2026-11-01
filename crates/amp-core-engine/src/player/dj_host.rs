@@ -164,7 +164,7 @@ impl DjHost {
         let Some(deck_a) = self.enter.as_ref() else {
             return false;
         };
-        let lag = dsp.resampler_delay_frames() as f64 / f64::from(sample_rate);
+        let lag = dsp.resampler_delay_frames() / f64::from(sample_rate);
         let playing_at = decoder
             .as_ref()
             .map_or(0.0, |d| (d.elapsed().as_secs_f64() - lag).max(0.0));
@@ -299,7 +299,7 @@ impl DjHost {
         };
         dsp.set_source_sample_rate(decoder.sample_rate());
         let rate = f64::from(self.sample_rate);
-        let delay = dsp.resampler_delay_frames() as f64 / rate;
+        let delay = dsp.resampler_delay_frames() / rate;
         let engine_lag = LATENCY_FRAMES as f64 / rate;
         let position = pending.status.deck(pending.deck).position_secs();
         let target = (position - engine_lag + delay).max(0.0);

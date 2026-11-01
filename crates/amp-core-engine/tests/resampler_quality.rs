@@ -68,3 +68,78 @@ fn the_passband_is_flat_to_20_khz() {
         "20 kHz at {tone:.2} dB"
     );
 }
+
+/// The DJ handover (`dj_host`) lines decks up using the reported delay, so it has to be the
+/// real one: an impulse comes out `output_delay()` frames late (to within one frame).
+#[test]
+fn the_reported_delay_is_the_real_delay() {
+    let mut r = PureResampler::new(44_100, 48_000, 2, 512).expect("resampler");
+    let mut input = vec![0.0f32; 44_100 * 2];
+    let at_in = 10_000;
+    input[at_in * 2] = 1.0;
+    input[at_in * 2 + 1] = 1.0;
+    let out = r.process_interleaved(&input).expect("resample");
+    let left: Vec<f32> = out.iter().step_by(2).copied().collect();
+    let peak = left
+        .iter()
+        .enumerate()
+        .max_by(|a, b| a.1.abs().total_cmp(&b.1.abs()))
+        .unwrap()
+        .0 as f64;
+    let expected = at_in as f64 * 48_000.0 / 44_100.0 + r.output_delay() as f64;
+    assert!(
+        (peak - expected).abs() <= 1.0,
+        "impulse at {peak}, reported delay predicts {expected:.1} (delay {})",
+        r.output_delay()
+    );
+}
+
+/// Audio fed in but still waiting for a full block counts as delay too: the DJ handover asks
+/// "which source frame is audible now", and frames still inside the resampler are not.
+#[test]
+fn buffered_input_counts_towards_the_delay() {
+    let mut r = PureResampler::new(44_100, 48_000, 2, 512).expect("resampler");
+    let empty = r.latency_frames();
+    assert_eq!(empty, r.output_delay() as f64);
+    // 100 frames: less than one block, so nothing comes out yet.
+    let out = r.process_interleaved(&[0.1f32; 200]).expect("resample");
+    assert!(out.is_empty());
+    let expected = r.output_delay() as f64 + 100.0 * 48_000.0 / 44_100.0;
+    assert!(
+        (r.latency_frames() - expected).abs() < 1e-9,
+        "{}",
+        r.latency_frames()
+    );
+}
+
+/// What the DJ handover relies on: after feeding audio in any chunk sizes, the next output frame
+/// is the source at `fed / source_rate - latency_frames() / target_rate`.
+#[test]
+fn latency_says_which_source_moment_comes_out_next() {
+    let tone = |t: f64| (2.0 * PI * 440.0 * t).sin() * 0.5;
+    for split in [333usize, 512, 700, 1001] {
+        let mut r = PureResampler::new(44_100, 48_000, 2, 512).expect("resampler");
+        let mut fed = 0usize;
+        // Run in, then check at several points along the way.
+        for round in 0..30 {
+            let chunk: Vec<f32> = (fed..fed + split)
+                .flat_map(|i| {
+                    let v = tone(i as f64 / 44_100.0) as f32;
+                    [v, v]
+                })
+                .collect();
+            let latency = r.latency_frames();
+            let next_at = fed as f64 / 44_100.0 - latency / 48_000.0;
+            let out = r.process_interleaved(&chunk).expect("resample");
+            fed += split;
+            if round > 4 && !out.is_empty() {
+                let expected = tone(next_at);
+                assert!(
+                    (f64::from(out[0]) - expected).abs() < 0.005,
+                    "split {split}, round {round}: got {}, the source at {next_at:.6}s is {expected:.4}",
+                    out[0]
+                );
+            }
+        }
+    }
+}

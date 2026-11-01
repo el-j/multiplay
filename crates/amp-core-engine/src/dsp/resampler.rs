@@ -27,6 +27,9 @@ pub struct PureResampler {
     target_rate: usize,
     input_fifo: Vec<f32>,
     input_block: Vec<f32>,
+    /// Frames fed in and handed out so far, for [`Self::latency_frames`].
+    frames_in: u64,
+    frames_out: u64,
 }
 
 impl PureResampler {
@@ -59,6 +62,8 @@ impl PureResampler {
             target_rate,
             input_fifo,
             input_block,
+            frames_in: 0,
+            frames_out: 0,
         })
     }
 
@@ -76,6 +81,7 @@ impl PureResampler {
     /// planar output.
     pub fn process(&mut self, input: &[Vec<f32>]) -> Result<Vec<Vec<f32>>, String> {
         let frames = input.first().map_or(0, Vec::len);
+        self.frames_in += frames as u64;
         let adapter = SequentialSliceOfVecs::new(input, self.input_channels, frames)
             .map_err(|e| format!("Resampling input error: {e}"))?;
         let indexing = partial(frames, self.chunk_size);
@@ -85,6 +91,7 @@ impl PureResampler {
             .map_err(|e| format!("Resampling error: {e}"))?
             .take_data();
         let ch = self.input_channels.max(1);
+        self.frames_out += (out.len() / ch) as u64;
         Ok((0..ch)
             .map(|c| out.iter().skip(c).step_by(ch).copied().collect())
             .collect())
@@ -94,6 +101,7 @@ impl PureResampler {
     /// and feeding Rubato only full unpadded blocks to eliminate mid-stream clicks (`TASK-142`, `DSP-04`).
     pub fn process_interleaved(&mut self, samples: &[f32]) -> Result<Vec<f32>, String> {
         self.input_fifo.extend_from_slice(samples);
+        self.frames_in += (samples.len() / self.input_channels.max(1)) as u64;
         let block_len = self.chunk_size * self.input_channels;
         let mut all_out = Vec::new();
 
@@ -112,6 +120,7 @@ impl PureResampler {
             all_out.extend(out);
         }
 
+        self.frames_out += (all_out.len() / self.input_channels.max(1)) as u64;
         Ok(all_out)
     }
 
@@ -137,12 +146,22 @@ impl PureResampler {
             (frames as f64 * self.target_rate as f64 / self.source_rate as f64).round() as usize;
         out.truncate(keep * self.input_channels);
         self.input_fifo.clear();
+        self.frames_out += (out.len() / self.input_channels.max(1)) as u64;
         Ok(out)
     }
 
     /// Output frames by which the resampled audio lags its input.
     pub fn output_delay(&self) -> usize {
         self.resampler.output_delay()
+    }
+
+    /// How far the output trails the input, in output frames: the filter delay plus everything
+    /// fed in but not handed out yet (our FIFO and rubato's own buffering). The FFT resampler
+    /// hands out a varying number of frames per block, so this moves with the block phase; the
+    /// DJ handover uses it to find which source moment comes out next.
+    pub fn latency_frames(&self) -> f64 {
+        let ratio = self.target_rate as f64 / self.source_rate as f64;
+        self.frames_in as f64 * ratio - self.frames_out as f64 + self.output_delay() as f64
     }
 
     pub fn chunk_size(&self) -> usize {

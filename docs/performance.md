@@ -4,9 +4,9 @@ multiplay's policy (`.nexus/policy.json`) sets these targets:
 
 | | Target | Status |
 |---|---|---|
-| Steady-state idle | idle CPU < 0.2% of one core | **not met yet** (0.25–0.33%) |
-| Active playback | playback CPU < 1.0% of one core | **not met yet** (1.6–2.2%) |
-| Memory | base memory footprint <= 35 MB | met (8–11 MiB) |
+| Steady-state idle | idle CPU < 0.2% of one core | met on Linux (0.17%); macOS 0.17–0.33% |
+| Active playback | playback CPU < 1.0% of one core | met on Linux (0.58%); **not yet on macOS** (1.25–2.2%) |
+| Memory | base memory footprint <= 35 MB | met (8–13 MiB) |
 
 The numbers below are measured, not estimated. CI re-measures them on every run and fails when
 memory goes over budget or CPU use regresses more than 20% past the measured numbers.
@@ -44,6 +44,14 @@ Release builds only: debug builds decode about ten times slower. CPU is in % of 
 | FLAC 44.1 kHz | 2.3–3.3% | 1.6–1.8% | 9.1 MiB |
 | MP3 256 kbps | 2.7–3.7% | 1.9–2.2% | 9.4–9.7 MiB |
 
+GitHub Actions `ubuntu-latest` (x86_64), first CI run of the harness:
+
+| Phase | CPU | Resident memory |
+|---|---|---|
+| Idle | 0.17% | 11.2 MiB |
+| FLAC 44.1 kHz | 0.58% | 12.5 MiB |
+| MP3 256 kbps | 0.58% | 12.9 MiB |
+
 CI adds a table for each runner to the workflow run's summary page.
 
 ### What changed (TASK-179)
@@ -54,7 +62,10 @@ Profiling the engine (macOS `sample`) while it played FLAC showed where the time
   sample. Track sample rates are fixed, so it is now rubato's synchronous FFT resampler with the
   same BlackmanHarris2 window. `crates/amp-core-engine/tests/resampler_quality.rs` checks it stays
   clean: a 1 kHz tone keeps its level within 0.1 dB, its image is more than 100 dB down, and the
-  passband is flat to 20 kHz.
+  passband is flat to 20 kHz. The FFT resampler hands out a varying number of frames per block,
+  so its latency is now tracked exactly (frames in × ratio − frames out + filter delay); the DJ
+  handover uses it to line the decks up with what is playing, and `dj_toggle` caught the
+  difference when it was still the fixed filter delay.
 - **Spectrum analyzer, ~30%.** Two FFTs ran for every few milliseconds of audio, one of them never
   shown. Both now run at most once per 60 Hz display frame (`SPECTRUM_INTERVAL`).
 - **Wake-ups.** The null output woke every 2 ms and the engine every 2 ms while the 1.36 s output
