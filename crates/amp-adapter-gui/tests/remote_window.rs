@@ -65,9 +65,13 @@ fn phone(app: &mut MultiplayGuiApp, user_agent: &'static str) -> WebSocket<TcpSt
     req.headers_mut()
         .insert("User-Agent", HeaderValue::from_static(user_agent));
     let tcp = TcpStream::connect(("127.0.0.1", port)).unwrap();
-    tcp.set_read_timeout(Some(Duration::from_millis(50)))
-        .unwrap();
+    // A generous timeout for the handshake (a busy CI runner can take more than 50 ms to
+    // answer, which interrupted it), then a short one so `closed` can poll.
+    tcp.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
     let (ws, _) = tungstenite::client::client(req, tcp).expect("pairing");
+    ws.get_ref()
+        .set_read_timeout(Some(Duration::from_millis(50)))
+        .unwrap();
     ws
 }
 
