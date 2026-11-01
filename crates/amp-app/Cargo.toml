@@ -33,3 +33,4 @@ amp-adapter-remote = { path = "../amp-adapter-remote" }
 tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake", "connect"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 serde_json = { workspace = true }
+tempfile = "3.27"

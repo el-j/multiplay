@@ -28,8 +28,10 @@ pub struct DenseConsole<'a> {
     pub volume: u8,  // 0-100
     pub balance: i8, // -50 (L) to +50 (R)
     pub buffer_fill_percent: u8,
-    pub sample_rate_khz: f32,
-    pub bitrate_kbps: u32,
+    /// Source sample rate; `None` while nothing is decoding, so no format badge is drawn.
+    pub sample_rate_khz: Option<f32>,
+    /// From the tags of lossy files.
+    pub bitrate_kbps: Option<u32>,
     pub is_stereo: bool,
 }
 
@@ -44,8 +46,8 @@ impl<'a> DenseConsole<'a> {
             volume: 80,
             balance: 0,
             buffer_fill_percent: 100,
-            sample_rate_khz: 44.1,
-            bitrate_kbps: 320,
+            sample_rate_khz: None,
+            bitrate_kbps: None,
             is_stereo: true,
         }
     }
@@ -85,8 +87,14 @@ impl<'a> DenseConsole<'a> {
         self
     }
 
-    pub fn audio_info(mut self, sample_rate_khz: f32, bitrate_kbps: u32, stereo: bool) -> Self {
-        self.sample_rate_khz = sample_rate_khz;
+    /// The format badge: source rate, bitrate when known, stereo or mono.
+    pub fn audio_info(
+        mut self,
+        sample_rate_khz: f32,
+        bitrate_kbps: Option<u32>,
+        stereo: bool,
+    ) -> Self {
+        self.sample_rate_khz = Some(sample_rate_khz);
         self.bitrate_kbps = bitrate_kbps;
         self.is_stereo = stereo;
         self
@@ -156,14 +164,18 @@ impl<'a> Widget for DenseConsole<'a> {
         }
         buf.set_string(x0 + 19, y0 + 1, format!("|{}|", spec_str), spec_style);
 
-        // Audio format badges: kbps, kHz, ST/MO
-        let format_badge = format!(
-            "[{}k][{:.1}][{}]",
-            self.bitrate_kbps,
-            self.sample_rate_khz,
-            if self.is_stereo { "ST" } else { "MO" }
-        );
-        buf.set_string(x0 + 38, y0 + 1, &format_badge, badge_style);
+        // Audio format badges: kbps, kHz, ST/MO, only for a stream that is really decoding.
+        if let Some(khz) = self.sample_rate_khz {
+            let kbps = self
+                .bitrate_kbps
+                .map(|k| format!("[{k}k]"))
+                .unwrap_or_default();
+            let format_badge = format!(
+                "{kbps}[{khz:.1}][{}]",
+                if self.is_stereo { "ST" } else { "MO" }
+            );
+            buf.set_string(x0 + 38, y0 + 1, &format_badge, badge_style);
+        }
 
         // Line 2: Volume & Balance level meters
         let vol_bars = (self.volume as usize * 14) / 100;
@@ -242,7 +254,7 @@ mod tests {
             .volume(85)
             .balance(-5)
             .buffer_fill(98)
-            .audio_info(44.1, 320, true);
+            .audio_info(44.1, Some(320), true);
 
         let area = Rect::new(0, 0, FACEPLATE_WIDTH, FACEPLATE_HEIGHT);
         let mut buf = Buffer::empty(area);

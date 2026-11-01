@@ -74,6 +74,9 @@ pub fn render_search_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             .hint_text("🔗 Paste YouTube or Bandcamp URL to add...")
             .desired_width(ui.available_width() - 80.0);
         let url_resp = ui.add(url_edit);
+        if std::mem::take(&mut app.focus_location_field) {
+            url_resp.request_focus();
+        }
         if url_resp.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter)) {
             do_add_url = true;
         }

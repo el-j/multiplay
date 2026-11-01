@@ -13,11 +13,13 @@ pub mod ports;
 pub mod pusher;
 pub mod queue;
 pub mod segment;
+pub mod stream_info;
 pub mod worker;
 
 pub use dj_link::{DjLink, DjRequest};
 pub use loader::{default_runtime_handle, open_track_blocking, DEFAULT_RESOLVE_TIMEOUT};
 pub use queue::{EngineQueue, PreviousAction, PREVIOUS_RESTART_THRESHOLD};
+pub use stream_info::{StreamFormat, StreamInfo};
 
 use crate::events::{PlayerCommand, PlayerEvent};
 use crate::playback::{RepeatMode, ShuffleMode};
@@ -108,6 +110,8 @@ pub struct PlayerEngine {
     pub total_duration: Arc<Mutex<Option<Duration>>>,
     pub seek_requested: Arc<Mutex<Option<Duration>>>,
     pub track_finished: Arc<AtomicBool>,
+    /// What is playing, for the faceplate ([`Self::stream_info`]).
+    pub stream_format: Arc<StreamFormat>,
     pub track_advanced_signal: Arc<AtomicBool>,
     pub crossfade_seconds: Arc<Mutex<f32>>,
     pub current_device_name: Arc<Mutex<String>>,
@@ -160,6 +164,7 @@ impl PlayerEngine {
             total_duration: Arc::new(Mutex::new(None)),
             seek_requested: Arc::new(Mutex::new(None)),
             track_finished: Arc::new(AtomicBool::new(false)),
+            stream_format: Arc::new(StreamFormat::default()),
             track_advanced_signal: Arc::new(AtomicBool::new(false)),
             crossfade_seconds: Arc::new(Mutex::new(0.0f32)),
             current_device_name: Arc::new(Mutex::new(cfg.device_name)),

@@ -4,44 +4,15 @@
 #![forbid(unsafe_code)]
 
 use crate::app_state::MultiplayGuiApp;
-use amp_domain::{AudioSource, Track};
+use amp_domain::Track;
 
 impl MultiplayGuiApp {
-    /// Ingests a stream URL (e.g. YouTube, Spotify, HTTP stream).
+    /// Adds a pasted link (YouTube, Bandcamp, Spotify, stream URL). Ignored if it is not one.
     pub fn ingest_url(&mut self, url: &str) {
-        let trimmed = url.trim();
-        if trimmed.is_empty() {
-            return;
+        if let Some(track) = amp_domain::source_url::track_from_link(url) {
+            self.playlist.push(track);
+            self.save_session();
         }
-
-        let (source, title) = match amp_domain::parse_source_url(trimmed) {
-            amp_domain::ParsedSourceUrl::YouTube(yt) => (
-                AudioSource::YouTube {
-                    video_id: yt.video_id,
-                },
-                "YouTube Stream",
-            ),
-            amp_domain::ParsedSourceUrl::BandcampTrack { url }
-            | amp_domain::ParsedSourceUrl::BandcampAlbum { url } => {
-                (AudioSource::Bandcamp { stream_url: url }, "Bandcamp Stream")
-            }
-            amp_domain::ParsedSourceUrl::SpotifyTrack { uri } => {
-                (AudioSource::Spotify { track_uri: uri }, "Spotify Track")
-            }
-            amp_domain::ParsedSourceUrl::DirectHttp { url } => {
-                (AudioSource::DirectHttp { url }, "Direct HTTP Stream")
-            }
-            amp_domain::ParsedSourceUrl::YouTubePlaylist { playlist_id } => (
-                AudioSource::DirectHttp {
-                    url: format!("https://www.youtube.com/playlist?list={playlist_id}"),
-                },
-                "YouTube Playlist",
-            ),
-        };
-
-        let meta = amp_domain::TrackMetadata::new(title, "Network Source");
-        self.playlist.push(Track::new(source, meta));
-        self.save_session();
     }
 
     /// Triggers background omnibox search across YouTube and Bandcamp (`TASK-153`).
@@ -53,7 +24,7 @@ impl MultiplayGuiApp {
             return;
         }
         // A pasted link is added directly; searching for it would find nothing useful.
-        if looks_like_link(&q) {
+        if amp_domain::source_url::looks_like_link(&q) {
             self.ingest_url(&q);
             self.search_query_text.clear();
             self.search_results.clear();
@@ -82,22 +53,4 @@ impl MultiplayGuiApp {
         self.playlist.push(track);
         self.save_session();
     }
-}
-/// Whether omnibox text is a link to add rather than words to search for.
-fn looks_like_link(text: &str) -> bool {
-    let t = text.trim();
-    if t.contains(char::is_whitespace) {
-        return false;
-    }
-    let lower = t.to_ascii_lowercase();
-    lower.starts_with("http://")
-        || lower.starts_with("https://")
-        || [
-            "youtube.com/",
-            "youtu.be/",
-            ".bandcamp.com/",
-            "open.spotify.com/",
-        ]
-        .iter()
-        .any(|host| lower.contains(host))
 }

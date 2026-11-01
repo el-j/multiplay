@@ -227,6 +227,66 @@ pub fn parse_source_url(input: &str) -> ParsedSourceUrl {
     ParsedSourceUrl::DirectHttp { url: s.to_string() }
 }
 
+/// True for text that is a link rather than search words: an http(s) URL, or a YouTube,
+/// Bandcamp or Spotify address pasted without the scheme.
+#[must_use]
+pub fn looks_like_link(text: &str) -> bool {
+    let t = text.trim();
+    if t.is_empty() || t.contains(char::is_whitespace) {
+        return false;
+    }
+    let lower = t.to_ascii_lowercase();
+    lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("spotify:track:")
+        || [
+            "youtube.com/",
+            "youtu.be/",
+            ".bandcamp.com/",
+            "open.spotify.com/",
+        ]
+        .iter()
+        .any(|host| lower.contains(host))
+}
+
+/// The playlist entry for a pasted link, or `None` when `input` is not a link. The title is a
+/// placeholder until the provider lookup fills in the real one.
+#[must_use]
+pub fn track_from_link(input: &str) -> Option<crate::Track> {
+    use crate::AudioSource;
+    let trimmed = input.trim();
+    if !looks_like_link(trimmed) {
+        return None;
+    }
+    let (source, title) = match parse_source_url(trimmed) {
+        ParsedSourceUrl::YouTube(yt) => (
+            AudioSource::YouTube {
+                video_id: yt.video_id,
+            },
+            "YouTube Stream",
+        ),
+        ParsedSourceUrl::BandcampTrack { url } | ParsedSourceUrl::BandcampAlbum { url } => {
+            (AudioSource::Bandcamp { stream_url: url }, "Bandcamp Stream")
+        }
+        ParsedSourceUrl::SpotifyTrack { uri } => {
+            (AudioSource::Spotify { track_uri: uri }, "Spotify Track")
+        }
+        ParsedSourceUrl::DirectHttp { url } => {
+            (AudioSource::DirectHttp { url }, "Direct HTTP Stream")
+        }
+        ParsedSourceUrl::YouTubePlaylist { playlist_id } => (
+            AudioSource::DirectHttp {
+                url: format!("https://www.youtube.com/playlist?list={playlist_id}"),
+            },
+            "YouTube Playlist",
+        ),
+    };
+    Some(crate::Track::new(
+        source,
+        crate::TrackMetadata::new(title, "Network Source"),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

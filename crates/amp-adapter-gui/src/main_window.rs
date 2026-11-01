@@ -7,6 +7,7 @@
 use crate::app::MultiplayGuiApp;
 use crate::docking::WindowId;
 use crate::responsive::row_rtl;
+use crate::transport::TransportAction;
 use crate::visualizer_widget::{VisualizerMode, VisualizerWidget};
 use eframe::egui::{self, Color32, Layout, RichText, Ui};
 use std::time::Duration;
@@ -35,6 +36,49 @@ pub fn render_main_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     toggles_row(app, ui);
 }
 
+/// `44.1 kHz · 16-bit · ST · BIT-PERFECT`: the source rate from the decoder, depth (lossless) or
+/// bitrate (lossy) and channels from the tags, and what the output does with it. Empty when
+/// nothing is decoding, so the faceplate never shows a made-up format.
+#[must_use]
+pub fn stream_label(
+    info: Option<&amp_core_engine::player::StreamInfo>,
+    meta: &amp_domain::TrackMetadata,
+) -> String {
+    let Some(info) = info else {
+        return String::new();
+    };
+    let khz = |hz: u32| {
+        let k = f64::from(hz) / 1000.0;
+        if k.fract().abs() < 1e-9 {
+            format!("{k:.0} kHz")
+        } else {
+            format!("{k:.1} kHz")
+        }
+    };
+    let mut parts = vec![khz(info.source_rate)];
+    if let Some(bits) = meta.bit_depth {
+        parts.push(format!("{bits}-bit"));
+    } else if let Some(kbps) = meta.bitrate_kbps {
+        parts.push(format!("{kbps} kbps"));
+    }
+    match meta.channels {
+        Some(1) => parts.push("MONO".into()),
+        Some(2) => parts.push("ST".into()),
+        Some(6) => parts.push("5.1".into()),
+        Some(8) => parts.push("7.1".into()),
+        Some(n) => parts.push(format!("{n} CH")),
+        None => {}
+    }
+    parts.push(if info.bit_perfect {
+        "BIT-PERFECT".into()
+    } else if info.source_rate != info.output_rate {
+        format!("DSP · {} OUT", khz(info.output_rate))
+    } else {
+        "DSP".into()
+    });
+    parts.join(" · ")
+}
+
 fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     let title = match app.playlist.get(app.selected_track_idx) {
         Some(t) => format!(
@@ -60,12 +104,37 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
             )
             .on_hover_text("Remote control is listening. Phones and requests: the 📱 window.");
         }
-        if !narrow {
+        if let amp_domain::PlaybackState::Buffering { progress_percent } =
+            app.audio_driver.playback_state()
+        {
             ui.label(
-                RichText::new("44.1kHz ST")
+                RichText::new(format!("⏳ BUFFERING {progress_percent}%"))
                     .size(10.0)
-                    .color(Color32::from_rgb(0, 200, 240)),
-            );
+                    .strong()
+                    .color(Color32::from_rgb(240, 180, 0)),
+            )
+            .on_hover_text("Waiting for the stream to download");
+        }
+        if !narrow {
+            let info = app.audio_driver.stream_info();
+            let label = app
+                .audio_driver
+                .current_track
+                .lock()
+                .ok()
+                .and_then(|t| t.as_ref().map(|t| stream_label(info.as_ref(), &t.metadata)))
+                .unwrap_or_default();
+            if !label.is_empty() {
+                ui.label(
+                    RichText::new(label)
+                        .size(10.0)
+                        .color(Color32::from_rgb(0, 200, 240)),
+                )
+                .on_hover_text(
+                    "Source format. BIT-PERFECT: samples reach the output unchanged. DSP: \
+                     resampled, or volume, EQ or loudness are changing them.",
+                );
+            }
         }
         ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
             ui.add(
@@ -149,7 +218,8 @@ fn scrubber_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     let elapsed = *app.audio_driver.elapsed.lock().unwrap();
     let total = *app.audio_driver.total_duration.lock().unwrap();
     let total_secs = total.map_or(1.0, |t| t.as_secs_f32()).max(1.0);
-    let mut progress = (elapsed.as_secs_f32() / total_secs).clamp(0.0, 1.0);
+    let playing_at = (elapsed.as_secs_f32() / total_secs).clamp(0.0, 1.0);
+    let mut progress = app.scrub.shown(playing_at);
     let small = |s: String, c| RichText::new(s).size(10.0).monospace().color(c);
     row_rtl(ui, |ui| {
         let tot = total.map_or("--:--".to_string(), mmss);
@@ -160,19 +230,22 @@ fn scrubber_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             let slider = egui::Slider::new(&mut progress, 0.0..=1.0)
                 .show_value(false)
                 .trailing_fill(true);
-            if ui.add(slider).changed() {
+            let resp = ui.add(slider).on_hover_text("Seek (Left/Right arrow: 5 s)");
+            let seek = if resp.dragged() {
+                app.scrub.drag_to(progress)
+            } else if resp.drag_stopped() {
+                app.scrub.release()
+            } else if resp.changed() {
+                app.scrub.click(progress)
+            } else {
+                None
+            };
+            if let Some(at) = seek {
                 app.audio_driver
-                    .seek(Duration::from_secs_f32(progress * total_secs));
+                    .seek(Duration::from_secs_f32(at * total_secs));
             }
         });
     });
-}
-
-fn play_index(app: &mut MultiplayGuiApp, idx: usize) {
-    app.selected_track_idx = idx;
-    app.audio_driver.play(app.playlist[idx].clone());
-    let upcoming = app.playlist.get(idx + 1).cloned();
-    app.audio_driver.set_next_track(upcoming);
 }
 
 fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
@@ -190,11 +263,10 @@ fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     ui.horizontal(|ui| {
         if ui
             .button(label("⏮", "PREV"))
-            .on_hover_text("Previous")
+            .on_hover_text("Previous (Z)")
             .clicked()
-            && app.selected_track_idx > 0
         {
-            play_index(app, app.selected_track_idx - 1);
+            app.apply_transport(TransportAction::Previous);
         }
         let (icon, text, color) = if is_playing {
             ("⏸", "PAUSE", Color32::from_rgb(255, 180, 50))
@@ -203,29 +275,24 @@ fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         };
         if ui
             .button(RichText::new(label(icon, text)).strong().color(color))
-            .on_hover_text(text)
+            .on_hover_text(format!("{text} (space)"))
             .clicked()
         {
-            if is_playing {
-                app.audio_driver.toggle_play_pause();
-            } else if app.selected_track_idx < app.playlist.len() {
-                play_index(app, app.selected_track_idx);
-            }
+            app.apply_transport(TransportAction::PlayPause);
         }
         if ui
             .button(label("⏹", "STOP"))
-            .on_hover_text("Stop")
+            .on_hover_text("Stop (V)")
             .clicked()
         {
-            app.audio_driver.stop();
+            app.apply_transport(TransportAction::Stop);
         }
         if ui
             .button(label("⏭", "NEXT"))
-            .on_hover_text("Next")
+            .on_hover_text("Next (B)")
             .clicked()
-            && app.selected_track_idx + 1 < app.playlist.len()
         {
-            play_index(app, app.selected_track_idx + 1);
+            app.apply_transport(TransportAction::Next);
         }
         ui.label(
             RichText::new("VOL")
@@ -236,7 +303,11 @@ fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         let vol = egui::Slider::new(&mut app.volume, 0.0..=1.0)
             .show_value(false)
             .trailing_fill(true);
-        if ui.add(vol).on_hover_text("Volume").changed() {
+        if ui
+            .add(vol)
+            .on_hover_text("Volume (Up/Down arrow)")
+            .changed()
+        {
             app.audio_driver.set_volume(app.volume);
         }
     });

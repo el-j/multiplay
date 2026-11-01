@@ -7,6 +7,8 @@ pub mod app_state;
 pub mod engine_factory;
 pub mod runner;
 pub mod terminal;
+pub mod tui_keys;
+pub mod tui_overlays;
 
 pub use amp_core_engine::PlayerEngine;
 pub use app_state::MultiplayApp;
@@ -24,6 +26,20 @@ mod tests {
             MultiplayApp::new_headless().expect("Failed to initialize MultiplayApp");
         assert_eq!(app.playback_state, PlaybackState::Stopped);
         assert_eq!(app.volume, 85);
+        // No demo tracks: the playlist starts empty (TASK-170).
+        assert!(app.playlist.is_empty());
+
+        for (title, artist) in [
+            ("Polynomial-C", "Aphex Twin"),
+            ("Music Is Math", "Boards of Canada"),
+        ] {
+            app.playlist.push(amp_domain::Track::new(
+                amp_domain::AudioSource::LocalFile {
+                    path: format!("{title}.flac"),
+                },
+                amp_domain::TrackMetadata::new(title, artist),
+            ));
+        }
 
         // Test spacebar toggles play
         app.handle_key(KeyCode::Char(' '), KeyModifiers::empty());
@@ -50,7 +66,6 @@ mod tests {
         app.handle_key(KeyCode::Esc, KeyModifiers::empty());
         assert!(!app.search_state.is_open);
 
-        // Test playlist navigation
         assert_eq!(app.selected_playlist_idx, 0);
         app.handle_key(KeyCode::Down, KeyModifiers::empty());
         assert_eq!(app.selected_playlist_idx, 1);
@@ -61,8 +76,8 @@ mod tests {
         // Test EQ toggle
         app.handle_key(KeyCode::Char('e'), KeyModifiers::empty());
 
-        // Test quit
-        let should_exit = app.handle_key(KeyCode::Char('q'), KeyModifiers::empty());
-        assert!(should_exit);
+        // Test quit: asks first while playing (TASK-174).
+        assert!(!app.handle_key(KeyCode::Char('q'), KeyModifiers::empty()));
+        assert!(app.handle_key(KeyCode::Char('y'), KeyModifiers::empty()));
     }
 }

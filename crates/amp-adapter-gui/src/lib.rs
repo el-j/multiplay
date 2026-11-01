@@ -10,6 +10,7 @@ pub mod app_paths;
 pub mod app_render;
 pub mod app_state;
 pub mod chrome;
+pub mod dialog_jobs;
 pub mod dj_console;
 pub mod dj_controls;
 pub mod dj_mode;
@@ -36,6 +37,7 @@ pub mod search_actions;
 pub mod search_window;
 pub mod settings_panel;
 pub mod skin_texture;
+pub mod transport;
 pub mod viewports;
 pub mod visualizer_widget;
 

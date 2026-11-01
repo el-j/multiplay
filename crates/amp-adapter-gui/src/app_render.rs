@@ -22,6 +22,11 @@ impl eframe::App for MultiplayGuiApp {
         // 1. Automatic Gapless Track Advancement & Audio Parameters Sync
         self.check_gapless_advancement();
         self.poll_playback_events();
+        self.poll_dialog();
+        if self.dialog_open() {
+            // Nothing else wakes the UI when the dialog closes.
+            ctx.request_repaint_after(Duration::from_millis(100));
+        }
         self.audio_driver
             .set_crossfade_seconds(self.config.audio.crossfade_duration_ms as f32 / 1000.0);
 

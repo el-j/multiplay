@@ -13,7 +13,7 @@ use amp_adapter_tui::{
 use amp_adapter_youtube::PureYouTubeAdapter;
 use amp_core_engine::{EventBus, FilteredSearchCoordinator, PlayerCommand, PlayerEngine};
 use amp_domain::source_badge::SourceKind;
-use amp_domain::{AudioSource, PlaybackState, Track, TrackMetadata};
+use amp_domain::{PlaybackState, Track};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -39,6 +39,16 @@ pub struct MultiplayApp {
     pub playlist: Vec<Track>,
     pub selected_playlist_idx: usize,
     pub audio_driver: Option<Arc<PlayerEngine>>,
+    /// The add prompt (`o`), while open.
+    pub prompt: Option<crate::tui_keys::PathPrompt>,
+    /// The `?` key overlay.
+    pub show_help: bool,
+    /// `q` was pressed while playing; `y` quits.
+    pub confirm_quit: bool,
+    /// EQ band the `{` / `}` keys change.
+    pub eq_band: usize,
+    /// One-line result of the last action ("Added 12 tracks").
+    pub status: Option<String>,
 }
 
 impl MultiplayApp {
@@ -87,28 +97,6 @@ impl MultiplayApp {
         let docking_mgr = DockingWindowManager::new();
         let search_state = SearchViewState::new();
 
-        let mut sample_tracks = Vec::new();
-        let mut t1 = TrackMetadata::new("Polynomial-C", "Aphex Twin");
-        t1.duration = Some(Duration::from_secs(286));
-        t1.bitrate_kbps = Some(320);
-        sample_tracks.push(Track::new(
-            AudioSource::Soulseek {
-                username: "peer_audiophile".to_string(),
-                filename: "Aphex Twin - Polynomial-C.mp3".to_string(),
-            },
-            t1,
-        ));
-
-        let mut t2 = TrackMetadata::new("Music Is Math", "Boards of Canada");
-        t2.duration = Some(Duration::from_secs(321));
-        t2.bitrate_kbps = Some(1411);
-        sample_tracks.push(Track::new(
-            AudioSource::LocalFile {
-                path: "music/boc_music_is_math.flac".to_string(),
-            },
-            t2,
-        ));
-
         let audio_driver = audio_driver.map(Arc::new);
 
         let app = Self {
@@ -121,14 +109,19 @@ impl MultiplayApp {
             search_rx,
             spectrum: [0.0; 16],
             playback_state: PlaybackState::Stopped,
-            current_title: "1. Aphex Twin - Polynomial-C".to_string(),
+            current_title: "No track loaded. Press J to search.".to_string(),
             elapsed: Duration::ZERO,
             volume: 85,
             eq_gains: [0.0; 10],
             eq_enabled: true,
-            playlist: sample_tracks,
+            playlist: Vec::new(),
             selected_playlist_idx: 0,
             audio_driver,
+            prompt: None,
+            show_help: false,
+            confirm_quit: false,
+            eq_band: 0,
+            status: None,
         };
 
         Ok((app, cmd_rx))
@@ -136,11 +129,19 @@ impl MultiplayApp {
 
     /// Handles a user keyboard event. Returns true when application should exit.
     pub fn handle_key(&mut self, key: KeyCode, modifiers: KeyModifiers) -> bool {
-        if key == KeyCode::Char('q') && !self.search_state.is_open {
-            return true;
-        }
         if key == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL) {
             return true;
+        }
+        if self.confirm_quit {
+            self.confirm_quit = false;
+            return matches!(key, KeyCode::Char('y') | KeyCode::Char('Y'));
+        }
+        if self.handle_prompt_key(key) {
+            return false;
+        }
+        if self.show_help {
+            self.show_help = false;
+            return false;
         }
 
         if self.search_state.is_open {
@@ -190,6 +191,15 @@ impl MultiplayApp {
             return false;
         }
 
+        if key == KeyCode::Char('w') && modifiers.contains(KeyModifiers::ALT) {
+            self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
+            return false;
+        }
+        self.handle_player_key(key)
+    }
+
+    /// Keys the TUI had before TASK-174: search, selection, windows, volume.
+    pub(crate) fn handle_classic_key(&mut self, key: KeyCode) -> bool {
         match key {
             KeyCode::Char('j') | KeyCode::Char('/') => {
                 self.search_state.open();
@@ -205,47 +215,12 @@ impl MultiplayApp {
                         (self.selected_playlist_idx + 1).min(self.playlist.len() - 1);
                 }
             }
-            KeyCode::Enter => {
-                if !self.playlist.is_empty() {
-                    let track = self.playlist[self.selected_playlist_idx].clone();
-                    self.current_title = format!(
-                        "{}. {} - {}",
-                        self.selected_playlist_idx + 1,
-                        track.metadata.artist,
-                        track.metadata.title
-                    );
-                    self.playback_state = PlaybackState::Playing;
-                    if let Some(ref driver) = self.audio_driver {
-                        driver.play(track.clone());
-                    }
-                    self.event_bus
-                        .send_command(PlayerCommand::PlayTrack(Box::new(track)));
-                }
-            }
+            KeyCode::Enter => self.play_index(self.selected_playlist_idx),
             KeyCode::Char('e') => {
                 self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
             }
             KeyCode::Char('p') => {
                 self.docking_mgr.toggle_tear_off(WindowId::Playlist);
-            }
-            KeyCode::Char(' ') | KeyCode::Char('x') => {
-                if self.playback_state == PlaybackState::Playing {
-                    self.playback_state = PlaybackState::Paused;
-                } else {
-                    self.playback_state = PlaybackState::Playing;
-                }
-                if let Some(ref driver) = self.audio_driver {
-                    driver.toggle_play_pause();
-                }
-                self.event_bus.send_command(PlayerCommand::TogglePause);
-            }
-            KeyCode::Char('v') => {
-                self.playback_state = PlaybackState::Stopped;
-                self.elapsed = Duration::ZERO;
-                if let Some(ref driver) = self.audio_driver {
-                    driver.stop();
-                }
-                self.event_bus.send_command(PlayerCommand::Stop);
             }
             KeyCode::Char('+') | KeyCode::Char('=') => {
                 self.volume = (self.volume + 5).min(100);
@@ -262,9 +237,6 @@ impl MultiplayApp {
                 }
                 self.event_bus
                     .send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
-            }
-            KeyCode::Char('w') if modifiers.contains(KeyModifiers::ALT) => {
-                self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
             }
             _ => {}
         }
@@ -323,12 +295,24 @@ impl MultiplayApp {
         if let Some(main_win) = self.docking_mgr.get_window(WindowId::MainConsole) {
             if main_win.visible && area.width >= FACEPLATE_WIDTH && area.height >= FACEPLATE_HEIGHT
             {
-                let console = DenseConsole::new(&self.spectrum)
+                let mut console = DenseConsole::new(&self.spectrum)
                     .title(&self.current_title)
                     .elapsed(self.elapsed)
                     .state(self.playback_state)
-                    .volume(self.volume)
-                    .audio_info(44.1, 320, true);
+                    .volume(self.volume);
+                if let Some(driver) = &self.audio_driver {
+                    if let Some(info) = driver.stream_info() {
+                        let meta = driver
+                            .current_track
+                            .lock()
+                            .ok()
+                            .and_then(|t| t.as_ref().map(|t| t.metadata.clone()));
+                        let kbps = meta.as_ref().and_then(|m| m.bitrate_kbps);
+                        let stereo = meta.and_then(|m| m.channels).is_none_or(|c| c >= 2);
+                        console =
+                            console.audio_info(info.source_rate as f32 / 1000.0, kbps, stereo);
+                    }
+                }
                 frame.render_widget(console, main_win.rect);
             }
         }
@@ -358,5 +342,6 @@ impl MultiplayApp {
             let modal = SearchViewModal::new(&self.search_state);
             frame.render_widget(modal, area);
         }
+        self.render_overlays(frame);
     }
 }
