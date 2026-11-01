@@ -34,6 +34,7 @@ fn only_the_projects_own_release_list_is_asked() {
 #[test]
 #[ignore = "live network: asks api.github.com"]
 fn the_live_release_list_parses() {
-    let releases = amp_adapter_http::releases::fetch_releases().expect("GitHub answers with a list");
+    let releases =
+        amp_adapter_http::releases::fetch_releases().expect("GitHub answers with a list");
     println!("{} published releases", releases.len());
 }
