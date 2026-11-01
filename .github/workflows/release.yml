@@ -349,6 +349,8 @@ jobs:
             -d "SourceDir=staging/$NAME" \
             -d "IconFile=assets/icon/multiplay.ico" \
             -o "dist/multiplay-$VERSION-windows-x86_64.msi"
+          # WiX also writes a debug database; it is not for users.
+          rm -f dist/*.wixpdb
           ls -la dist
 
       - name: Sign the MSI (Azure Artifact Signing)

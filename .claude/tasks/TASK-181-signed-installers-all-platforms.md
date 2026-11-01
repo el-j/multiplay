@@ -29,3 +29,10 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-049-release)
+- Windows MSI: `packaging/windows/multiplay.wxs` (WiX 5 via `dotnet tool`), Program Files + Start menu, `AllowSameVersionUpgrades` with version `<cargo>.<run>`; signed with Azure Artifact Signing when configured.
+- Debian: cargo-deb metadata in `crates/amp-adapter-gui/Cargo.toml` (both apps, desktop entry, icons 16–512, docs), version `0.1.0~beta.N`; built for x86_64 and aarch64.
+- Release dry run https://github.com/el-j/multiplay/actions/runs/41323507030: all jobs green; artifacts: dmg, msi, zip, 2× deb, 2× AppImage, 2× tar.gz, SHA256SUMS (all verify). The DMG's apps report `multiplay 0.1.0-dev.c16f06e (c16f06e)`; the license bundle is in the app's Resources.
+- Fixed after the dry run: WiX's `.wixpdb` is removed from dist.
+- Not done: notarization needs the Apple secrets; Flatpak manifest (needs generated cargo sources); installing the MSI/.deb on fresh VMs by hand.
