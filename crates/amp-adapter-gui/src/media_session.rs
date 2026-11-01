@@ -43,17 +43,18 @@ impl MultiplayGuiApp {
             });
         }
         let position = *self.audio_driver.elapsed.lock().unwrap();
-        controls.set_playback(match self.audio_driver.playback_state() {
-            PlaybackState::Playing | PlaybackState::Buffering { .. } => {
-                MediaPlayback::Playing { position }
-            }
+        let state = self.audio_driver.playback_state();
+        controls.set_playback(match state {
+            _ if sounds_playing(&state) => MediaPlayback::Playing { position },
             PlaybackState::Paused if track.is_some() => MediaPlayback::Paused { position },
             _ => MediaPlayback::Stopped,
         });
         let events = controls.take_events();
         self.media_controls = Some(controls);
 
-        let playing = self.audio_driver.playback_state() == PlaybackState::Playing;
+        // The same rule as what the system was told: a Pause pressed while the next track
+        // buffers must still pause.
+        let playing = sounds_playing(&self.audio_driver.playback_state());
         for event in events {
             let action = match event {
                 MediaKeyEvent::Play if playing => continue,
@@ -81,5 +82,28 @@ impl MultiplayGuiApp {
             };
             self.apply_transport(action);
         }
+    }
+}
+
+/// Playing as far as the system and its keys are concerned: playing, or buffering on the way.
+fn sounds_playing(state: &PlaybackState) -> bool {
+    matches!(
+        state,
+        PlaybackState::Playing | PlaybackState::Buffering { .. }
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn buffering_counts_as_playing_so_pause_works_during_a_track_change() {
+        assert!(sounds_playing(&PlaybackState::Playing));
+        assert!(sounds_playing(&PlaybackState::Buffering {
+            progress_percent: 40
+        }));
+        assert!(!sounds_playing(&PlaybackState::Paused));
+        assert!(!sounds_playing(&PlaybackState::Stopped));
     }
 }
