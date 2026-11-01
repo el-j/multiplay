@@ -12,6 +12,8 @@ pub struct SettingsOpens {
     pub remote_window: bool,
     /// A button in the Soulseek section.
     pub soulseek: Option<crate::soulseek_setup::SoulseekAction>,
+    /// A button in the mesh section.
+    pub mesh: Option<crate::mesh_setup::MeshAction>,
     /// A button in the About tab.
     pub about: crate::about::AboutAction,
 }
@@ -34,6 +36,7 @@ pub enum GuiSettingsTab {
 pub struct Services<'a> {
     pub remote: &'a mut crate::remote_manager::RemoteGuiManager,
     pub soulseek: &'a mut crate::soulseek_setup::SoulseekUi,
+    pub mesh: &'a mut crate::mesh_setup::MeshUi,
     pub slskd_installed: bool,
 }
 
@@ -62,6 +65,7 @@ impl SettingsGuiPanel {
         let Services {
             remote,
             soulseek,
+            mesh,
             slskd_installed,
         } = services;
         let (devices, headphones_error) = (outputs.names, outputs.headphones_error);
@@ -193,10 +197,7 @@ impl SettingsGuiPanel {
                     );
                 }
                 GuiSettingsTab::P2P => {
-                    ui.checkbox(
-                        &mut config.p2p.enable_p2p_mesh,
-                        "Enable Decentralized P2P Mesh",
-                    );
+                    crate::mesh_setup::show_settings(ui, config, mesh, &mut opens.mesh);
                     crate::soulseek_setup::show_settings(ui, config, soulseek, slskd_installed, &mut opens.soulseek);
                     ui.add(
                         egui::Slider::new(&mut config.p2p.max_upload_slots, 1..=16)

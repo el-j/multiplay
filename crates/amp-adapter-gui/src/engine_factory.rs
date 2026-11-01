@@ -28,6 +28,7 @@ fn default_resolvers() -> Vec<Arc<dyn StreamResolverPort>> {
         resolvers.push(Arc::new(http));
     }
     resolvers.push(crate::soulseek_setup::soulseek());
+    resolvers.push(crate::mesh_setup::mesh());
     resolvers
 }
 

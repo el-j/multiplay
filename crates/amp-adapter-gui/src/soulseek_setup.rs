@@ -74,7 +74,7 @@ impl MultiplayGuiApp {
     }
 
     /// Stores a secret in the encrypted vault.
-    pub fn save_soulseek_secret(&self, key: &str, value: &str) {
+    pub fn save_secret(&self, key: &str, value: &str) {
         if let Some(vault) = self.vault() {
             let _ = block_on(vault.store_secret(key, value));
         }
@@ -82,7 +82,7 @@ impl MultiplayGuiApp {
 
     /// Reads a secret from the vault.
     #[must_use]
-    pub fn soulseek_secret(&self, key: &str) -> Option<String> {
+    pub fn secret(&self, key: &str) -> Option<String> {
         let vault = self.vault()?;
         block_on(vault.get_secret(key))?
             .ok()
@@ -145,7 +145,7 @@ impl MultiplayGuiApp {
         }
         match settings.mode {
             SoulseekMode::External => {
-                let key = self.soulseek_secret(EXTERNAL_API_KEY).unwrap_or_default();
+                let key = self.secret(EXTERNAL_API_KEY).unwrap_or_default();
                 let url = settings.url.clone();
                 self.start_job("Connecting to slskd…", move || {
                     connect(&url, &key, Duration::ZERO)
@@ -157,15 +157,15 @@ impl MultiplayGuiApp {
                         "slskd is not installed. Install it to use Soulseek.".into();
                     return;
                 }
-                let password = self.soulseek_secret(PASSWORD_KEY).unwrap_or_default();
+                let password = self.secret(PASSWORD_KEY).unwrap_or_default();
                 if settings.username.is_empty() || password.is_empty() {
                     self.soulseek_ui.status =
                         "Enter your Soulseek user name and password, then Save.".into();
                     return;
                 }
-                let api_key = self.soulseek_secret(MANAGED_API_KEY).unwrap_or_else(|| {
+                let api_key = self.secret(MANAGED_API_KEY).unwrap_or_else(|| {
                     let key = generate_api_key();
-                    self.save_soulseek_secret(MANAGED_API_KEY, &key);
+                    self.save_secret(MANAGED_API_KEY, &key);
                     key
                 });
                 if self
@@ -244,10 +244,10 @@ impl MultiplayGuiApp {
             std::mem::take(&mut self.soulseek_ui.api_key_input),
         );
         if !password.is_empty() {
-            self.save_soulseek_secret(PASSWORD_KEY, &password);
+            self.save_secret(PASSWORD_KEY, &password);
         }
         if !key.is_empty() {
-            self.save_soulseek_secret(EXTERNAL_API_KEY, &key);
+            self.save_secret(EXTERNAL_API_KEY, &key);
         }
         self.save_and_apply_config();
         match action {

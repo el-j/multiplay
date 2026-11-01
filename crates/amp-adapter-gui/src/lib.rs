@@ -27,6 +27,7 @@ pub mod library_store;
 pub mod library_window;
 pub mod main_window;
 pub mod media_session;
+pub mod mesh_setup;
 pub mod onboarding;
 pub mod playback_notice;
 pub mod playlist_import;

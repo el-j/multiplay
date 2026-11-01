@@ -32,7 +32,12 @@ impl LookupServices {
         let bc = Arc::new(amp_adapter_bandcamp::PureBandcampAdapter::default());
         Self {
             lookups: vec![yt.clone(), bc.clone()],
-            providers: vec![yt, bc, crate::soulseek_setup::soulseek()],
+            providers: vec![
+                yt,
+                bc,
+                crate::soulseek_setup::soulseek(),
+                crate::mesh_setup::mesh(),
+            ],
         }
     }
 }

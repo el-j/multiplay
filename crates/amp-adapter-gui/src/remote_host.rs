@@ -117,6 +117,7 @@ impl MultiplayGuiApp {
             ("youtube", s.enable_youtube),
             ("bandcamp", s.enable_bandcamp),
             ("soulseek", soulseek),
+            ("mesh", self.mesh_joined()),
         ]
         .into_iter()
         .filter_map(|(id, on)| on.then_some(id))
