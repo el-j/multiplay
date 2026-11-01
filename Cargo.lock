@@ -395,6 +395,7 @@ dependencies = [
  "ratatui",
  "rtrb",
  "serde_json",
+ "tempfile",
  "tokio",
  "tokio-tungstenite",
  "tracing",

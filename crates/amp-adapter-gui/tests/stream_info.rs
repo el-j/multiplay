@@ -80,7 +80,7 @@ fn the_faceplate_label_reads_like_a_spec_sheet() {
     };
     assert_eq!(
         stream_label(Some(&resampled), &mp3),
-        "44.1 kHz · 320 kbps · MONO · DSP → 48 kHz"
+        "44.1 kHz · 320 kbps · MONO · DSP · 48 kHz OUT"
     );
 
     // Nothing playing: no made-up format.

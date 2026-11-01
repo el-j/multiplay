@@ -144,3 +144,23 @@ fn mime_types_find_their_format() {
     assert!(formats::is_playable_extension("opus"));
     assert_eq!(formats::by_mime("text/html"), None);
 }
+
+#[test]
+fn a_pasted_link_becomes_a_track() {
+    use amp_domain::source_url::track_from_link;
+    use amp_domain::AudioSource;
+    let yt = track_from_link("https://youtu.be/dQw4w9WgXcQ").unwrap();
+    assert_eq!(
+        yt.source,
+        AudioSource::YouTube {
+            video_id: "dQw4w9WgXcQ".into()
+        }
+    );
+    let radio = track_from_link("https://ice2.somafm.com/groovesalad-128-mp3").unwrap();
+    assert!(matches!(radio.source, AudioSource::DirectHttp { .. }));
+    assert!(track_from_link("   ").is_none());
+    assert!(
+        track_from_link("not a link").is_none(),
+        "plain words are a search, not a link"
+    );
+}

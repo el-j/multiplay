@@ -72,7 +72,7 @@ pub fn stream_label(
     parts.push(if info.bit_perfect {
         "BIT-PERFECT".into()
     } else if info.source_rate != info.output_rate {
-        format!("DSP → {}", khz(info.output_rate))
+        format!("DSP · {} OUT", khz(info.output_rate))
     } else {
         "DSP".into()
     });
@@ -230,7 +230,7 @@ fn scrubber_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             let slider = egui::Slider::new(&mut progress, 0.0..=1.0)
                 .show_value(false)
                 .trailing_fill(true);
-            let resp = ui.add(slider).on_hover_text("Seek (←/→: 5 s)");
+            let resp = ui.add(slider).on_hover_text("Seek (Left/Right arrow: 5 s)");
             let seek = if resp.dragged() {
                 app.scrub.drag_to(progress)
             } else if resp.drag_stopped() {
@@ -303,7 +303,11 @@ fn transport_row(app: &mut MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
         let vol = egui::Slider::new(&mut app.volume, 0.0..=1.0)
             .show_value(false)
             .trailing_fill(true);
-        if ui.add(vol).on_hover_text("Volume (↑/↓)").changed() {
+        if ui
+            .add(vol)
+            .on_hover_text("Volume (Up/Down arrow)")
+            .changed()
+        {
             app.audio_driver.set_volume(app.volume);
         }
     });

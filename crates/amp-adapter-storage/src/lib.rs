@@ -5,6 +5,7 @@
 
 pub mod analysis;
 pub mod cue;
+pub mod import;
 pub mod keyring;
 pub mod paths;
 pub mod playlist;

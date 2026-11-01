@@ -5,9 +5,7 @@
 use crate::docking::{DockManager, WindowId};
 use crate::engine_factory::{create_headless_engine, create_player_engine};
 use crate::settings_panel::GuiSettingsTab;
-use amp_adapter_storage::{
-    export_m3u8, extract_track_from_file, scan_audio_files, SessionPlaylistSnapshot,
-};
+use amp_adapter_storage::{export_m3u8, SessionPlaylistSnapshot};
 use amp_core_engine::PlayerEngine;
 use amp_domain::source_badge::SourceKind;
 use amp_domain::{AppConfig, AudioSource, Track};
@@ -330,69 +328,23 @@ impl MultiplayGuiApp {
     /// Ingests files and folders as one import: playable audio is added, skins and playlists
     /// are loaded, and audio that cannot be played is summed up in [`Self::import_notice`].
     pub fn ingest_paths(&mut self, paths: &[std::path::PathBuf]) {
-        let mut skipped = std::collections::BTreeMap::new();
-        for path in paths {
-            self.ingest_one(path, &mut skipped);
-        }
-        self.import_notice = crate::playback_notice::skipped_summary(&skipped);
-        self.save_session();
-    }
-
-    fn ingest_one(
-        &mut self,
-        path: &Path,
-        skipped: &mut std::collections::BTreeMap<&'static str, usize>,
-    ) {
-        if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-            if ext.eq_ignore_ascii_case("wsz") {
-                let _ = self.load_skin_from_path(path);
-                return;
-            }
-            if self.import_list_file(path) {
-                return;
-            }
-        }
-
-        if path.is_dir() {
-            let report = scan_audio_files(path);
-            for f in &report.files {
-                if let Some(track) = self.read_track(f) {
-                    self.playlist.push(track);
-                }
-            }
-            for cue in &report.cue_sheets {
-                self.import_list_file(cue);
-            }
-            for (format, n) in report.skipped {
-                *skipped.entry(format).or_default() += n;
-            }
-        } else if let Some(format) = amp_domain::formats::by_path(path)
-            .filter(|f| f.status != amp_domain::formats::FormatStatus::Playable)
-        {
-            *skipped.entry(format.name).or_default() += 1;
-        } else if let Some(track) = self.read_track(path) {
-            self.playlist.push(track);
-        }
-    }
-
-    /// A library track for `path`: from its tags, or, for playable formats no tag reader
-    /// understands (DSD), from the file name and the decoder's duration.
-    fn read_track(&self, path: &Path) -> Option<Track> {
-        extract_track_from_file(path).or_else(|| {
-            if !amp_domain::formats::is_playable_path(path) {
-                return None;
-            }
-            let dec = self
-                .audio_driver
-                .decoder_factory()
-                .open_file(&path.to_string_lossy())
-                .ok()?;
+        let factory = self.audio_driver.decoder_factory();
+        // DSD has no tags lofty reads: name it after the file, with the decoder's length.
+        let fallback = move |path: &Path| {
+            let dec = factory.open_file(&path.to_string_lossy()).ok()?;
             Some(amp_adapter_storage::file_name_track(
                 path,
                 dec.duration(),
                 Some(dec.sample_rate()),
             ))
-        })
+        };
+        let report = amp_adapter_storage::import::import_paths(paths, &fallback);
+        for skin in &report.skins {
+            let _ = self.load_skin_from_path(skin);
+        }
+        self.playlist.extend(report.tracks);
+        self.import_notice = crate::playback_notice::skipped_summary(&report.skipped);
+        self.save_session();
     }
 
     /// Scans the configured music folder (normally ~/Music).

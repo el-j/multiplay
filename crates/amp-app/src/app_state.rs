@@ -39,6 +39,16 @@ pub struct MultiplayApp {
     pub playlist: Vec<Track>,
     pub selected_playlist_idx: usize,
     pub audio_driver: Option<Arc<PlayerEngine>>,
+    /// The add prompt (`o`), while open.
+    pub prompt: Option<crate::tui_keys::PathPrompt>,
+    /// The `?` key overlay.
+    pub show_help: bool,
+    /// `q` was pressed while playing; `y` quits.
+    pub confirm_quit: bool,
+    /// EQ band the `{` / `}` keys change.
+    pub eq_band: usize,
+    /// One-line result of the last action ("Added 12 tracks").
+    pub status: Option<String>,
 }
 
 impl MultiplayApp {
@@ -107,6 +117,11 @@ impl MultiplayApp {
             playlist: Vec::new(),
             selected_playlist_idx: 0,
             audio_driver,
+            prompt: None,
+            show_help: false,
+            confirm_quit: false,
+            eq_band: 0,
+            status: None,
         };
 
         Ok((app, cmd_rx))
@@ -114,11 +129,19 @@ impl MultiplayApp {
 
     /// Handles a user keyboard event. Returns true when application should exit.
     pub fn handle_key(&mut self, key: KeyCode, modifiers: KeyModifiers) -> bool {
-        if key == KeyCode::Char('q') && !self.search_state.is_open {
-            return true;
-        }
         if key == KeyCode::Char('c') && modifiers.contains(KeyModifiers::CONTROL) {
             return true;
+        }
+        if self.confirm_quit {
+            self.confirm_quit = false;
+            return matches!(key, KeyCode::Char('y') | KeyCode::Char('Y'));
+        }
+        if self.handle_prompt_key(key) {
+            return false;
+        }
+        if self.show_help {
+            self.show_help = false;
+            return false;
         }
 
         if self.search_state.is_open {
@@ -168,6 +191,15 @@ impl MultiplayApp {
             return false;
         }
 
+        if key == KeyCode::Char('w') && modifiers.contains(KeyModifiers::ALT) {
+            self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
+            return false;
+        }
+        self.handle_player_key(key)
+    }
+
+    /// Keys the TUI had before TASK-174: search, selection, windows, volume.
+    pub(crate) fn handle_classic_key(&mut self, key: KeyCode) -> bool {
         match key {
             KeyCode::Char('j') | KeyCode::Char('/') => {
                 self.search_state.open();
@@ -183,47 +215,12 @@ impl MultiplayApp {
                         (self.selected_playlist_idx + 1).min(self.playlist.len() - 1);
                 }
             }
-            KeyCode::Enter => {
-                if !self.playlist.is_empty() {
-                    let track = self.playlist[self.selected_playlist_idx].clone();
-                    self.current_title = format!(
-                        "{}. {} - {}",
-                        self.selected_playlist_idx + 1,
-                        track.metadata.artist,
-                        track.metadata.title
-                    );
-                    self.playback_state = PlaybackState::Playing;
-                    if let Some(ref driver) = self.audio_driver {
-                        driver.play(track.clone());
-                    }
-                    self.event_bus
-                        .send_command(PlayerCommand::PlayTrack(Box::new(track)));
-                }
-            }
+            KeyCode::Enter => self.play_index(self.selected_playlist_idx),
             KeyCode::Char('e') => {
                 self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
             }
             KeyCode::Char('p') => {
                 self.docking_mgr.toggle_tear_off(WindowId::Playlist);
-            }
-            KeyCode::Char(' ') | KeyCode::Char('x') => {
-                if self.playback_state == PlaybackState::Playing {
-                    self.playback_state = PlaybackState::Paused;
-                } else {
-                    self.playback_state = PlaybackState::Playing;
-                }
-                if let Some(ref driver) = self.audio_driver {
-                    driver.toggle_play_pause();
-                }
-                self.event_bus.send_command(PlayerCommand::TogglePause);
-            }
-            KeyCode::Char('v') => {
-                self.playback_state = PlaybackState::Stopped;
-                self.elapsed = Duration::ZERO;
-                if let Some(ref driver) = self.audio_driver {
-                    driver.stop();
-                }
-                self.event_bus.send_command(PlayerCommand::Stop);
             }
             KeyCode::Char('+') | KeyCode::Char('=') => {
                 self.volume = (self.volume + 5).min(100);
@@ -240,9 +237,6 @@ impl MultiplayApp {
                 }
                 self.event_bus
                     .send_command(PlayerCommand::SetVolume(self.volume as f32 / 100.0));
-            }
-            KeyCode::Char('w') if modifiers.contains(KeyModifiers::ALT) => {
-                self.docking_mgr.toggle_tear_off(WindowId::Equalizer);
             }
             _ => {}
         }
@@ -348,5 +342,6 @@ impl MultiplayApp {
             let modal = SearchViewModal::new(&self.search_state);
             frame.render_widget(modal, area);
         }
+        self.render_overlays(frame);
     }
 }
