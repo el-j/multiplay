@@ -47,9 +47,28 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "multiplay",
         native_options,
-        Box::new(|_cc| {
-            let app = MultiplayGuiApp::new().expect("Failed to initialize MultiplayGuiApp");
+        Box::new(|cc| {
+            let mut app = MultiplayGuiApp::new().expect("Failed to initialize MultiplayGuiApp");
+            attach_media_controls(&mut app, cc);
             Ok(Box::new(app))
         }),
     )
+}
+
+/// Media keys and Now Playing. Without a media session (no D-Bus session on Linux, say) the app
+/// works as before, minus the keys.
+fn attach_media_controls(app: &mut MultiplayGuiApp, cc: &eframe::CreationContext<'_>) {
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    let hwnd = cc.window_handle().ok().and_then(|h| match h.as_raw() {
+        RawWindowHandle::Win32(w) => Some(std::ptr::without_provenance_mut(w.hwnd.get() as usize)),
+        _ => None,
+    });
+    let ctx = cc.egui_ctx.clone();
+    match amp_adapter_media_controls::OsMediaControls::new(
+        hwnd,
+        Box::new(move || ctx.request_repaint()),
+    ) {
+        Ok(controls) => app.attach_media_controls(Box::new(controls)),
+        Err(e) => tracing::info!("media keys unavailable: {e}"),
+    }
 }

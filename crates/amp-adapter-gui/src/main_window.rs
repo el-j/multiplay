@@ -332,6 +332,11 @@ fn toggles_row(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             (WindowId::Equalizer, "EQ".to_string(), "Equalizer window"),
             (WindowId::Playlist, "PL".to_string(), "Playlist window"),
             (
+                WindowId::Library,
+                "LIB".to_string(),
+                "Library: artists, albums and every track you added",
+            ),
+            (
                 WindowId::Remote,
                 remote,
                 "Remote: phone requests and paired devices",

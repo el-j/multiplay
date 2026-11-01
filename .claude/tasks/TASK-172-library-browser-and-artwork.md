@@ -29,3 +29,11 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-047-ux-2)
+- Model: `amp_core_engine::library_index::LibraryIndex` — artists (album artist first, case-insensitive grouping), albums (disc/track order), tracks sortable by artist/title/album/length/added with text/artist/album filters, recently added, per-source counts. 100k tracks index and sort well under a second even in debug (`tests/library_index.rs`).
+- Persistence: every import (`ingest_paths`) is stored once in `library.redb`, dated on first add (`library_store.rs`); loads on a background thread at start-up. `Track::library_key()` (source + CUE segment start) keeps the songs of a single-file album as separate entries (`amp-adapter-storage/tests/library_keys.rs`); whole-file keys unchanged.
+- Artwork: `amp_adapter_storage::artwork::ArtworkCache` — 160 px PNG thumbnails from embedded art or the folder's cover/folder/front/album image, negative results remembered, pruned oldest-first above 64 MB (`tests/artwork.rs`). Local files only (no new connections).
+- Window: `WindowId::Library` ("LIB" toggle), tabs Artists / Albums (cover grid) / Tracks (sortable columns, "+ Add all") / Recently added / Sources, filter box; `show_rows` virtualized lists; covers decoded on a worker thread, at most 120 textures (LRU, `CoverLru`). Click an artist/album → its tracks; double-click → play; right-click → add.
+- Tests: `amp-adapter-gui/tests/library_window.rs` (remembered once, survives restart, rows to playlist, LRU cap).
+- Not done: online cover URIs (would add connections), 60 FPS measured by hand at 100k.

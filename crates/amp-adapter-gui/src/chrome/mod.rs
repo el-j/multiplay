@@ -38,6 +38,7 @@ pub fn viewport_id(window: WindowId) -> ViewportId {
         WindowId::DjConsole => ViewportId::from_hash_of("win_dj"),
         WindowId::Remote => ViewportId::from_hash_of("win_remote"),
         WindowId::Search => ViewportId::from_hash_of("win_search"),
+        WindowId::Library => ViewportId::from_hash_of("win_library"),
     }
 }
 

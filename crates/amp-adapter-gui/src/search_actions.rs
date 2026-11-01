@@ -32,9 +32,19 @@ impl MultiplayGuiApp {
             self.is_searching = false;
             return;
         }
+        let enabled = self.enabled_providers();
+        if enabled.is_empty() {
+            self.search_results.clear();
+            self.is_searching = false;
+            self.search_status = Some(
+                "Online search is off. Switch on YouTube or Bandcamp in the Accounts tab of Preferences."
+                    .into(),
+            );
+            return;
+        }
         self.is_searching = true;
         self.search_status = None;
-        let job = crate::remote_lookup::LookupJob::OmniSearch { query: q };
+        let job = crate::remote_lookup::LookupJob::OmniSearch { query: q, enabled };
         self.lookup().submit(job);
     }
 

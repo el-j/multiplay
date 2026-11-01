@@ -26,6 +26,23 @@ pub struct MultiplayGuiApp {
     pub focus_location_field: bool,
     /// The open file dialog, if any (it runs on its own thread).
     pub dialog_job: Option<crate::dialog_jobs::DialogJob>,
+    /// The system's media keys and Now Playing panel, when the OS offers one.
+    pub media_controls: Option<Box<dyn amp_ports::MediaControlsPort>>,
+    /// The library browser's index; `None` until the stored library has loaded.
+    pub library_index: Option<amp_core_engine::library_index::LibraryIndex>,
+    /// Bumped whenever the index is rebuilt, so cached views know to refresh.
+    pub library_generation: u64,
+    pub library_job: Option<std::sync::mpsc::Receiver<Vec<Track>>>,
+    /// Imported while the library was still loading.
+    pub library_pending: Vec<Track>,
+    /// The Library window's view state and covers.
+    pub library_ui: crate::library_window::LibraryUi,
+    /// The first-run setup, while it is open (shown in the Preferences overlay).
+    pub onboarding: Option<crate::onboarding::Onboarding>,
+    /// The open folder dialog belongs to the setup.
+    pub dialog_for_onboarding: bool,
+    /// A background import (first-run folders, "Scan ~/Music").
+    pub import_job: Option<crate::import_jobs::ImportJob>,
     /// Scrubber drag state (seek on release).
     pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
@@ -102,10 +119,17 @@ pub struct MultiplayGuiApp {
 impl MultiplayGuiApp {
     /// Initializes GUI state on the default audio device with the user's home directories.
     pub fn new() -> Result<Self, String> {
-        Self::with_parts(
+        let mut app = Self::with_parts(
             create_player_engine()?,
             crate::app_paths::AppPaths::for_user(),
-        )
+        )?;
+        app.load_library();
+        if !app.config.ui.first_run_done {
+            app.start_onboarding();
+        } else if app.playlist.is_empty() {
+            app.scan_user_music_dir();
+        }
+        Ok(app)
     }
 
     /// Hardware-free instance whose state lives under `root` (tests and CI).
@@ -138,6 +162,15 @@ impl MultiplayGuiApp {
             search_url_text: String::new(),
             focus_location_field: false,
             dialog_job: None,
+            media_controls: None,
+            library_index: None,
+            library_generation: 0,
+            library_job: None,
+            library_pending: Vec::new(),
+            library_ui: crate::library_window::LibraryUi::default(),
+            onboarding: None,
+            dialog_for_onboarding: false,
+            import_job: None,
             scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,
@@ -187,9 +220,7 @@ impl MultiplayGuiApp {
         app.playback_events = app.audio_driver.subscribe_events();
         app.apply_config_to_engine();
         app.load_layout();
-        if !app.load_session() {
-            app.scan_user_music_dir();
-        }
+        app.load_session();
         Ok(app)
     }
 
@@ -339,6 +370,7 @@ impl MultiplayGuiApp {
             ))
         };
         let report = amp_adapter_storage::import::import_paths(paths, &fallback);
+        self.remember_in_library(&report.tracks);
         for skin in &report.skins {
             let _ = self.load_skin_from_path(skin);
         }
@@ -349,11 +381,22 @@ impl MultiplayGuiApp {
 
     /// Scans the configured music folder (normally ~/Music).
     pub fn scan_user_music_dir(&mut self) {
-        if let Some(music_dir) = self.paths.music_dir.clone() {
-            if music_dir.exists() {
-                self.ingest_path(&music_dir);
-            }
-        }
+        let folders: Vec<std::path::PathBuf> = if self.config.library.music_directories.is_empty() {
+            self.paths
+                .music_dir
+                .iter()
+                .filter(|d| d.is_dir())
+                .cloned()
+                .collect()
+        } else {
+            self.config
+                .library
+                .music_directories
+                .iter()
+                .map(std::path::PathBuf::from)
+                .collect()
+        };
+        self.start_import(folders);
     }
 
     /// Checks if active track reached EOF or automatically transitioned via lookahead feeder.

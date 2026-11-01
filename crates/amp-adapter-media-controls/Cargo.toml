@@ -1,0 +1,14 @@
+[package]
+name = "amp-adapter-media-controls"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+publish = false
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }
+tracing = { workspace = true }
+# OS media keys and "Now Playing": MPRIS over pure-Rust zbus on Linux (not libdbus), the
+# MediaPlayer framework on macOS, SMTC on Windows (TASK-173).
+souvlaki = { version = "=0.9.3", default-features = false, features = ["use_zbus"] }

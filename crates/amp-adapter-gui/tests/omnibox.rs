@@ -115,3 +115,33 @@ fn plain_words_are_still_searched() {
     assert!(app.is_searching);
     assert!(app.playlist.is_empty());
 }
+
+#[test]
+fn a_provider_switched_off_in_preferences_is_not_asked() {
+    let (_root, mut app) = app();
+    app.config.streaming.enable_bandcamp = false;
+    app.search_query_text = "never gonna".into();
+    app.trigger_gui_search();
+    wait_for_search(&mut app);
+    assert_eq!(app.search_results.len(), 1);
+    let status = app.search_status.clone().unwrap_or_default();
+    assert!(
+        !status.contains("Bandcamp"),
+        "Bandcamp was not asked: {status:?}"
+    );
+}
+
+#[test]
+fn with_every_online_source_off_nothing_is_sent() {
+    let (_root, mut app) = app();
+    app.config.streaming.enable_bandcamp = false;
+    app.config.streaming.enable_youtube = false;
+    app.search_query_text = "never gonna".into();
+    app.trigger_gui_search();
+    assert!(!app.is_searching, "no search starts");
+    let status = app.search_status.clone().unwrap_or_default();
+    assert!(
+        status.contains("Preferences"),
+        "says where to switch them on: {status:?}"
+    );
+}

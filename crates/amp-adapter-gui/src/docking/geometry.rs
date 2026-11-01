@@ -20,6 +20,8 @@ pub enum WindowId {
     Remote,
     /// Universal Omnibox Search Window (TASK-153): YouTube, Bandcamp & Library.
     Search,
+    /// Library browser: artists, albums, tracks, recently added (TASK-172).
+    Library,
 }
 
 /// 2D rectangular bounding box for floating windows.

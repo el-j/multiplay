@@ -11,6 +11,7 @@ pub mod downloader;
 pub mod dsp;
 pub mod events;
 pub mod filtered_search;
+pub mod library_index;
 pub mod playback;
 pub mod player;
 pub mod plugin_registry;

@@ -109,7 +109,7 @@ impl MultiplayGuiApp {
     }
 
     /// The library database (analysis cache and hot cues), opened on first use.
-    fn library(&mut self) -> Option<Arc<RedbStorageAdapter>> {
+    pub(crate) fn library(&mut self) -> Option<Arc<RedbStorageAdapter>> {
         if self.library.is_none() {
             let path = self.paths.data_dir.join("library.redb");
             let _ = std::fs::create_dir_all(&self.paths.data_dir);

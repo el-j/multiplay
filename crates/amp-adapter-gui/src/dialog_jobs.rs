@@ -47,6 +47,16 @@ impl MultiplayGuiApp {
             Err(TryRecvError::Disconnected) => Vec::new(),
         };
         self.dialog_job = None;
+        if std::mem::take(&mut self.dialog_for_onboarding) {
+            if let Some(ob) = self.onboarding.as_mut() {
+                for p in picked {
+                    if !ob.folders.contains(&p) {
+                        ob.folders.push(p);
+                    }
+                }
+            }
+            return;
+        }
         if !picked.is_empty() {
             self.ingest_paths(&picked);
         }
@@ -55,6 +65,14 @@ impl MultiplayGuiApp {
     /// The add dialog: audio files (and folders on macOS), playlists, CUE sheets, skins.
     pub fn open_file_dialog(&mut self) {
         self.start_dialog(crate::file_dialog::pick_audio_files);
+    }
+
+    /// The folder dialog for the first-run setup: the folders go into its list, not the playlist.
+    pub fn start_dialog_for_onboarding(&mut self) {
+        if !self.dialog_open() {
+            self.start_dialog(crate::file_dialog::pick_folders);
+            self.dialog_for_onboarding = true;
+        }
     }
 
     /// The folder dialog: whole music folders.

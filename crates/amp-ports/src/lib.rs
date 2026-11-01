@@ -7,6 +7,7 @@ pub mod clock;
 pub mod driven;
 pub mod driving;
 pub mod error;
+pub mod media_controls;
 pub mod plugin;
 pub mod stream;
 
@@ -15,6 +16,7 @@ pub use clock::{OutputClock, OUTPUT_TAP_SAMPLES};
 pub use driven::*;
 pub use driving::*;
 pub use error::*;
+pub use media_controls::{MediaControlsPort, MediaKeyEvent, MediaPlayback, NowPlaying};
 pub use plugin::*;
 pub use stream::{
     PrecacheStreamReader, SharedPrecacheBuffer, DEFAULT_BUFFER_WATERMARK_BYTES,

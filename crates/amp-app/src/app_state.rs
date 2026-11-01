@@ -49,6 +49,8 @@ pub struct MultiplayApp {
     pub eq_band: usize,
     /// One-line result of the last action ("Added 12 tracks").
     pub status: Option<String>,
+    /// MPRIS media keys and Now Playing (Linux; see `amp-adapter-media-controls`).
+    pub media_controls: Option<Box<dyn amp_ports::MediaControlsPort>>,
 }
 
 impl MultiplayApp {
@@ -122,6 +124,7 @@ impl MultiplayApp {
             confirm_quit: false,
             eq_band: 0,
             status: None,
+            media_controls: None,
         };
 
         Ok((app, cmd_rx))

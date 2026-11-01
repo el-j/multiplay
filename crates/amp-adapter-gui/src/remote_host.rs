@@ -107,8 +107,17 @@ impl MultiplayGuiApp {
             .expect("lookup thread just started")
     }
 
-    fn providers_enabled(&self) -> bool {
-        self.config.streaming.enable_youtube
+    /// Online providers switched on in the Accounts tab of Preferences; only these are ever asked.
+    #[must_use]
+    pub fn enabled_providers(&self) -> Vec<&'static str> {
+        let s = &self.config.streaming;
+        [
+            ("youtube", s.enable_youtube),
+            ("bandcamp", s.enable_bandcamp),
+        ]
+        .into_iter()
+        .filter_map(|(id, on)| on.then_some(id))
+        .collect()
     }
 
     fn on_track_request(&mut self, r: TrackRequest) {
@@ -119,7 +128,7 @@ impl MultiplayGuiApp {
             },
             ValidReference::Search(q) => match library_matches(&self.playlist, q, 1).first() {
                 Some(t) => Preview::Ready(Box::new(requested_copy(t))),
-                None if self.providers_enabled() => Preview::Resolving,
+                None if !self.enabled_providers().is_empty() => Preview::Resolving,
                 None => return self.refuse(r.id),
             },
             ValidReference::YouTube { .. } => Preview::Resolving,
@@ -131,7 +140,7 @@ impl MultiplayGuiApp {
             let job = LookupJob::Preview {
                 id: r.id,
                 reference: r.reference.clone(),
-                providers: self.providers_enabled(),
+                enabled: self.enabled_providers(),
             };
             self.lookup().submit(job);
         }
@@ -166,11 +175,13 @@ impl MultiplayGuiApp {
                 reference: TrackReference::Library(t.id),
             })
             .collect();
-        if self.providers_enabled() {
+        let enabled = self.enabled_providers();
+        if !enabled.is_empty() {
             self.lookup().submit(LookupJob::Search {
                 device,
                 query,
                 library,
+                enabled,
             });
         } else {
             self.remote.send_search_results(&device, &query, library);

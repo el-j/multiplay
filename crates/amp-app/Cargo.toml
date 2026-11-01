@@ -20,6 +20,7 @@ amp-adapter-p2p = { path = "../amp-adapter-p2p" }
 amp-adapter-http = { path = "../amp-adapter-http" }
 amp-adapter-bandcamp = { path = "../amp-adapter-bandcamp" }
 amp-adapter-tui = { path = "../amp-adapter-tui" }
+amp-adapter-media-controls = { path = "../amp-adapter-media-controls" }
 tokio = { workspace = true }
 ratatui = "0.30"
 crossterm = "0.29"

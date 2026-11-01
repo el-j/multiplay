@@ -14,15 +14,16 @@ fails the build until it is listed here.
 
 | When | Server | What is sent |
 |---|---|---|
-| You search in the search window, or a paired phone searches | `www.youtube.com` | Your search text |
-| The same search | `bandcamp.com` (`/api/bcsearch_public_api/…`) | Your search text |
+| You search in the search window, or a paired phone searches, with YouTube on | `www.youtube.com` | Your search text |
+| The same search, with Bandcamp on | `bandcamp.com` (`/api/bcsearch_public_api/…`) | Your search text |
 | You play or add a YouTube result or link | `www.youtube.com`, `*.googlevideo.com` | The video ID; the audio is then downloaded from Google's video servers |
 | You play or add a Bandcamp result or link | `<artist>.bandcamp.com`, `*.bcbits.com` | The release page address; the audio stream is downloaded from Bandcamp's media servers |
 | You play an internet radio station or a stream link | The server in that link | A normal HTTP request for the stream. `Icy-MetaData: 1` asks the station to send the song titles |
 | You click a link in Preferences → About | `github.com` | Your web browser opens the project page or this statement |
 
-A search is always sent to both YouTube and Bandcamp; your own library is searched on this
-computer only.
+A search goes only to the online sources switched on in Preferences → Accounts (or in the
+first-run setup): YouTube and Bandcamp are on unless you switch them off. With both off, nothing
+is sent. Your own library is always searched on this computer only.
 
 Every one of these is a plain request from your computer to that service, the same as visiting it in
 a browser. The service sees your IP address and what you asked for, and its own privacy policy
@@ -65,6 +66,13 @@ Preferences → Remote Control lets a phone control playback.
 The code contains a Soulseek client (`server.slsknet.org:2242`) and a peer-to-peer sharing mesh. In
 this beta neither makes any connection: there is no Soulseek login, and the mesh only searches what
 is already on this computer. This page will be updated before either goes online.
+
+## Media keys and Now Playing
+
+multiplay tells the operating system what is playing (title, artist, album, length, and the cover
+image address for online tracks) so media keys and the system's Now Playing panel work: Control
+Center on macOS, the media overlay on Windows, MPRIS on Linux (over the local D-Bus session, which
+other programs on this computer, such as `playerctl`, can read). This stays on your computer.
 
 ## Files multiplay stores on your computer
 

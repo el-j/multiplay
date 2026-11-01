@@ -285,3 +285,53 @@ impl MultiplayApp {
         false
     }
 }
+
+impl MultiplayApp {
+    /// Tells the system what plays and turns media keys into the matching player keys.
+    pub fn sync_media_controls(&mut self) {
+        use amp_ports::{MediaKeyEvent, MediaPlayback, NowPlaying};
+        let (Some(mut controls), Some(driver)) =
+            (self.media_controls.take(), self.audio_driver.clone())
+        else {
+            return;
+        };
+        let track = driver.current_track.lock().ok().and_then(|t| t.clone());
+        if let Some(track) = &track {
+            controls.set_now_playing(&NowPlaying {
+                title: track.metadata.title.clone(),
+                artist: track.metadata.artist.clone(),
+                album: track.metadata.album.clone(),
+                duration: *driver.total_duration.lock().unwrap(),
+                cover_url: None,
+            });
+        }
+        let position = *driver.elapsed.lock().unwrap();
+        controls.set_playback(match self.playback_state {
+            PlaybackState::Playing => MediaPlayback::Playing { position },
+            PlaybackState::Paused => MediaPlayback::Paused { position },
+            _ => MediaPlayback::Stopped,
+        });
+        let events = controls.take_events();
+        self.media_controls = Some(controls);
+        for event in events {
+            let key = match event {
+                MediaKeyEvent::Play if self.playback_state == PlaybackState::Playing => continue,
+                MediaKeyEvent::Pause if self.playback_state != PlaybackState::Playing => continue,
+                MediaKeyEvent::Play | MediaKeyEvent::Pause | MediaKeyEvent::Toggle => {
+                    KeyCode::Char(' ')
+                }
+                MediaKeyEvent::Stop => KeyCode::Char('v'),
+                MediaKeyEvent::Next => KeyCode::Char('b'),
+                MediaKeyEvent::Previous => KeyCode::Char('z'),
+                MediaKeyEvent::SeekStep { forward: true } => KeyCode::Right,
+                MediaKeyEvent::SeekBy(secs) if secs > 0 => KeyCode::Right,
+                MediaKeyEvent::SeekStep { .. } | MediaKeyEvent::SeekBy(_) => KeyCode::Left,
+                MediaKeyEvent::SetPosition(at) => {
+                    driver.seek(at);
+                    continue;
+                }
+            };
+            self.handle_player_key(key);
+        }
+    }
+}
