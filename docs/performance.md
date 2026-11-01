@@ -4,8 +4,8 @@ multiplay's policy (`.nexus/policy.json`) sets these targets:
 
 | | Target | Status |
 |---|---|---|
-| Steady-state idle | idle CPU < 0.2% of one core | met on Linux (0.17%); macOS 0.17–0.33% |
-| Active playback | playback CPU < 1.0% of one core | met on Linux (0.58%); **not yet on macOS** (1.25–2.2%) |
+| Steady-state idle | idle CPU < 0.2% of one core | **met in some runs** (0.17–0.42%) |
+| Active playback | playback CPU < 1.0% of one core | **met in some runs** (0.58–2.2%) |
 | Memory | base memory footprint <= 35 MB | met (8–13 MiB) |
 
 The numbers below are measured, not estimated. CI re-measures them on every run and fails when
@@ -44,13 +44,14 @@ Release builds only: debug builds decode about ten times slower. CPU is in % of 
 | FLAC 44.1 kHz | 2.3–3.3% | 1.6–1.8% | 9.1 MiB |
 | MP3 256 kbps | 2.7–3.7% | 1.9–2.2% | 9.4–9.7 MiB |
 
-GitHub Actions `ubuntu-latest` (x86_64), first CI run of the harness:
+GitHub Actions runners (shared virtual machines; the same code measures 2–3x apart between
+runs, so CI checks against the worst measured run plus 20%):
 
-| Phase | CPU | Resident memory |
-|---|---|---|
-| Idle | 0.17% | 11.2 MiB |
-| FLAC 44.1 kHz | 0.58% | 12.5 MiB |
-| MP3 256 kbps | 0.58% | 12.9 MiB |
+| Runner | Idle | FLAC 44.1 kHz | MP3 256 kbps | Resident memory |
+|---|---|---|---|---|
+| `ubuntu-latest` x86_64, run 1 | 0.17% | 0.58% | 0.58% | 11–13 MiB |
+| `ubuntu-latest` x86_64, run 2 | 0.42% | 1.58% | 1.58% | 11–12 MiB |
+| `macos-latest` aarch64 | 0.17% | 1.08% | 1.25% | 12–14 MiB |
 
 CI adds a table for each runner to the workflow run's summary page.
 

@@ -21,10 +21,10 @@ const IDLE_CPU_PERCENT: f64 = 0.2;
 const PLAYING_CPU_PERCENT: f64 = 1.0;
 const RESIDENT_MIB: f64 = 35.0;
 
-/// Measured on 2026-10-31 (docs/performance.md): the worst of the measured runs, in % of one
-/// core. CI fails when a run is more than 20% above them, so regressions show up without
+/// Measured 2026-10-31/11-01 (docs/performance.md): the worst run on a laptop or a CI runner,
+/// in % of one core (shared runners vary by 2-3x between runs). CI fails when a run is more than 20% above them, so regressions show up without
 /// runner noise failing the build.
-const MEASURED_IDLE_CPU_PERCENT: f64 = 0.35;
+const MEASURED_IDLE_CPU_PERCENT: f64 = 0.5;
 const MEASURED_PLAYING_CPU_PERCENT: f64 = 2.2;
 const REGRESSION_MARGIN: f64 = 1.2;
 
