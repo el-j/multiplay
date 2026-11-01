@@ -88,10 +88,12 @@ fn playable_extensions_are_listed_once_in_registry_order() {
 #[test]
 fn no_crate_keeps_its_own_extension_list() {
     let crates = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-    // Container sniffing by magic bytes names the result; it is not a list of accepted formats.
+    // Container sniffing by magic bytes names the result, and the mix recorder names the file it
+    // writes; neither is a list of accepted formats.
     let allowed = [
         "amp-domain/src/formats.rs",
         "amp-core-engine/src/downloader.rs",
+        "amp-core-engine/src/dj/recorder.rs",
     ];
     let mut offenders = Vec::new();
     for entry in walk(&crates) {

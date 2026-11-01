@@ -115,6 +115,7 @@ other programs on this computer, such as `playerctl`, can read). This stays on y
 | `~/.multiplay/` | Session playlist, library database, paired remote devices, phone uploads |
 | `~/.multiplay/logs/` | Log files (one per day, the last 7 kept), crash reports and diagnostics zips you save. Track titles and stream addresses appear in the logs |
 | `~/.config/multiplay/` | `config.toml` (settings) and the window layout |
+| `multiplay mixes/` beside your first music folder (else `~/.multiplay/mixes/`) | DJ mixes you record with REC, as FLAC files |
 
 Nothing in these folders is uploaded anywhere. Delete them to reset multiplay.
 

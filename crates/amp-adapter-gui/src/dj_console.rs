@@ -86,6 +86,7 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
         app.library.clone(),
     );
     let mut leave = false;
+    let mut record = false;
     for o in out {
         match o {
             UiOut::LoadNext(deck) => {
@@ -99,9 +100,20 @@ pub fn render_dj_console(app: &mut MultiplayGuiApp, ui: &mut Ui) {
             UiOut::ToggleAuto if dj.automix_on() => dj.stop_automix(),
             UiOut::ToggleAuto => dj.start_automix(&mut source),
             UiOut::Leave => leave = true,
+            UiOut::Record => record = true,
         }
     }
+
     dj.tick_automix(&mut source);
+    if record {
+        let text = crate::dj_record::toggle_recording(app, &mut dj);
+        crate::dj_record::tell(&mut st, text);
+    }
+    if leave {
+        if let Some(text) = crate::dj_record::finish_recording(app, &mut dj) {
+            crate::dj_record::tell(&mut st, text);
+        }
+    }
     app.dj = Some(dj);
     app.dj_console = st;
     if leave {

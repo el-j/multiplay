@@ -14,6 +14,7 @@ pub mod dialog_jobs;
 pub mod dj_console;
 pub mod dj_controls;
 pub mod dj_mode;
+pub mod dj_record;
 pub mod dj_session;
 pub mod dj_strip;
 pub mod dj_waveform;

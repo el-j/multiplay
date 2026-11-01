@@ -25,6 +25,7 @@ pub(crate) enum UiOut {
     LoadNext(usize),
     ToggleAuto,
     Leave,
+    Record,
 }
 
 /// What the console widgets work on.
@@ -291,6 +292,21 @@ pub(crate) fn mixer_column(p: &mut Panel<'_>, ui: &mut Ui, width: f32) {
                 RichText::new("AUTO").size(10.0),
                 auto,
             );
+            let recording = p.dj.control().recorder().is_recording();
+            let label = crate::dj_record::rec_label(p.dj);
+            let rec = RichText::new(label).size(10.0);
+            let rec = if recording {
+                rec.color(Color32::from_rgb(255, 70, 70))
+            } else {
+                rec
+            };
+            if ui
+                .add(egui::Button::selectable(recording, rec))
+                .on_hover_text("Record the master mix to a FLAC file; press again to save it")
+                .clicked()
+            {
+                p.out.push(UiOut::Record);
+            }
             act(
                 p,
                 ui,
