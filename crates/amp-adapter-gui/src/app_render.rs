@@ -28,6 +28,7 @@ impl eframe::App for MultiplayGuiApp {
         self.poll_import();
         self.maybe_check_for_updates();
         self.poll_update_check();
+        self.poll_soulseek();
         if self.importing() {
             ctx.request_repaint_after(Duration::from_millis(250));
         }

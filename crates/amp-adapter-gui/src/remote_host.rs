@@ -111,9 +111,12 @@ impl MultiplayGuiApp {
     #[must_use]
     pub fn enabled_providers(&self) -> Vec<&'static str> {
         let s = &self.config.streaming;
+        // Soulseek only once slskd answered (TASK-162).
+        let soulseek = self.config.soulseek.enabled && self.soulseek_ui.connected;
         [
             ("youtube", s.enable_youtube),
             ("bandcamp", s.enable_bandcamp),
+            ("soulseek", soulseek),
         ]
         .into_iter()
         .filter_map(|(id, on)| on.then_some(id))

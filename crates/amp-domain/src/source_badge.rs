@@ -62,7 +62,6 @@ impl Default for SourceFilterMask {
         enabled.insert(SourceKind::NetworkSmb);
         enabled.insert(SourceKind::DirectHttp);
         enabled.insert(SourceKind::YouTube);
-        enabled.insert(SourceKind::Spotify);
         enabled.insert(SourceKind::Bandcamp);
         enabled.insert(SourceKind::SoundCloud);
         enabled.insert(SourceKind::Soulseek);
@@ -108,9 +107,9 @@ mod tests {
         let mask = SourceFilterMask::default();
         assert!(mask.is_enabled(SourceKind::LocalFile));
         assert!(mask.is_enabled(SourceKind::YouTube));
-        assert!(mask.is_enabled(SourceKind::Spotify));
+        assert!(!mask.is_enabled(SourceKind::Spotify), "dropped (ADR-007)");
         assert!(mask.is_enabled(SourceKind::DirectHttp));
-        assert_eq!(mask.enabled_sources.len(), 9);
+        assert_eq!(mask.enabled_sources.len(), 8);
     }
 
     #[test]

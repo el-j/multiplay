@@ -42,6 +42,7 @@ pub mod search_actions;
 pub mod search_window;
 pub mod settings_panel;
 pub mod skin_texture;
+pub mod soulseek_setup;
 pub mod transport;
 pub mod update_notice;
 pub mod viewports;

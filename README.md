@@ -34,7 +34,7 @@ terminal (TUI) front end.
 | YouTube | **Experimental** | Resolver exists; playback of the selected stream format is unverified. |
 | Bandcamp, SoundCloud | **Planned** | Not implemented. |
 | Soulseek search, download & sharing | **Planned** | Current crate is an in-memory placeholder with no networking. |
-| Spotify | **Planned** | Current crate is a placeholder; scope under review. |
+| Spotify | **Not supported** | Dropped for now ([ADR-007](docs/adr/ADR-007-drop-spotify.md)); old playlist entries say why. |
 | Private P2P mesh | **Planned** | Current crate is a placeholder; scope under review. |
 | DJ mode | **Beta** | The main window becomes a two-deck console (Ctrl/Cmd+J) without a gap in the music. Beat-synced decks with key lock, prelisten in headphones (split cable or a second device), loops and hot cues, 3-band EQ with kills, filter, limiter, waveforms with beat markers, and auto mix through a playlist assigned to decks. Covered by automated tests on all platforms; a live release-build session is still to be recorded. |
 | Phone remote control (Wi-Fi, QR pairing) | **Experimental** | Off by default; see [Security](#security). |

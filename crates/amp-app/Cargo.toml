@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+toml = "1"
 tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
@@ -14,7 +15,6 @@ amp-adapter-cpal = { path = "../amp-adapter-cpal" }
 amp-adapter-decoder = { path = "../amp-adapter-decoder" }
 amp-adapter-storage = { path = "../amp-adapter-storage" }
 amp-adapter-youtube = { path = "../amp-adapter-youtube" }
-amp-adapter-spotify = { path = "../amp-adapter-spotify" }
 amp-adapter-soulseek = { path = "../amp-adapter-soulseek" }
 amp-adapter-p2p = { path = "../amp-adapter-p2p" }
 amp-adapter-http = { path = "../amp-adapter-http" }

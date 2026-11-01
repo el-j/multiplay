@@ -164,3 +164,37 @@ fn a_pasted_link_becomes_a_track() {
         "plain words are a search, not a link"
     );
 }
+
+/// Spotify was dropped (ADR-007): its links are recognised, so they are not searched for, but
+/// they become no track, and the reason says so.
+#[test]
+fn spotify_links_are_refused_with_a_reason() {
+    use amp_domain::source_url::{looks_like_link, track_from_link, unsupported_link};
+    for link in [
+        "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC",
+        "spotify:track:4uLU6hMCjMI75M1A2tKUQC",
+    ] {
+        assert!(looks_like_link(link), "{link}");
+        assert!(track_from_link(link).is_none(), "{link}");
+        assert!(
+            unsupported_link(link).is_some_and(|r| r.contains("Spotify")),
+            "{link}"
+        );
+    }
+    assert!(unsupported_link("https://youtu.be/dQw4w9WgXcQ").is_none());
+}
+
+#[test]
+fn an_old_config_with_the_spotify_switch_still_loads() {
+    let mut value = toml::Value::try_from(amp_domain::AppConfig::default()).unwrap();
+    value["streaming"]
+        .as_table_mut()
+        .unwrap()
+        .insert("enable_spotify".into(), toml::Value::Boolean(true));
+    let text = toml::to_string(&value).unwrap();
+    let back: amp_domain::AppConfig = toml::from_str(&text).expect("still loads");
+    assert_eq!(
+        back.streaming.enable_youtube,
+        amp_domain::AppConfig::default().streaming.enable_youtube
+    );
+}

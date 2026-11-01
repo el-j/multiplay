@@ -328,22 +328,20 @@ dependencies = [
 name = "amp-adapter-soulseek"
 version = "0.1.0"
 dependencies = [
+ "amp-adapter-http",
  "amp-domain",
  "amp-ports",
  "async-trait",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
-]
-
-[[package]]
-name = "amp-adapter-spotify"
-version = "0.1.0"
-dependencies = [
- "amp-domain",
- "amp-ports",
- "async-trait",
- "thiserror 2.0.21",
- "tokio",
+ "tracing",
+ "uuid",
+ "zip",
 ]
 
 [[package]]
@@ -408,7 +406,6 @@ dependencies = [
  "amp-adapter-p2p",
  "amp-adapter-remote",
  "amp-adapter-soulseek",
- "amp-adapter-spotify",
  "amp-adapter-storage",
  "amp-adapter-tui",
  "amp-adapter-youtube",
@@ -423,6 +420,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-tungstenite",
+ "toml",
  "tracing",
  "uuid",
 ]
@@ -460,6 +458,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "toml",
  "uuid",
 ]
 

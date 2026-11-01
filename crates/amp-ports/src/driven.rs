@@ -32,6 +32,11 @@ pub enum ProviderError {
 #[async_trait]
 pub trait StreamResolverPort: Send + Sync {
     fn handles_source(&self, source: &AudioSource) -> bool;
+    /// How long resolving may take, when longer than the engine's default (a Soulseek download
+    /// waits for the whole file). `None` keeps the default.
+    fn resolve_timeout(&self) -> Option<std::time::Duration> {
+        None
+    }
     async fn resolve_stream(
         &self,
         source: &AudioSource,
