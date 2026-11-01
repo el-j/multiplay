@@ -147,13 +147,18 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 .map(|d| d.name.clone())
                 .collect();
             let prev_config = app.config.clone();
+            let slskd_installed = app.slskd_installed();
             let done = SettingsGuiPanel::show(
                 ui,
                 &mut app.settings_tab,
                 &mut app.config,
                 &mut app.theme,
                 &mut opens,
-                &mut app.remote,
+                crate::settings_panel::Services {
+                    remote: &mut app.remote,
+                    soulseek: &mut app.soulseek_ui,
+                    slskd_installed,
+                },
                 crate::settings_panel::OutputDevices {
                     names: &devices,
                     headphones_error: app.dj_phones_error.as_deref(),
@@ -164,6 +169,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             }
             if opens.skin_dialog {
                 app.open_skin_dialog();
+            }
+            if let Some(action) = opens.soulseek {
+                app.soulseek_action(action);
             }
             if opens.about == crate::about::AboutAction::RunSetup {
                 app.start_onboarding();

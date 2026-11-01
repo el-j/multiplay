@@ -21,6 +21,46 @@ pub struct AppConfig {
     /// Opt-in update check (TASK-183). Missing in older config files: off.
     #[serde(default)]
     pub updates: UpdateConfig,
+    /// "Use Soulseek" through slskd (TASK-162). Missing in older config files: off.
+    #[serde(default)]
+    pub soulseek: SoulseekConfig,
+}
+
+/// How multiplay reaches Soulseek: always through slskd, a separate client.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SoulseekMode {
+    /// multiplay installs slskd (on request) and runs it while it runs.
+    #[default]
+    Managed,
+    /// The user runs slskd themselves; multiplay connects to it.
+    External,
+}
+
+/// Soulseek settings. The Soulseek password and slskd's API key live in the encrypted vault,
+/// not here.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SoulseekConfig {
+    pub enabled: bool,
+    pub mode: SoulseekMode,
+    /// slskd's address for [`SoulseekMode::External`].
+    pub url: String,
+    /// Soulseek account name for [`SoulseekMode::Managed`].
+    pub username: String,
+    /// Port of the managed slskd on 127.0.0.1.
+    pub managed_port: u16,
+}
+
+impl Default for SoulseekConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: SoulseekMode::Managed,
+            url: "http://127.0.0.1:5030".into(),
+            username: String::new(),
+            managed_port: 5031,
+        }
+    }
 }
 
 /// The update check: off unless the user turns it on in Preferences -> About.
@@ -144,7 +184,6 @@ impl Default for StreamingProvidersConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct P2PNetworkConfig {
     pub enable_p2p_mesh: bool,
-    pub enable_soulseek: bool,
     pub mesh_listen_port: u16,
     pub soulseek_listen_port: u16,
     pub max_upload_slots: u16,
@@ -155,7 +194,6 @@ impl Default for P2PNetworkConfig {
     fn default() -> Self {
         Self {
             enable_p2p_mesh: true,
-            enable_soulseek: false,
             mesh_listen_port: 4040,
             soulseek_listen_port: 2234,
             max_upload_slots: 4,

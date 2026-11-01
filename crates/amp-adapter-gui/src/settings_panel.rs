@@ -10,6 +10,8 @@ use eframe::egui::{self, Color32, RichText, Ui};
 pub struct SettingsOpens {
     pub skin_dialog: bool,
     pub remote_window: bool,
+    /// A button in the Soulseek section.
+    pub soulseek: Option<crate::soulseek_setup::SoulseekAction>,
     /// A button in the About tab.
     pub about: crate::about::AboutAction,
 }
@@ -26,6 +28,13 @@ pub enum GuiSettingsTab {
     Plugins,
     Remote,
     About,
+}
+
+/// Background services the panel controls.
+pub struct Services<'a> {
+    pub remote: &'a mut crate::remote_manager::RemoteGuiManager,
+    pub soulseek: &'a mut crate::soulseek_setup::SoulseekUi,
+    pub slskd_installed: bool,
 }
 
 /// Output devices for the audio tab.
@@ -47,9 +56,14 @@ impl SettingsGuiPanel {
         config: &mut AppConfig,
         theme: &mut amp_core_engine::WinampTheme,
         opens: &mut SettingsOpens,
-        remote: &mut crate::remote_manager::RemoteGuiManager,
+        services: Services<'_>,
         outputs: OutputDevices<'_>,
     ) -> bool {
+        let Services {
+            remote,
+            soulseek,
+            slskd_installed,
+        } = services;
         let (devices, headphones_error) = (outputs.names, outputs.headphones_error);
         let mut done = false;
         ui.group(|ui| {
@@ -183,10 +197,7 @@ impl SettingsGuiPanel {
                         &mut config.p2p.enable_p2p_mesh,
                         "Enable Decentralized P2P Mesh",
                     );
-                    ui.checkbox(
-                        &mut config.p2p.enable_soulseek,
-                        "Enable Soulseek Direct Transfer",
-                    );
+                    crate::soulseek_setup::show_settings(ui, config, soulseek, slskd_installed, &mut opens.soulseek);
                     ui.add(
                         egui::Slider::new(&mut config.p2p.max_upload_slots, 1..=16)
                             .text("Max Upload Slots"),

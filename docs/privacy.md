@@ -63,11 +63,27 @@ Preferences → Remote Control lets a phone control playback.
 - **Phone uploads are off by default.** If you turn them on, uploaded audio files are kept in
   `~/.multiplay/remote-uploads/` and deleted when remote control stops.
 
-## Not connected yet
+## Soulseek (off by default)
 
-The code contains a Soulseek client (`server.slsknet.org:2242`) and a peer-to-peer sharing mesh. In
-this beta neither makes any connection: there is no Soulseek login, and the mesh only searches what
-is already on this computer. This page will be updated before either goes online.
+"Use Soulseek" in Preferences → P2P lets you search and play music other Soulseek users share.
+multiplay does not speak the Soulseek protocol itself: it talks to **slskd**, a separate,
+open-source Soulseek client, over its API.
+
+- **Off by default.** While it is off, multiplay contacts no Soulseek service and runs no slskd.
+- **Your own slskd:** multiplay connects to the address you enter (normally on this computer)
+  with the API key you enter.
+- **"Install and run slskd for me":** only when you click Install, multiplay downloads slskd (version
+  0.26.2) from `github.com/slskd/slskd` (checked against a fixed SHA-256) into `~/.multiplay/slskd/`, and runs
+  it while multiplay runs: listening on `127.0.0.1` only, sharing **no** folders.
+- **What slskd sends:** slskd logs in to the Soulseek network (`server.slsknet.org`) with your
+  account, sends your searches there, and downloads files you play directly from other users,
+  who see your user name and IP address. Downloads go to `~/.multiplay/slskd/downloads/`.
+- Your Soulseek password and the slskd API key are kept in the encrypted vault
+  (`~/.multiplay/vault.bin`), not in `config.toml`, and are passed to slskd through its
+  environment, not its command line.
+
+The code also contains a peer-to-peer sharing mesh; in this beta it makes no connection and only
+searches what is already on this computer. This page will be updated before it goes online.
 
 ## Media keys and Now Playing
 

@@ -4,13 +4,25 @@ version = "0.1.0"
 edition = "2021"
 license.workspace = true
 publish = false
+description = "Use Soulseek through slskd (TASK-162): search and download via a running slskd's REST API, or one installed and run on request."
 
 [dependencies]
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
+amp-adapter-http = { path = "../amp-adapter-http" }
 async-trait = { workspace = true }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+zip = { version = "9.1", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-tokio = { workspace = true }
+tempfile = "3.27"
+sha2 = "0.10"
+zip = { version = "9.1", default-features = false, features = ["deflate"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

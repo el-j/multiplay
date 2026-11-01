@@ -187,19 +187,19 @@ fn open_source_blocking(
                             tokio::runtime::RuntimeFlavor::MultiThread => {
                                 tokio::task::block_in_place(|| {
                                     current.block_on(tokio::time::timeout(
-                                        resolve_timeout,
+                                        resolver.resolve_timeout().unwrap_or(resolve_timeout),
                                         resolver.resolve_stream(&src),
                                     ))
                                 })
                             }
                             _ => rt.block_on(tokio::time::timeout(
-                                resolve_timeout,
+                                resolver.resolve_timeout().unwrap_or(resolve_timeout),
                                 resolver.resolve_stream(&src),
                             )),
                         }
                     } else {
                         rt.block_on(tokio::time::timeout(
-                            resolve_timeout,
+                            resolver.resolve_timeout().unwrap_or(resolve_timeout),
                             resolver.resolve_stream(&src),
                         ))
                     };
@@ -292,9 +292,11 @@ async fn resolve_and_open_once(
         source => {
             for resolver in resolvers {
                 if resolver.handles_source(source) {
-                    let timed =
-                        tokio::time::timeout(resolve_timeout, resolver.resolve_stream(source))
-                            .await;
+                    let timed = tokio::time::timeout(
+                        resolver.resolve_timeout().unwrap_or(resolve_timeout),
+                        resolver.resolve_stream(source),
+                    )
+                    .await;
                     if cancelled.load(Ordering::Acquire) {
                         return Err((DecodeError::OpenFailed("Cancelled".into()), false));
                     }

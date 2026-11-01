@@ -58,7 +58,9 @@ fn hosts_named_in_constants() -> Vec<(String, PathBuf)> {
                 .or_else(|| value.strip_prefix("http://"))
                 .unwrap_or(value);
             let host = bare.split(['/', ':']).next().unwrap_or("");
-            if host.contains('.') && !host.ends_with(".html") && !host.ends_with(".md") {
+            // A host has a dot and letters ("0.26.2" is a version, not a host).
+            let is_host = host.contains('.') && host.chars().any(|c| c.is_ascii_alphabetic());
+            if is_host && !host.ends_with(".html") && !host.ends_with(".md") {
                 hosts.push((host.to_string(), file.clone()));
             }
         }

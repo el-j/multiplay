@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+toml = "1"
 tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }

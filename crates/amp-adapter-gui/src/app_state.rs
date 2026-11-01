@@ -46,6 +46,8 @@ pub struct MultiplayGuiApp {
     /// A running update check, and a newer release it found (TASK-183).
     pub update_job: Option<crate::update_notice::UpdateJob>,
     pub update_available: Option<amp_domain::about::ReleaseInfo>,
+    /// "Use Soulseek" through slskd (TASK-162).
+    pub soulseek_ui: crate::soulseek_setup::SoulseekUi,
     /// Scrubber drag state (seek on release).
     pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
@@ -176,6 +178,7 @@ impl MultiplayGuiApp {
             import_job: None,
             update_job: None,
             update_available: None,
+            soulseek_ui: crate::soulseek_setup::SoulseekUi::default(),
             scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,

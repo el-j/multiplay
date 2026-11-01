@@ -27,6 +27,7 @@ fn default_resolvers() -> Vec<Arc<dyn StreamResolverPort>> {
     if let Ok(http) = HttpStreamResolver::new() {
         resolvers.push(Arc::new(http));
     }
+    resolvers.push(crate::soulseek_setup::soulseek());
     resolvers
 }
 
