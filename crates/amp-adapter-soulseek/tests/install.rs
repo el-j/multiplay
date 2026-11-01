@@ -4,7 +4,9 @@
 
 #![forbid(unsafe_code)]
 
-use amp_adapter_soulseek::daemon::{generate_api_key, ManagedConfig, ManagedSlskd};
+use amp_adapter_soulseek::daemon::generate_api_key;
+#[cfg(unix)]
+use amp_adapter_soulseek::daemon::{ManagedConfig, ManagedSlskd};
 use amp_adapter_soulseek::install::{asset_for, download_url, install_archive, SLSKD_VERSION};
 use sha2::{Digest, Sha256};
 use std::io::Write;
@@ -56,11 +58,15 @@ fn every_supported_system_has_a_pinned_release() {
 #[test]
 fn a_verified_archive_is_unpacked_and_a_tampered_one_refused() {
     let dir = tempfile::tempdir().unwrap();
-    let archive = zip_of(&[("slskd", b"#!/bin/sh\n"), ("wwwroot/index.html", b"<html>")]);
+    let exe_name = if cfg!(windows) { "slskd.exe" } else { "slskd" };
+    let archive = zip_of(&[
+        (exe_name, b"#!/bin/sh\n"),
+        ("wwwroot/index.html", b"<html>"),
+    ]);
     let wrong = "0".repeat(64);
     let err = install_archive(dir.path(), &archive, &wrong).expect_err("refused");
     assert!(err.contains("checksum"), "{err}");
-    assert!(!dir.path().join("slskd").exists());
+    assert!(!dir.path().join(exe_name).exists());
 
     let exe = install_archive(dir.path(), &archive, &hex(&archive)).expect("installed");
     assert!(exe.is_file() && exe.starts_with(dir.path()));
@@ -78,7 +84,8 @@ fn a_verified_archive_is_unpacked_and_a_tampered_one_refused() {
 #[test]
 fn entries_that_escape_the_install_folder_are_refused() {
     let dir = tempfile::tempdir().unwrap();
-    let archive = zip_of(&[("slskd", b"x"), ("../../escape.txt", b"x")]);
+    let exe_name = if cfg!(windows) { "slskd.exe" } else { "slskd" };
+    let archive = zip_of(&[(exe_name, b"x"), ("../../escape.txt", b"x")]);
     let err = install_archive(dir.path(), &archive, &hex(&archive)).expect_err("refused");
     assert!(err.contains("outside"), "{err}");
     assert!(!dir.path().join("../../escape.txt").exists());
