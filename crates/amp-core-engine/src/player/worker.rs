@@ -10,6 +10,7 @@ use super::dj_host::DjHost;
 use super::loader::{spawn_track_load, PendingLoad, DEFAULT_PRELOAD_MAX_RETRIES};
 use super::pusher::{
     drain_pending_to_ring, update_clock_position_and_tap, update_visualizer_fallback,
+    watch_stream_buffer,
 };
 use super::PlayerEngine;
 use crate::dsp::{CrossfadeCurve, Crossfader, SpectrumVisualizer};
@@ -186,7 +187,8 @@ fn process_standard_tick(
         drain_pending_to_ring(driver, pending_out);
         update_clock_position_and_tap(driver, tap_visualizer, tap_buf);
         if !pending_out.is_empty() {
-            // The ring is full (1.36 s at 48 kHz): no hurry. Commands still wake us at once.
+            // The ring is full (150 ms of audio by default): 10 ms is well inside that.
+            // Commands still wake us at once.
             driver.wait_for_wake(Duration::from_millis(10));
             return;
         }
@@ -271,7 +273,11 @@ fn process_standard_tick(
     } else if let Some(ref mut dec) = decoder {
         match dec.read_interleaved(pcm_buffer) {
             Ok(n) if n > 0 => {
-                if matches!(driver.playback_state(), PlaybackState::Buffering { .. }) {
+                // Data again after a WouldBlock. While the output is held to refill
+                // (`watch_stream_buffer`), that decides when playing resumes.
+                if matches!(driver.playback_state(), PlaybackState::Buffering { .. })
+                    && !driver.clock.is_paused()
+                {
                     driver.set_state_and_emit(PlaybackState::Playing);
                 }
                 let mut total_n = n;
@@ -353,6 +359,7 @@ fn process_standard_tick(
     update_visualizer_fallback(driver, &processed, bands);
     pending_out.extend(processed.iter().copied());
     drain_pending_to_ring(driver, pending_out);
+    watch_stream_buffer(driver);
     update_clock_position_and_tap(driver, tap_visualizer, tap_buf);
 }
 

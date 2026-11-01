@@ -16,3 +16,7 @@ rusty-opus = "=1.0.2"
 # WavPack (TASK-231): pure Rust, no unsafe, no dependencies; pinned exactly (0.1).
 wavicle = { version = "=0.1.0", default-features = false, features = ["decode"] }
 rtrb = { workspace = true }
+
+[dev-dependencies]
+proptest = "1.12"
+cap = "0.1"

@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod clock;
+pub mod contain;
 pub mod driven;
 pub mod driving;
 pub mod error;
@@ -13,6 +14,7 @@ pub mod stream;
 
 pub use async_trait::async_trait;
 pub use clock::{OutputClock, OUTPUT_TAP_SAMPLES};
+pub use contain::{contain_panic, panic_is_contained};
 pub use driven::*;
 pub use driving::*;
 pub use error::*;

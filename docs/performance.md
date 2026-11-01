@@ -80,6 +80,24 @@ work (fade gain and visualizer tap per frame), moving samples into the output ri
 meter and the async runtime's timers. The next steps are to batch the output stage per period
 instead of per sample and to stop the visualizer tap when no window shows it.
 
+## Stress and soak (TASK-186)
+
+`crates/amp-adapter-gui/tests/stress.rs`, in every CI run:
+
+- **1,000 rapid track changes**: the last one plays; no threads left behind; memory back to
+  where it was.
+- **A server trickling at 1 KB/s**: the engine says *Buffering* and holds the output instead of
+  stuttering on as *Playing*; Stop answers within a second.
+- **A server that hangs up mid-stream**: the track ends or fails, it does not hang.
+- **A resolver that never answers**: an error after the resolve timeout, and the next track plays.
+
+The **soak** (`.github/workflows/soak.yml`, weekly, 2 hours on Linux) plays FLAC and MP3 back
+to back and fails if resident memory grows by 5 MiB per hour or more:
+
+```sh
+SOAK_MINUTES=60 cargo test --release -p amp-adapter-gui --test stress soak -- --ignored --nocapture
+```
+
 ## Desktop app (GUI)
 
 The GUI draws with the GPU and its cost depends mostly on which windows are open and the screen's

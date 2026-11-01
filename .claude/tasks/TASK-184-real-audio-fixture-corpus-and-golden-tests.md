@@ -29,3 +29,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-050-qa) — partial
+- Corrupt/truncated files: every fixture truncated at 7 points, bit-flipped (12 cases), garbage middle, and garbage behind 10 magic numbers — open fails or decodes a bounded amount of finite, bounded samples within 5 s (`amp-adapter-decoder/tests/corrupt_files.rs`).
+- Already covered by PLAN-058: the fixture corpus and decode matrix (`tests/format_matrix.rs`, ~27 formats), seek and duration accuracy, gapless (`amp-core-engine/tests/gapless.rs`), null test.
+- Open: LAME/iTunSMPB gapless-header fixtures and chained Vorbis.
