@@ -28,6 +28,15 @@ pub struct MultiplayGuiApp {
     pub dialog_job: Option<crate::dialog_jobs::DialogJob>,
     /// The system's media keys and Now Playing panel, when the OS offers one.
     pub media_controls: Option<Box<dyn amp_ports::MediaControlsPort>>,
+    /// The library browser's index; `None` until the stored library has loaded.
+    pub library_index: Option<amp_core_engine::library_index::LibraryIndex>,
+    /// Bumped whenever the index is rebuilt, so cached views know to refresh.
+    pub library_generation: u64,
+    pub library_job: Option<std::sync::mpsc::Receiver<Vec<Track>>>,
+    /// Imported while the library was still loading.
+    pub library_pending: Vec<Track>,
+    /// The Library window's view state and covers.
+    pub library_ui: crate::library_window::LibraryUi,
     /// Scrubber drag state (seek on release).
     pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
@@ -104,10 +113,12 @@ pub struct MultiplayGuiApp {
 impl MultiplayGuiApp {
     /// Initializes GUI state on the default audio device with the user's home directories.
     pub fn new() -> Result<Self, String> {
-        Self::with_parts(
+        let mut app = Self::with_parts(
             create_player_engine()?,
             crate::app_paths::AppPaths::for_user(),
-        )
+        )?;
+        app.load_library();
+        Ok(app)
     }
 
     /// Hardware-free instance whose state lives under `root` (tests and CI).
@@ -141,6 +152,11 @@ impl MultiplayGuiApp {
             focus_location_field: false,
             dialog_job: None,
             media_controls: None,
+            library_index: None,
+            library_generation: 0,
+            library_job: None,
+            library_pending: Vec::new(),
+            library_ui: crate::library_window::LibraryUi::default(),
             scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,
@@ -342,6 +358,7 @@ impl MultiplayGuiApp {
             ))
         };
         let report = amp_adapter_storage::import::import_paths(paths, &fallback);
+        self.remember_in_library(&report.tracks);
         for skin in &report.skins {
             let _ = self.load_skin_from_path(skin);
         }

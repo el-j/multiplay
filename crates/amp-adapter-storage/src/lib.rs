@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod analysis;
+pub mod artwork;
 pub mod cue;
 pub mod import;
 pub mod keyring;
@@ -131,7 +132,7 @@ impl RedbStorageAdapter {
     /// Synchronous upsert used by batch library scanning and tests.
     pub fn store_track_sync(&self, track: &Track) -> Result<(), StorageError> {
         let encoded_bytes = RecordEnvelope::encode(track)?;
-        let canonical = track.source.canonical_uri();
+        let canonical = track.library_key();
         let id_bytes = *track.id.0.as_bytes();
 
         let write_txn = self
@@ -189,7 +190,7 @@ impl RedbStorageAdapter {
 
             for track in batch {
                 let encoded = RecordEnvelope::encode(track)?;
-                let canonical = track.source.canonical_uri();
+                let canonical = track.library_key();
                 let id_bytes = *track.id.0.as_bytes();
                 let prev_id = source_idx
                     .get(canonical.as_str())

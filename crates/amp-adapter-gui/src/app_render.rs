@@ -24,6 +24,7 @@ impl eframe::App for MultiplayGuiApp {
         self.poll_playback_events();
         self.poll_dialog();
         self.sync_media_controls();
+        self.poll_library();
         if self.dialog_open() {
             // Nothing else wakes the UI when the dialog closes.
             ctx.request_repaint_after(Duration::from_millis(100));

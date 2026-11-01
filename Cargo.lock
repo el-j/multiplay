@@ -345,6 +345,7 @@ dependencies = [
  "amp-domain",
  "amp-ports",
  "async-trait",
+ "image",
  "lofty",
  "postcard",
  "redb",
@@ -2995,6 +2996,8 @@ dependencies = [
  "num-traits",
  "png",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]

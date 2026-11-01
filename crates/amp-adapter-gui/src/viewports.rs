@@ -17,6 +17,7 @@ pub fn render_satellite_windows(app: &mut MultiplayGuiApp, ctx: &egui::Context) 
     Satellite::new(WindowId::Equalizer, "Equalizer").show(app, ctx);
     Satellite::new(WindowId::Playlist, "Playlist").show(app, ctx);
     Satellite::new(WindowId::Remote, "Remote").show(app, ctx);
+    Satellite::new(WindowId::Library, "Library").show(app, ctx);
     // Settings & Search are overlays: close button only, never snap or dock (TASK-201, TASK-153).
     let mut settings = Satellite::new(WindowId::Settings, "Preferences");
     settings.overlay = true;
@@ -135,6 +136,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
         WindowId::Playlist => render_playlist_window_content(app, ui),
         WindowId::Remote => crate::remote_window::render(app, ui),
         WindowId::Search => crate::search_window::render_search_window_content(app, ui),
+        WindowId::Library => crate::library_window::render_library_window(app, ui),
         WindowId::Settings => {
             let mut opens = crate::settings_panel::SettingsOpens::default();
             let devices: Vec<String> = app

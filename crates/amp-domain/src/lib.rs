@@ -42,8 +42,12 @@ impl TrackId {
     /// Computes a deterministic [`TrackId`] from the canonical URI of `source` (`TASK-148`).
     /// Rescanning the same local path or remote source always yields the exact same [`TrackId`].
     pub fn from_source(source: &AudioSource) -> Self {
-        let canonical = source.canonical_uri();
-        let bytes = canonical.as_bytes();
+        Self::from_key(&source.canonical_uri())
+    }
+
+    /// Computes a deterministic [`TrackId`] from a library key ([`Track::library_key`]).
+    pub fn from_key(key: &str) -> Self {
+        let bytes = key.as_bytes();
         // Dual 64-bit FNV-1a with distinct seeds + avalanche mixing to form 128 deterministic bits
         let mut h1: u64 = 0xcbf2_9ce4_8422_2325;
         let mut h2: u64 = 0x8422_2325_cbf2_9ce4;
@@ -304,6 +308,18 @@ impl Track {
             source,
             metadata,
             date_added_epoch: 0,
+        }
+    }
+
+    /// What makes this a distinct library entry: the source, plus the start of the part it
+    /// plays for CUE tracks (several songs in one file). Equal to the source's canonical URI
+    /// for whole files, so their keys never changed.
+    #[must_use]
+    pub fn library_key(&self) -> String {
+        let uri = self.source.canonical_uri();
+        match self.metadata.segment {
+            Some(seg) => format!("{uri}#t={}", seg.start.as_millis()),
+            None => uri,
         }
     }
 

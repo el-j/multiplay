@@ -22,6 +22,8 @@ pub mod engine_factory;
 pub mod equalizer_widget;
 pub mod file_dialog;
 pub mod layout_manager;
+pub mod library_store;
+pub mod library_window;
 pub mod main_window;
 pub mod media_session;
 pub mod playback_notice;
