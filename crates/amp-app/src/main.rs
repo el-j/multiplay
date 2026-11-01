@@ -37,6 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     diagnostics::install_crash_hook(app_info, logs, Some(Box::new(terminal::restore_terminal)));
     let (app, cmd_rx) = MultiplayApp::new().map_err(|e| format!("Initialization error: {e}"))?;
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let app = with_media_keys(app);
     runner::run_app(app, cmd_rx)
 }
 
@@ -46,4 +48,15 @@ fn version_line() -> String {
         env!("MULTIPLAY_VERSION"),
         env!("MULTIPLAY_COMMIT"),
     )
+}
+
+/// MPRIS media keys on Linux. macOS needs an AppKit run loop and Windows a window, which a
+/// terminal app has neither of, so media keys there belong to the desktop app.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn with_media_keys(mut app: MultiplayApp) -> MultiplayApp {
+    match amp_adapter_media_controls::OsMediaControls::new(None, Box::new(|| {})) {
+        Ok(controls) => app.media_controls = Some(Box::new(controls)),
+        Err(e) => tracing::info!("media keys unavailable: {e}"),
+    }
+    app
 }

@@ -33,6 +33,7 @@ pub fn run_app(
 
         // Synchronize real-time audio playback driver position and spectrum visualizer
         app.sync_audio_state();
+        app.sync_media_controls();
 
         // Render frame to alternate terminal buffer
         guard

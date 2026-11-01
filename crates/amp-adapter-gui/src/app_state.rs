@@ -26,6 +26,8 @@ pub struct MultiplayGuiApp {
     pub focus_location_field: bool,
     /// The open file dialog, if any (it runs on its own thread).
     pub dialog_job: Option<crate::dialog_jobs::DialogJob>,
+    /// The system's media keys and Now Playing panel, when the OS offers one.
+    pub media_controls: Option<Box<dyn amp_ports::MediaControlsPort>>,
     /// Scrubber drag state (seek on release).
     pub scrub: crate::transport::Scrub,
     pub search_results: Vec<Track>,
@@ -138,6 +140,7 @@ impl MultiplayGuiApp {
             search_url_text: String::new(),
             focus_location_field: false,
             dialog_job: None,
+            media_controls: None,
             scrub: crate::transport::Scrub::default(),
             search_results: Vec::new(),
             is_searching: false,

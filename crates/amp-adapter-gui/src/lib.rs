@@ -23,6 +23,7 @@ pub mod equalizer_widget;
 pub mod file_dialog;
 pub mod layout_manager;
 pub mod main_window;
+pub mod media_session;
 pub mod playback_notice;
 pub mod playlist_import;
 pub mod playlist_window;

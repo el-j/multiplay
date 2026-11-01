@@ -66,6 +66,13 @@ The code contains a Soulseek client (`server.slsknet.org:2242`) and a peer-to-pe
 this beta neither makes any connection: there is no Soulseek login, and the mesh only searches what
 is already on this computer. This page will be updated before either goes online.
 
+## Media keys and Now Playing
+
+multiplay tells the operating system what is playing (title, artist, album, length, and the cover
+image address for online tracks) so media keys and the system's Now Playing panel work: Control
+Center on macOS, the media overlay on Windows, MPRIS on Linux (over the local D-Bus session, which
+other programs on this computer, such as `playerctl`, can read). This stays on your computer.
+
 ## Files multiplay stores on your computer
 
 | Location | Contents |
