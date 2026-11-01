@@ -238,7 +238,12 @@ impl AudioStreamDecoder {
             }
             self.seek_target = None;
 
-            match self.decoder.decode(&packet) {
+            // A damaged packet can make a codec panic (e.g. an overflow in MS-ADPCM): that fails
+            // this file instead of the playback thread (TASK-185).
+            let decoder = &mut self.decoder;
+            let decoded = amp_ports::contain_panic(move || decoder.decode(&packet))
+                .map_err(|e| DecodeError::CorruptStream(format!("damaged audio: {e}")))?;
+            match decoded {
                 Ok(audio_buf) => {
                     let buf_channels = audio_buf.spec().channels().count().max(1);
                     let n = audio_buf.frames() * buf_channels;
@@ -370,7 +375,9 @@ impl PcmStreamPort for AudioStreamDecoder {
     }
 
     fn read_interleaved(&mut self, out: &mut [f32]) -> Result<usize, DecodeError> {
-        self.read_interleaved_samples(out)
+        let n = self.read_interleaved_samples(out)?;
+        sanitize(&mut out[..n]);
+        Ok(n)
     }
 
     fn duration(&self) -> Option<std::time::Duration> {
@@ -383,6 +390,23 @@ impl PcmStreamPort for AudioStreamDecoder {
 
     fn seek(&mut self, target: std::time::Duration) -> Result<std::time::Duration, DecodeError> {
         AudioStreamDecoder::seek(self, target)
+    }
+}
+
+/// Loudest sample let through: room for inter-sample overs in float files, which the limiter
+/// catches, but not for the huge values a damaged float file decodes to.
+const MAX_SAMPLE: f32 = 2.0;
+
+/// Damaged float audio can decode to NaN, infinity or huge values. NaN would stick in the EQ's
+/// filters and silence the rest of the track, and huge values would be painfully loud, so they
+/// become silence and the loudest allowed sample here (TASK-185).
+fn sanitize(samples: &mut [f32]) {
+    for s in samples {
+        if !s.is_finite() {
+            *s = 0.0;
+        } else if s.abs() > MAX_SAMPLE {
+            *s = s.signum() * MAX_SAMPLE;
+        }
     }
 }
 
