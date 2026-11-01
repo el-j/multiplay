@@ -13,7 +13,7 @@ use amp_adapter_tui::{
 use amp_adapter_youtube::PureYouTubeAdapter;
 use amp_core_engine::{EventBus, FilteredSearchCoordinator, PlayerCommand, PlayerEngine};
 use amp_domain::source_badge::SourceKind;
-use amp_domain::{AudioSource, PlaybackState, Track, TrackMetadata};
+use amp_domain::{PlaybackState, Track};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -87,28 +87,6 @@ impl MultiplayApp {
         let docking_mgr = DockingWindowManager::new();
         let search_state = SearchViewState::new();
 
-        let mut sample_tracks = Vec::new();
-        let mut t1 = TrackMetadata::new("Polynomial-C", "Aphex Twin");
-        t1.duration = Some(Duration::from_secs(286));
-        t1.bitrate_kbps = Some(320);
-        sample_tracks.push(Track::new(
-            AudioSource::Soulseek {
-                username: "peer_audiophile".to_string(),
-                filename: "Aphex Twin - Polynomial-C.mp3".to_string(),
-            },
-            t1,
-        ));
-
-        let mut t2 = TrackMetadata::new("Music Is Math", "Boards of Canada");
-        t2.duration = Some(Duration::from_secs(321));
-        t2.bitrate_kbps = Some(1411);
-        sample_tracks.push(Track::new(
-            AudioSource::LocalFile {
-                path: "music/boc_music_is_math.flac".to_string(),
-            },
-            t2,
-        ));
-
         let audio_driver = audio_driver.map(Arc::new);
 
         let app = Self {
@@ -121,12 +99,12 @@ impl MultiplayApp {
             search_rx,
             spectrum: [0.0; 16],
             playback_state: PlaybackState::Stopped,
-            current_title: "1. Aphex Twin - Polynomial-C".to_string(),
+            current_title: "No track loaded. Press J to search.".to_string(),
             elapsed: Duration::ZERO,
             volume: 85,
             eq_gains: [0.0; 10],
             eq_enabled: true,
-            playlist: sample_tracks,
+            playlist: Vec::new(),
             selected_playlist_idx: 0,
             audio_driver,
         };
@@ -323,12 +301,24 @@ impl MultiplayApp {
         if let Some(main_win) = self.docking_mgr.get_window(WindowId::MainConsole) {
             if main_win.visible && area.width >= FACEPLATE_WIDTH && area.height >= FACEPLATE_HEIGHT
             {
-                let console = DenseConsole::new(&self.spectrum)
+                let mut console = DenseConsole::new(&self.spectrum)
                     .title(&self.current_title)
                     .elapsed(self.elapsed)
                     .state(self.playback_state)
-                    .volume(self.volume)
-                    .audio_info(44.1, 320, true);
+                    .volume(self.volume);
+                if let Some(driver) = &self.audio_driver {
+                    if let Some(info) = driver.stream_info() {
+                        let meta = driver
+                            .current_track
+                            .lock()
+                            .ok()
+                            .and_then(|t| t.as_ref().map(|t| t.metadata.clone()));
+                        let kbps = meta.as_ref().and_then(|m| m.bitrate_kbps);
+                        let stereo = meta.and_then(|m| m.channels).is_none_or(|c| c >= 2);
+                        console =
+                            console.audio_info(info.source_rate as f32 / 1000.0, kbps, stereo);
+                    }
+                }
                 frame.render_widget(console, main_win.rect);
             }
         }

@@ -28,3 +28,9 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-047-ux)
+- TUI: the two hard-coded demo tracks and the "Aphex Twin - Polynomial-C" title are gone; empty playlist with "No track loaded. Press J to search." The format badge (`DenseConsole::audio_info`) is only drawn while a stream decodes, from `PlayerEngine::stream_info()` and the track's tags (no `44.1/320` constants).
+- Engine: `PlayerEngine::stream_info()` → `StreamInfo { source_rate, output_rate, bit_perfect }`, recorded per chunk by the worker (two atomics) from the decoder rate and `PlaybackDspChain::last_was_bit_perfect()`; cleared when nothing decodes.
+- GUI faceplate: `main_window::stream_label` ("44.1 kHz · 16-bit · ST · BIT-PERFECT" / "… · DSP → 48 kHz") replaces the fixed "44.1kHz ST"; empty when nothing plays.
+- Tests: `crates/amp-adapter-gui/tests/stream_info.rs` (44.1 kHz on 48 kHz output → resampled; 48 kHz at unity → bit-perfect; volume 0.85 → DSP; label format), TUI tests updated.

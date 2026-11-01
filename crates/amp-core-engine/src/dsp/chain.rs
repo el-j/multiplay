@@ -20,6 +20,8 @@ pub struct PlaybackDspChain {
     current_volume: f32,
     target_volume: f32,
     volume_smoothing_alpha: f32,
+    /// Whether the last processed chunk took the bit-transparent path.
+    last_bit_perfect: bool,
 }
 
 /// Converts a 0.0 ..= 1.0 volume slider position to linear amplitude using a perceptual curve
@@ -71,6 +73,7 @@ impl PlaybackDspChain {
             current_volume: 1.0,
             target_volume: 1.0,
             volume_smoothing_alpha: 1.0 - (-1.0 / (0.010 * sink_sample_rate as f32)).exp(),
+            last_bit_perfect: false,
         }
     }
 
@@ -105,6 +108,11 @@ impl PlaybackDspChain {
         self.resampler
             .as_ref()
             .map_or(0.0, PureResampler::latency_frames)
+    }
+
+    /// Whether the last chunk reached the output unchanged (no resampling, gain, EQ or limiter).
+    pub fn last_was_bit_perfect(&self) -> bool {
+        self.last_bit_perfect
     }
 
     /// Returns whether the resampler is currently active.
@@ -154,7 +162,9 @@ impl PlaybackDspChain {
         track_lufs: Option<f32>,
     ) -> (Vec<f32>, [f32; 16]) {
         // Fast-path bit-transparent identity when neutral settings (`TASK-140`, `DSP-01`, `DSP-02`)
-        if self.is_bit_perfect(volume, preamp, eq_gains, eq_enabled, track_lufs) {
+        self.last_bit_perfect =
+            self.is_bit_perfect(volume, preamp, eq_gains, eq_enabled, track_lufs);
+        if self.last_bit_perfect {
             self.visualizer.push_samples(input_pcm);
             let bands = self.visualizer.spectrum_bands_throttled();
             return (input_pcm.to_vec(), bands);

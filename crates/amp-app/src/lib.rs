@@ -50,7 +50,21 @@ mod tests {
         app.handle_key(KeyCode::Esc, KeyModifiers::empty());
         assert!(!app.search_state.is_open);
 
+        // No demo tracks: the playlist starts empty (TASK-170).
+        assert!(app.playlist.is_empty());
+
         // Test playlist navigation
+        for (title, artist) in [
+            ("Polynomial-C", "Aphex Twin"),
+            ("Music Is Math", "Boards of Canada"),
+        ] {
+            app.playlist.push(amp_domain::Track::new(
+                amp_domain::AudioSource::LocalFile {
+                    path: format!("{title}.flac"),
+                },
+                amp_domain::TrackMetadata::new(title, artist),
+            ));
+        }
         assert_eq!(app.selected_playlist_idx, 0);
         app.handle_key(KeyCode::Down, KeyModifiers::empty());
         assert_eq!(app.selected_playlist_idx, 1);

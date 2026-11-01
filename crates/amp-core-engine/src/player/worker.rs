@@ -315,6 +315,7 @@ fn process_standard_tick(
             }
         }
     } else {
+        driver.stream_format.clear();
         driver.wait_for_wake(Duration::from_millis(20));
         return;
     };
@@ -344,6 +345,11 @@ fn process_standard_tick(
         track_lufs,
     );
 
+    if let Some(dec) = decoder.as_ref() {
+        driver
+            .stream_format
+            .record(dec.sample_rate(), dsp_chain.last_was_bit_perfect());
+    }
     update_visualizer_fallback(driver, &processed, bands);
     pending_out.extend(processed.iter().copied());
     drain_pending_to_ring(driver, pending_out);

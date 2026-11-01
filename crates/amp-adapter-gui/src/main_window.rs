@@ -35,6 +35,49 @@ pub fn render_main_window_content(app: &mut MultiplayGuiApp, ui: &mut Ui) {
     toggles_row(app, ui);
 }
 
+/// `44.1 kHz · 16-bit · ST · BIT-PERFECT`: the source rate from the decoder, depth (lossless) or
+/// bitrate (lossy) and channels from the tags, and what the output does with it. Empty when
+/// nothing is decoding, so the faceplate never shows a made-up format.
+#[must_use]
+pub fn stream_label(
+    info: Option<&amp_core_engine::player::StreamInfo>,
+    meta: &amp_domain::TrackMetadata,
+) -> String {
+    let Some(info) = info else {
+        return String::new();
+    };
+    let khz = |hz: u32| {
+        let k = f64::from(hz) / 1000.0;
+        if k.fract().abs() < 1e-9 {
+            format!("{k:.0} kHz")
+        } else {
+            format!("{k:.1} kHz")
+        }
+    };
+    let mut parts = vec![khz(info.source_rate)];
+    if let Some(bits) = meta.bit_depth {
+        parts.push(format!("{bits}-bit"));
+    } else if let Some(kbps) = meta.bitrate_kbps {
+        parts.push(format!("{kbps} kbps"));
+    }
+    match meta.channels {
+        Some(1) => parts.push("MONO".into()),
+        Some(2) => parts.push("ST".into()),
+        Some(6) => parts.push("5.1".into()),
+        Some(8) => parts.push("7.1".into()),
+        Some(n) => parts.push(format!("{n} CH")),
+        None => {}
+    }
+    parts.push(if info.bit_perfect {
+        "BIT-PERFECT".into()
+    } else if info.source_rate != info.output_rate {
+        format!("DSP → {}", khz(info.output_rate))
+    } else {
+        "DSP".into()
+    });
+    parts.join(" · ")
+}
+
 fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
     let title = match app.playlist.get(app.selected_track_idx) {
         Some(t) => format!(
@@ -61,11 +104,25 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
             .on_hover_text("Remote control is listening. Phones and requests: the 📱 window.");
         }
         if !narrow {
-            ui.label(
-                RichText::new("44.1kHz ST")
-                    .size(10.0)
-                    .color(Color32::from_rgb(0, 200, 240)),
-            );
+            let info = app.audio_driver.stream_info();
+            let label = app
+                .audio_driver
+                .current_track
+                .lock()
+                .ok()
+                .and_then(|t| t.as_ref().map(|t| stream_label(info.as_ref(), &t.metadata)))
+                .unwrap_or_default();
+            if !label.is_empty() {
+                ui.label(
+                    RichText::new(label)
+                        .size(10.0)
+                        .color(Color32::from_rgb(0, 200, 240)),
+                )
+                .on_hover_text(
+                    "Source format. BIT-PERFECT: samples reach the output unchanged. DSP: \
+                     resampled, or volume, EQ or loudness are changing them.",
+                );
+            }
         }
         ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
             ui.add(
