@@ -13,6 +13,7 @@ members = [
     "crates/amp-adapter-p2p",
     "crates/amp-adapter-gui",
     "crates/amp-adapter-media-controls",
+    "crates/amp-test-support",
     "crates/amp-adapter-remote",
     "crates/amp-adapter-http",
     "crates/amp-adapter-bandcamp",

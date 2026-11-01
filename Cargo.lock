@@ -195,6 +195,7 @@ dependencies = [
  "amp-domain",
  "amp-ports",
  "async-trait",
+ "proptest",
  "reqwest",
  "serde",
  "serde_json",
@@ -219,6 +220,9 @@ version = "0.1.0"
 dependencies = [
  "amp-domain",
  "amp-ports",
+ "amp-test-support",
+ "cap",
+ "proptest",
  "rtrb",
  "rusty-opus",
  "symphonia",
@@ -267,8 +271,11 @@ dependencies = [
  "amp-ports",
  "async-trait",
  "futures-util",
+ "proptest",
  "reqwest",
  "rustls",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
  "tokio",
 ]
@@ -306,6 +313,7 @@ dependencies = [
  "amp-ports",
  "futures-util",
  "getrandom 0.4.3",
+ "proptest",
  "qrcode",
  "serde",
  "serde_json",
@@ -344,16 +352,19 @@ version = "0.1.0"
 dependencies = [
  "amp-domain",
  "amp-ports",
+ "amp-test-support",
  "async-trait",
  "image",
  "lofty",
  "postcard",
+ "proptest",
  "redb",
  "serde",
  "serde_json",
  "symphonia",
  "tempfile",
  "tokio",
+ "tracing",
  "uuid",
 ]
 
@@ -430,6 +441,7 @@ dependencies = [
  "rtrb",
  "rubato",
  "rustfft",
+ "semver",
  "serde",
  "tempfile",
  "thiserror 2.0.21",
@@ -458,6 +470,14 @@ dependencies = [
  "amp-domain",
  "async-trait",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "amp-test-support"
+version = "0.1.0"
+dependencies = [
+ "amp-domain",
+ "amp-ports",
 ]
 
 [[package]]
@@ -1186,6 +1206,12 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
 ]
+
+[[package]]
+name = "cap"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f125eb85b84a24c36b02ed1d22c9dd8632f53b3cde6e4d23512f94021030003"
 
 [[package]]
 name = "castaway"

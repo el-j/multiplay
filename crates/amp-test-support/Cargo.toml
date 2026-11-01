@@ -1,0 +1,11 @@
+[package]
+name = "amp-test-support"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+publish = false
+description = "Port contract checks every adapter (and fake) must pass (TASK-187). Dev-dependency only."
+
+[dependencies]
+amp-domain = { workspace = true }
+amp-ports = { workspace = true }

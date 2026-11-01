@@ -8,6 +8,7 @@
 pub mod icy;
 pub mod playlist;
 pub mod range_reader;
+pub mod releases;
 
 pub use icy::{IcyDemuxer, IcyMetadataTap};
 pub use playlist::{detect_playlist_kind, parse_playlist_urls, RadioPlaylistKind};

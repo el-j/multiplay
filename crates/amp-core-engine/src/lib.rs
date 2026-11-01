@@ -18,6 +18,7 @@ pub mod plugin_registry;
 pub mod precache;
 pub mod search_rank;
 pub mod skin;
+pub mod update_check;
 
 pub use config_store::ConfigStore;
 pub use dispatcher::EventBus;

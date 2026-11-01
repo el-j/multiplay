@@ -3,7 +3,8 @@
 multiplay is a local music player. It has **no accounts, no ads and no tracking**.
 
 - **No telemetry:** no usage statistics, crash reports or analytics are collected or sent.
-- **No update checks:** multiplay never phones home to ask for a newer version.
+- **No update checks unless you ask:** checking for new versions is off until you switch it on
+  in Preferences → About; then it asks GitHub for the release list at most once a day.
 - **No background connections:** nothing goes online until you do one of the things listed below.
 
 This page lists every connection the app can make, what is sent, and when. It is checked against
@@ -20,6 +21,7 @@ fails the build until it is listed here.
 | You play or add a Bandcamp result or link | `<artist>.bandcamp.com`, `*.bcbits.com` | The release page address; the audio stream is downloaded from Bandcamp's media servers |
 | You play an internet radio station or a stream link | The server in that link | A normal HTTP request for the stream. `Icy-MetaData: 1` asks the station to send the song titles |
 | You click a link in Preferences → About | `github.com` | Your web browser opens the project page or this statement |
+| You switched on "Check for new versions" (off by default) | `api.github.com` | A request for multiplay's release list, at most once a day |
 
 A search goes only to the online sources switched on in Preferences → Accounts (or in the
 first-run setup): YouTube and Bandcamp are on unless you switch them off. With both off, nothing

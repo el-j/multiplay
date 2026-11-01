@@ -43,6 +43,7 @@ pub mod search_window;
 pub mod settings_panel;
 pub mod skin_texture;
 pub mod transport;
+pub mod update_notice;
 pub mod viewports;
 pub mod visualizer_widget;
 

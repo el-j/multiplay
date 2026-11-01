@@ -262,7 +262,7 @@ impl SettingsGuiPanel {
                 GuiSettingsTab::Plugins => {
                     ui.label("No external plugins currently loaded.");
                 }
-                GuiSettingsTab::About => crate::about::show(ui, &mut opens.about),
+                GuiSettingsTab::About => crate::about::show(ui, &mut opens.about, &mut config.updates),
                 GuiSettingsTab::Remote => {
                     ui.label(
                         RichText::new("📱 SMARTPHONE REMOTE CONTROL & PAIRING")

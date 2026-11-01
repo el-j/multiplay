@@ -5,9 +5,61 @@
 use super::PlayerEngine;
 use crate::dsp::SpectrumVisualizer;
 use crate::events::PlayerEvent;
+use amp_domain::PlaybackState;
 use std::collections::VecDeque;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
+
+/// Below this much queued audio (about 43 ms at 48 kHz) a network stream counts as buffering.
+const LOW_WATER_FRAMES: usize = 2048;
+
+/// Network streams that cannot keep up (TASK-186): when the output buffer runs nearly dry, hold
+/// the output (a short fade, then silence) and say "Buffering" instead of stuttering on as
+/// "Playing"; carry on once the output ring is three quarters full. Local files are left alone.
+pub(crate) fn watch_stream_buffer(driver: &PlayerEngine) {
+    if !driver.is_playing.load(Ordering::Acquire) {
+        return;
+    }
+    let network = driver
+        .current_track
+        .lock()
+        .ok()
+        .and_then(|t| {
+            t.as_ref()
+                .map(|t| !matches!(t.source, amp_domain::AudioSource::LocalFile { .. }))
+        })
+        .unwrap_or(false);
+    if !network {
+        return;
+    }
+    let Some((queued, capacity)) = driver.producer.try_lock().ok().map(|p| {
+        let cap = p.buffer().capacity() / 2;
+        (cap - p.slots() / 2, cap)
+    }) else {
+        return;
+    };
+    // Resume at three quarters of the output ring (150 ms by default); the stream's own
+    // download buffer upstream holds far more.
+    let high = (capacity * 3 / 4).max(LOW_WATER_FRAMES + 1);
+    let state = driver.playback_state();
+    // The user did not pause (`is_playing`), so a paused clock means the output is held for
+    // buffering. Resume on the clock, not the state: the state may have been set elsewhere.
+    if driver.clock.is_paused() {
+        if queued >= high {
+            driver.clock.resume();
+            driver.set_state_and_emit(PlaybackState::Playing);
+        } else if matches!(state, PlaybackState::Buffering { .. }) {
+            let progress_percent = u8::try_from(queued * 100 / high).unwrap_or(99);
+            driver.set_state_and_emit(PlaybackState::Buffering { progress_percent });
+        }
+    } else if state == PlaybackState::Playing && queued < LOW_WATER_FRAMES {
+        let fade = ((driver.sample_rate() * 5) / 1000).max(32);
+        driver.clock.request_pause(fade);
+        driver.set_state_and_emit(PlaybackState::Buffering {
+            progress_percent: 0,
+        });
+    }
+}
 
 pub(crate) fn drain_pending_to_ring(driver: &PlayerEngine, pending_out: &mut VecDeque<f32>) {
     while pending_out.len() >= 2 {
@@ -31,6 +83,9 @@ pub(crate) fn drain_pending_to_ring(driver: &PlayerEngine, pending_out: &mut Vec
         if pushed > 0 {
             driver.clock.record_pushed(pushed);
         } else {
+            // A full ring while buffering means enough is buffered: resume, or this loop would
+            // wait for space that the held output never makes.
+            watch_stream_buffer(driver);
             driver.wait_for_wake(Duration::from_millis(2));
         }
     }

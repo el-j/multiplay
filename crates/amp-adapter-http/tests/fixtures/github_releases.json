@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://api.github.com/repos/el-j/multiplay/releases/3",
+    "html_url": "https://github.com/el-j/multiplay/releases/tag/v0.1.0-beta.3",
+    "tag_name": "v0.1.0-beta.3",
+    "name": "Multiplay 0.1.0-beta.3",
+    "draft": false,
+    "prerelease": true,
+    "created_at": "2026-11-20T10:00:00Z",
+    "body": "### Provider fix\nYouTube playback works again.",
+    "assets": [{"name": "multiplay-0.1.0-beta.3-macos-universal.dmg", "size": 12345}]
+  },
+  {
+    "html_url": "https://github.com/el-j/multiplay/releases/tag/v0.2.0-beta.1",
+    "tag_name": "v0.2.0-beta.1",
+    "name": "Draft",
+    "draft": true,
+    "prerelease": true,
+    "body": null
+  },
+  {
+    "html_url": "https://github.com/el-j/multiplay/releases/tag/v0.1.0-beta.2",
+    "tag_name": "v0.1.0-beta.2",
+    "name": null,
+    "draft": false,
+    "prerelease": true,
+    "body": "Faster startup."
+  }
+]

@@ -22,6 +22,8 @@ uuid = { workspace = true }
 zip = { version = "9.1", default-features = false, features = ["deflate"] }
 rand = "0.10"
 toml = "1"
+# Comparing release versions for the opt-in update check (TASK-183).
+semver = "1"
 # Field diagnostics (TASK-177): structured logs to daily files under the log folder.
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter"] }

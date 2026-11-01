@@ -1,0 +1,43 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing the beta. Preferences → About → **Copy diagnostics** puts the version,
+        your system, your settings (passwords removed) and the end of the log on the clipboard:
+        paste it below. Nothing is sent anywhere unless you paste it here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Drop an album folder onto the playlist
+        2. Double-click track 3
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      options:
+        - Desktop (multiplay)
+        - Terminal (multiplay-tui)
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Preferences → About → Copy diagnostics, or attach the .zip from "Save diagnostics".
+      render: text
+    validations:
+      required: true

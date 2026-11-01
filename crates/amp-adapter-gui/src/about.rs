@@ -104,6 +104,11 @@ pub fn licenses_file_near(exe: &Path) -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// Opens `url` in the browser.
+pub fn open_url(url: &str) {
+    open_with_system(url);
+}
+
 /// Opens a file or URL with the system's default app.
 fn open_with_system(target: &str) {
     let opener = if cfg!(target_os = "macos") {
@@ -117,7 +122,7 @@ fn open_with_system(target: &str) {
 }
 
 /// Draws the About tab.
-pub fn show(ui: &mut Ui, action: &mut AboutAction) {
+pub fn show(ui: &mut Ui, action: &mut AboutAction, updates: &mut amp_domain::config::UpdateConfig) {
     ui.label(
         RichText::new(version_line())
             .color(Color32::from_rgb(0, 235, 136))
@@ -128,12 +133,29 @@ pub fn show(ui: &mut Ui, action: &mut AboutAction) {
 
     ui.label(RichText::new("Privacy").strong());
     ui.label(
-        "No telemetry, no accounts, no update checks. multiplay only goes online when you \
-         search YouTube or Bandcamp, play a stream or link, or turn on remote control.",
+        "No telemetry, no accounts. multiplay only goes online when you search YouTube or \
+         Bandcamp, play a stream or link, turn on remote control, or switch on the update check.",
     );
     if ui.button("Read the privacy statement").clicked() {
         open_with_system(PRIVACY_URL);
     }
+    ui.add_space(6.0);
+
+    ui.label(RichText::new("Updates").strong());
+    ui.checkbox(
+        &mut updates.check_for_updates,
+        "Check for new versions once a day",
+    );
+    ui.add_enabled_ui(updates.check_for_updates, |ui| {
+        ui.checkbox(&mut updates.include_betas, "Include beta versions");
+    });
+    ui.label(
+        RichText::new(
+            "Asks api.github.com for multiplay's release list. Nothing about you or your music is sent. \
+             A new version shows as NEW VERSION on the player.",
+        )
+        .size(10.0),
+    );
     ui.add_space(6.0);
 
     ui.label(RichText::new("Licenses").strong());

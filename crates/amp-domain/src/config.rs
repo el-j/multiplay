@@ -18,6 +18,31 @@ pub struct AppConfig {
     /// Phone/browser remote control. Missing in older config files, so it defaults (off).
     #[serde(default)]
     pub remote: RemoteControlConfig,
+    /// Opt-in update check (TASK-183). Missing in older config files: off.
+    #[serde(default)]
+    pub updates: UpdateConfig,
+}
+
+/// The update check: off unless the user turns it on in Preferences -> About.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UpdateConfig {
+    /// Ask GitHub for the release list, at most once a day.
+    pub check_for_updates: bool,
+    /// Offer beta releases too (multiplay is in beta, so on).
+    pub include_betas: bool,
+    /// When it last asked (Unix seconds; 0 = never).
+    pub last_checked_epoch: u64,
+}
+
+impl Default for UpdateConfig {
+    fn default() -> Self {
+        Self {
+            check_for_updates: false,
+            include_betas: true,
+            last_checked_epoch: 0,
+        }
+    }
 }
 
 /// Remote-control daemon settings. Off and loopback-only unless the user opts in.
