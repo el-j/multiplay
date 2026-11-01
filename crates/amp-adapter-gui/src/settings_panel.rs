@@ -170,10 +170,6 @@ impl SettingsGuiPanel {
                         "Enable YouTube Music Resolver",
                     );
                     ui.checkbox(
-                        &mut config.streaming.enable_spotify,
-                        "Enable Spotify Connect",
-                    );
-                    ui.checkbox(
                         &mut config.streaming.enable_soundcloud,
                         "Enable SoundCloud Streamer",
                     );

@@ -83,15 +83,36 @@ impl Default for TrackId {
 /// The origin source descriptor for resolving audio stream bytes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AudioSource {
-    LocalFile { path: String },
-    NetworkSmb { share_url: String },
-    DirectHttp { url: String },
-    YouTube { video_id: String },
-    Spotify { track_uri: String },
-    Bandcamp { stream_url: String },
-    SoundCloud { track_url: String },
-    Soulseek { username: String, filename: String },
-    P2PShared { peer_id: String, file_hash: String },
+    LocalFile {
+        path: String,
+    },
+    NetworkSmb {
+        share_url: String,
+    },
+    DirectHttp {
+        url: String,
+    },
+    YouTube {
+        video_id: String,
+    },
+    /// Kept so stored playlists and libraries still load; not playable (ADR-007).
+    Spotify {
+        track_uri: String,
+    },
+    Bandcamp {
+        stream_url: String,
+    },
+    SoundCloud {
+        track_url: String,
+    },
+    Soulseek {
+        username: String,
+        filename: String,
+    },
+    P2PShared {
+        peer_id: String,
+        file_hash: String,
+    },
 }
 
 impl AudioSource {

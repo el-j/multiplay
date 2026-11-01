@@ -7,8 +7,13 @@ use crate::app_state::MultiplayGuiApp;
 use amp_domain::Track;
 
 impl MultiplayGuiApp {
-    /// Adds a pasted link (YouTube, Bandcamp, Spotify, stream URL). Ignored if it is not one.
+    /// Adds a pasted link (YouTube, Bandcamp, SoundCloud, stream URL); says why for links that
+    /// cannot be played (Spotify).
     pub fn ingest_url(&mut self, url: &str) {
+        if let Some(reason) = amp_domain::source_url::unsupported_link(url) {
+            self.search_status = Some(reason.to_string());
+            return;
+        }
         if let Some(track) = amp_domain::source_url::track_from_link(url) {
             self.playlist.push(track);
             self.save_session();

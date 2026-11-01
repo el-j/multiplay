@@ -124,7 +124,6 @@ impl Default for AudioHardwareConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamingProvidersConfig {
     pub enable_youtube: bool,
-    pub enable_spotify: bool,
     pub enable_soundcloud: bool,
     pub enable_bandcamp: bool,
     pub download_cache_dir: String,
@@ -134,7 +133,6 @@ impl Default for StreamingProvidersConfig {
     fn default() -> Self {
         Self {
             enable_youtube: true,
-            enable_spotify: false,
             enable_soundcloud: true,
             enable_bandcamp: true,
             download_cache_dir: "~/.multiplay/downloads".into(),

@@ -7,7 +7,6 @@ members = [
     "crates/amp-adapter-decoder",
     "crates/amp-adapter-storage",
     "crates/amp-adapter-youtube",
-    "crates/amp-adapter-spotify",
     "crates/amp-adapter-tui",
     "crates/amp-adapter-soulseek",
     "crates/amp-adapter-p2p",

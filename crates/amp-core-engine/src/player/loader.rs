@@ -219,9 +219,7 @@ fn open_source_blocking(
                     return decoder_factory.open_stream(stream);
                 }
             }
-            Err(DecodeError::UnsupportedFormat(format!(
-                "No stream resolver registered for audio source: {source:?}"
-            )))
+            Err(no_resolver(source))
         }
     }
 }
@@ -350,4 +348,16 @@ async fn resolve_and_open_once(
             ))
         }
     }
+}
+
+/// The error for a source no resolver handles; Spotify entries from older versions say why.
+fn no_resolver(source: &amp_domain::AudioSource) -> DecodeError {
+    if matches!(source, amp_domain::AudioSource::Spotify { .. }) {
+        return DecodeError::UnsupportedFormat(
+            "Spotify isn't supported: this playlist entry can't be played (ADR-007)".into(),
+        );
+    }
+    DecodeError::UnsupportedFormat(format!(
+        "No stream resolver registered for audio source: {source:?}"
+    ))
 }

@@ -216,14 +216,6 @@ impl<'a> Widget for SettingsViewModal<'a> {
                         "DISABLED"
                     }
                 );
-                let sp = format!(
-                    "Spotify: {}",
-                    if self.state.config.streaming.enable_spotify {
-                        "ENABLED"
-                    } else {
-                        "DISABLED"
-                    }
-                );
                 let sc = format!(
                     "SoundCloud: {}",
                     if self.state.config.streaming.enable_soundcloud {
@@ -233,8 +225,7 @@ impl<'a> Widget for SettingsViewModal<'a> {
                     }
                 );
                 buf.set_string(content_left + 1, content_y + 2, &yt, idle_cat_style);
-                buf.set_string(content_left + 1, content_y + 3, &sp, idle_cat_style);
-                buf.set_string(content_left + 1, content_y + 4, &sc, idle_cat_style);
+                buf.set_string(content_left + 1, content_y + 3, &sc, idle_cat_style);
             }
             SettingsCategory::P2PNetwork => {
                 buf.set_string(
