@@ -82,8 +82,24 @@ open-source Soulseek client, over its API.
   (`~/.multiplay/vault.bin`), not in `config.toml`, and are passed to slskd through its
   environment, not its command line.
 
-The code also contains a peer-to-peer sharing mesh; in this beta it makes no connection and only
-searches what is already on this computer. This page will be updated before it goes online.
+## Private mesh (off by default)
+
+"Join a private mesh" in Preferences → P2P connects your own devices and friends' devices that
+share a **mesh code**, so each can search and play the music the others share.
+
+- **Off by default.** While it is off, multiplay opens no mesh port and sends no announcements.
+- **Only devices with the code connect.** The code is a 256-bit key; a device without it is
+  refused during the first handshake, before any data. Everything between members is encrypted
+  (Noise). The code and this device's identity are kept in the encrypted vault
+  (`~/.multiplay/vault.bin`), not in `config.toml`.
+- **On your local network** multiplay announces itself with mDNS (service `_multiplay._tcp.local.`) and listens
+  on TCP port 4040. The announcement carries this device's peer id and a hash that identifies the
+  mesh, never the code. There is no internet server: members on other networks are not found yet.
+- **What members see:** your peer id and IP address, the title, artist, album and length of the
+  files you share, and those files' contents when they play them. Nothing is shared until you tick
+  "Share my music folders"; then only audio files in your music folders are offered, looked up by
+  an id, never by path.
+- **What you send:** your searches go to every connected member.
 
 ## Media keys and Now Playing
 

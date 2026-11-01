@@ -64,11 +64,8 @@ fn managed_mode_without_slskd_asks_to_install_it() {
 fn secrets_go_to_the_vault_not_the_config_file() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = MultiplayGuiApp::headless(dir.path()).unwrap();
-    app.save_soulseek_secret("soulseek_password", "hunter2");
-    assert_eq!(
-        app.soulseek_secret("soulseek_password").as_deref(),
-        Some("hunter2")
-    );
+    app.save_secret("soulseek_password", "hunter2");
+    assert_eq!(app.secret("soulseek_password").as_deref(), Some("hunter2"));
     app.config.soulseek.username = "listener".into();
     app.save_and_apply_config();
     let on_disk: String = walk(dir.path())

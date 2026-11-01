@@ -157,6 +157,7 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
                 crate::settings_panel::Services {
                     remote: &mut app.remote,
                     soulseek: &mut app.soulseek_ui,
+                    mesh: &mut app.mesh_ui,
                     slskd_installed,
                 },
                 crate::settings_panel::OutputDevices {
@@ -169,6 +170,9 @@ pub fn window_body(app: &mut MultiplayGuiApp, window: WindowId, ui: &mut Ui) {
             }
             if opens.skin_dialog {
                 app.open_skin_dialog();
+            }
+            if let Some(action) = opens.mesh {
+                app.mesh_action(action);
             }
             if let Some(action) = opens.soulseek {
                 app.soulseek_action(action);

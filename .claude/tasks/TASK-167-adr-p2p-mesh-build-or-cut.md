@@ -27,3 +27,12 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Evidence (2026-11-01, branch feat/p2p-mesh)
+- Decision: build, on libp2p 0.56 with pnet (product owner: "use libp2p"). `docs/adr/ADR-009-private-mesh-libp2p.md`.
+- `crates/amp-adapter-p2p/tests/mesh.rs`: two real nodes on 127.0.0.1 — search + byte-exact streaming, a different code cannot connect, unshared ids refused, jam operations delivered over gossipsub (5 passed).
+- `crates/amp-domain/tests/jam_crdt.rs`: convergence under any delivery order (proptest, 20,000 cases locally).
+- `crates/amp-adapter-gui/tests/mesh_setup.rs`: off by default, code in the vault (not config), bad code refused, leave stops the node (2 passed).
+- `docs/privacy.md` "Private mesh" section; privacy guard passes.
+- `./scripts/verify_pure_rust.sh` (+ `--self-test`), `cargo deny check`, clippy `-D warnings`, `cargo test --workspace`: 628 passed, 0 failed.
+- Not yet: jam-session window, members on other networks (no relay), mesh in the terminal app.

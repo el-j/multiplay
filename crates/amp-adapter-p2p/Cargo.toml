@@ -13,6 +13,17 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Private LAN mesh (TASK-167, decided: implement with libp2p): pre-shared-key network (pnet),
+# Noise encryption, Yamux over TCP, mDNS discovery, request-response for search and transfers,
+# gossipsub for jam sessions.
+libp2p = { version = "0.56", default-features = false, features = ["tokio", "tcp", "noise", "yamux", "pnet", "request-response", "cbor", "gossipsub", "macros", "ed25519"] }
+futures = "0.3"
+sha2 = "0.10"
+uuid = { workspace = true }
+tracing = { workspace = true }
+# LAN discovery without libp2p-mdns (its hickory-proto 0.25 has open advisories).
+mdns-sd = "0.21"
 
 [dev-dependencies]
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tempfile = "3.27"

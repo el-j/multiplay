@@ -22,11 +22,13 @@ wayland-backend: Wayland protocol backend for winit; build script uses cc for OS
 khronos-egl: Binds the OS libEGL for wgpu's GL backend on Linux (located via pkg-config)
 x11-dl: Loads the OS libX11 family at runtime (dlopen) for winit on Linux; build script only queries pkg-config, no C is compiled
 linux-raw-sys: Pure-Rust Linux syscall definitions for rustix (no C code)
+netlink-sys: Pure-Rust Linux netlink sockets (kernel interface, no C library, no build script) for libp2p's interface watcher (if-watch) in the P2P mesh
 
 # --- macOS -------------------------------------------------------------------
 core-foundation-sys: Binds the OS CoreFoundation framework on macOS
 security-framework-sys: Binds the OS Security framework so rustls checks certificates against the system trust store (reqwest platform verifier); no build script, no C code
 objc-sys: Binds the OS Objective-C runtime for winit/eframe on macOS
+system-configuration-sys: Binds the OS SystemConfiguration framework on macOS (build script only links the framework) so libp2p's interface watcher sees network changes in the P2P mesh
 
 # --- Windows -----------------------------------------------------------------
 windows-sys: Raw bindings to OS Win32 / WASAPI APIs (no C code)

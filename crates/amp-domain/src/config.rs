@@ -193,7 +193,7 @@ pub struct P2PNetworkConfig {
 impl Default for P2PNetworkConfig {
     fn default() -> Self {
         Self {
-            enable_p2p_mesh: true,
+            enable_p2p_mesh: false,
             mesh_listen_port: 4040,
             soulseek_listen_port: 2234,
             max_upload_slots: 4,
