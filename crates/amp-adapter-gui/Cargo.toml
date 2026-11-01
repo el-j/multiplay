@@ -9,6 +9,33 @@ publish = false
 name = "multiplay-gui"
 path = "src/main.rs"
 
+# Debian package (TASK-181): `cargo deb -p amp-adapter-gui --no-build` after a release build of
+# amp-app and amp-adapter-gui. Installs both apps, the desktop entry and the icons.
+[package.metadata.deb]
+name = "multiplay"
+maintainer = "multiplay contributors <https://github.com/el-j/multiplay/issues>"
+copyright = "multiplay contributors"
+license-file = ["../../LICENSE", "0"]
+extended-description = "Lightweight audiophile music player in pure Rust: classic windows with magnetic docking, gapless playback of almost every audio format, a library browser, DJ mode and phone remote control."
+section = "sound"
+priority = "optional"
+depends = "$auto"
+assets = [
+    ["target/release/multiplay-gui", "usr/bin/multiplay", "755"],
+    ["target/release/amp-app", "usr/bin/multiplay-tui", "755"],
+    ["../../assets/linux/multiplay.desktop", "usr/share/applications/multiplay.desktop", "644"],
+    ["../../assets/icon/multiplay-16.png", "usr/share/icons/hicolor/16x16/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-32.png", "usr/share/icons/hicolor/32x32/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-48.png", "usr/share/icons/hicolor/48x48/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-64.png", "usr/share/icons/hicolor/64x64/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-128.png", "usr/share/icons/hicolor/128x128/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-256.png", "usr/share/icons/hicolor/256x256/apps/multiplay.png", "644"],
+    ["../../assets/icon/multiplay-512.png", "usr/share/icons/hicolor/512x512/apps/multiplay.png", "644"],
+    ["../../THIRD_PARTY_LICENSES.html", "usr/share/doc/multiplay/THIRD_PARTY_LICENSES.html", "644"],
+    ["../../docs/privacy.md", "usr/share/doc/multiplay/privacy.md", "644"],
+    ["../../CHANGELOG.md", "usr/share/doc/multiplay/CHANGELOG.md", "644"],
+]
+
 [dependencies]
 tracing = { workspace = true }
 amp-domain = { workspace = true }

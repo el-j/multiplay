@@ -1,0 +1,45 @@
+<!--
+  Windows installer for multiplay (TASK-181), built by .github/workflows/release.yml with WiX 5:
+    wix build packaging/windows/multiplay.wxs -arch x64 -d Version=0.1.0.42 -d SourceDir=<staging> -d IconFile=assets/icon/multiplay.ico -o multiplay.msi
+  Installs to Program Files\Multiplay with a Start menu entry. Every beta of the same version
+  replaces the previous one (AllowSameVersionUpgrades); the UpgradeCode never changes.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Multiplay"
+           Manufacturer="multiplay contributors"
+           Version="$(Version)"
+           UpgradeCode="aa0a9bbe-b994-5194-b2f4-1f9134c67cc8"
+           Scope="perMachine">
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of Multiplay is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="multiplay.ico" SourceFile="$(IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="multiplay.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/el-j/multiplay" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Multiplay" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Component>
+        <File Source="$(SourceDir)\multiplay.exe" KeyPath="yes">
+          <Shortcut Name="Multiplay" Description="Music player"
+                    Directory="ProgramMenuFolder" WorkingDirectory="INSTALLFOLDER"
+                    Icon="multiplay.ico" Advertise="yes" />
+        </File>
+      </Component>
+      <Component><File Source="$(SourceDir)\multiplay-tui.exe" KeyPath="yes" /></Component>
+      <Component><File Source="$(SourceDir)\README.md" KeyPath="yes" /></Component>
+      <Component><File Source="$(SourceDir)\LICENSE" KeyPath="yes" /></Component>
+      <Component><File Source="$(SourceDir)\CHANGELOG.md" KeyPath="yes" /></Component>
+      <Component><File Source="$(SourceDir)\privacy.md" KeyPath="yes" /></Component>
+      <Component><File Source="$(SourceDir)\THIRD_PARTY_LICENSES.html" KeyPath="yes" /></Component>
+    </ComponentGroup>
+
+    <Feature Id="Main">
+      <ComponentGroupRef Id="AppFiles" />
+    </Feature>
+  </Package>
+</Wix>

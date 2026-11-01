@@ -37,7 +37,9 @@ packages are attached to the run as `multiplay-<version>-all`.
 | File | Contents |
 |---|---|
 | `multiplay-<v>-macos-universal.dmg` | `Multiplay.app` (Apple Silicon + Intel), `multiplay-tui`, Applications shortcut |
+| `multiplay-<v>-windows-x86_64.msi` | Installer (WiX 5, `packaging/windows/multiplay.wxs`): Program Files, Start menu, upgrades in place |
 | `multiplay-<v>-windows-x86_64.zip` | `multiplay.exe` (GUI, no console window), `multiplay-tui.exe`; C runtime linked in |
+| `multiplay-<v>-linux-{x86_64,aarch64}.deb` | Debian package (cargo-deb, metadata in `crates/amp-adapter-gui/Cargo.toml`): both apps, desktop entry, icons |
 | `multiplay-<v>-linux-{x86_64,aarch64}.AppImage` | Single-file app with desktop entry and icons |
 | `multiplay-<v>-linux-{x86_64,aarch64}.tar.gz` | Binaries, `multiplay.desktop`, `multiplay.png` |
 | `SHA256SUMS` | Checksums of all of the above |
