@@ -23,7 +23,7 @@ Four decks, beat-synced remix loop slots fed from any deck, stem separation (dru
 ## Tasks
 - [x] [TASK-220: Four-Deck Layout & Deck Count Setting](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-220-four-deck-layout-and-deck-count.md)
 - [x] [TASK-221: Remix Slots: Capture Beat-Synced Loops From Any Deck](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-221-remix-loop-slots.md)
-- [ ] [TASK-222: ADR Spike: Pure-Rust Stem Separation (Go/No-Go)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-222-adr-pure-rust-stem-separation-spike.md)
+- [x] [TASK-222: ADR Spike: Pure-Rust Stem Separation (Go/No-Go)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-222-adr-pure-rust-stem-separation-spike.md)
 - [ ] [TASK-223: Stem Decks: Drums, Bass, Melody, Vocals per Track](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md)
 - [x] [TASK-224: Record the Master Mix to WAV/FLAC](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md)
 
