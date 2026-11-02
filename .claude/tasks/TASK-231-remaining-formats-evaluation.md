@@ -35,7 +35,7 @@
 - **Evidence Links:** Screenshot.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - Decision record: [ADR-006](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/adr/ADR-006-remaining-audio-formats.md).

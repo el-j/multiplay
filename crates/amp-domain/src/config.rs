@@ -142,6 +142,13 @@ pub struct AudioHardwareConfig {
     /// Output device for the DJ headphone (cue) mix, `None` for none. Missing in old files.
     #[serde(default)]
     pub dj_headphones_device: Option<String>,
+    /// Decks on the DJ console: 2 or 4 (TASK-220). Missing in old files.
+    #[serde(default = "two_decks")]
+    pub dj_deck_count: usize,
+}
+
+fn two_decks() -> usize {
+    2
 }
 
 impl Default for AudioHardwareConfig {
@@ -156,6 +163,7 @@ impl Default for AudioHardwareConfig {
             target_lufs: -14,
             headphone_crossfeed: "Off".to_string(),
             dj_headphones_device: None,
+            dj_deck_count: 2,
         }
     }
 }

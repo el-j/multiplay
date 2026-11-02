@@ -209,3 +209,32 @@ fn responsive_every_dj_control_is_on_screen() {
         assert!(drawn.contains(&a), "{a:?} has no on-screen control");
     }
 }
+
+#[test]
+fn responsive_four_deck_console_fits_from_its_minimum_up() {
+    use amp_adapter_gui::dj_mode::{console_min, CONSOLE_MIN_FOUR};
+    let (_root, mut app) = app_with_long_content();
+    app.config.audio.dj_deck_count = 4;
+    assert_eq!(console_min(4), CONSOLE_MIN_FOUR);
+    app.toggle_dj_mode(None);
+    let track = app.playlist[0].clone();
+    if let Some(dj) = app.dj.as_mut() {
+        dj.load(&app.audio_driver, 3, track);
+    }
+    assert_eq!(
+        app.min_size(WindowId::Main),
+        CONSOLE_MIN_FOUR.max(min_inner_size(WindowId::Main))
+    );
+    for size in [
+        CONSOLE_MIN_FOUR,
+        eframe::egui::Vec2::new(800.0, 500.0),
+        eframe::egui::Vec2::new(1_200.0, 700.0),
+    ] {
+        let spill = overflow(&mut app, WindowId::Main, size);
+        assert!(
+            spill.x <= 0.5 && spill.y <= 0.5,
+            "four-deck console overflows at {size:?} by {spill:?}"
+        );
+    }
+    assert_eq!(app.dj.as_ref().unwrap().deck_count(), 4);
+}

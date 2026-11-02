@@ -286,3 +286,31 @@ fn dj_deck_plays_while_its_track_is_still_loading() {
         "test needs a track that is still loading"
     );
 }
+
+#[test]
+fn dj_record_render_never_allocates_while_recording() {
+    use amp_core_engine::dj::recorder::{MixMetadata, RecordFormat};
+    let dir = tempfile::tempdir().unwrap();
+    let (mut engine, mut control) = DjEngine::new(48_000, 2);
+    control.load(0, sine(48_000, 440.0, 2.0));
+    control.params().deck(0).set_playing(true);
+    let meta = MixMetadata {
+        title: "t".into(),
+        artist: "a".into(),
+    };
+    control
+        .recorder()
+        .start(&dir.path().join("mix.flac"), RecordFormat::Flac, meta)
+        .unwrap();
+    let mut master = vec![0.0; 2_048];
+    let mut cue = vec![0.0; 2_048];
+    engine.render(&mut master, &mut cue);
+    let n = allocations_during(|| {
+        for _ in 0..100 {
+            engine.render(&mut master, &mut cue);
+        }
+    });
+    assert_eq!(n, 0, "render allocated {n} times while recording");
+    let info = control.recorder().stop().unwrap();
+    assert_eq!(info.frames, 101 * 1_024);
+}
