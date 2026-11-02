@@ -15,7 +15,11 @@ impl MultiplayGuiApp {
             return;
         }
         if let Some(track) = amp_domain::source_url::track_from_link(url) {
+            let title = track.metadata.title.clone();
             self.playlist.push(track);
+            let upcoming = self.playlist.get(self.selected_track_idx + 1).cloned();
+            self.audio_driver.set_next_track(upcoming);
+            self.search_status = Some(format!("Added to playlist: {title}"));
             self.save_session();
         }
     }
@@ -65,7 +69,11 @@ impl MultiplayGuiApp {
 
     /// Appends a searched track to the end of the playlist.
     pub fn add_search_result(&mut self, track: Track) {
+        let title = track.metadata.title.clone();
         self.playlist.push(track);
+        let upcoming = self.playlist.get(self.selected_track_idx + 1).cloned();
+        self.audio_driver.set_next_track(upcoming);
+        self.search_status = Some(format!("Added to playlist: {title}"));
         self.save_session();
     }
 }

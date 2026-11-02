@@ -66,3 +66,46 @@ fn a_file_no_tag_reader_understands_uses_the_fallback() {
     assert_eq!(report.tracks.len(), 1);
     assert!(LIST_EXTENSIONS.contains(&"cue"));
 }
+
+#[test]
+fn internet_shortcuts_url_and_webloc_import_as_tracks() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+
+    // 1. Windows .url internet shortcut
+    let yt_url_file = root.join("rick.url");
+    std::fs::write(
+        &yt_url_file,
+        "[InternetShortcut]\r\nURL=https://www.youtube.com/watch?v=dQw4w9WgXcQ\r\n",
+    )
+    .unwrap();
+
+    // 2. macOS .webloc internet shortcut
+    let bc_webloc_file = root.join("track.webloc");
+    std::fs::write(
+        &bc_webloc_file,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>URL</key>
+    <string>https://artist.bandcamp.com/track/my-track</string>
+</dict>
+</plist>"#,
+    )
+    .unwrap();
+
+    let paths = [yt_url_file, bc_webloc_file];
+    let report = import_paths(&paths, &|_| None);
+
+    assert_eq!(report.tracks.len(), 2, "{:?}", report.tracks);
+    assert!(matches!(
+        report.tracks[0].source,
+        amp_domain::AudioSource::YouTube { ref video_id } if video_id == "dQw4w9WgXcQ"
+    ));
+    assert!(matches!(
+        report.tracks[1].source,
+        amp_domain::AudioSource::Bandcamp { ref stream_url } if stream_url.contains("bandcamp.com")
+    ));
+}
+

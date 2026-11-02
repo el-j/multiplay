@@ -24,6 +24,9 @@ pub const MAX_LIST_FILE_BYTES: u64 = 32 << 20;
 /// Extensions of skin files, which are not imported but handed back.
 const SKIN_EXTENSIONS: [&str; 1] = ["wsz"];
 
+/// Extensions for internet shortcuts (Windows .url and macOS .webloc).
+const SHORTCUT_EXTENSIONS: [&str; 2] = ["url", "webloc"];
+
 /// What one import produced.
 #[derive(Debug, Default)]
 pub struct ImportReport {
@@ -65,6 +68,61 @@ pub fn import_list_file(path: &Path) -> Option<Vec<Track>> {
     Some(tracks.unwrap_or_default())
 }
 
+/// Extracts a URL from a Windows `.url` or macOS `.webloc` internet shortcut, and converts it
+/// into a [`Track`] via `amp_domain::source_url::track_from_link`.
+#[must_use]
+pub fn import_url_shortcut(path: &Path) -> Option<Track> {
+    let ext = extension(path).filter(|e| SHORTCUT_EXTENSIONS.contains(&e.as_str()))?;
+    if std::fs::metadata(path).is_ok_and(|m| m.len() > 65_536) {
+        return None;
+    }
+    let bytes = std::fs::read(path).ok()?;
+    let text = String::from_utf8_lossy(&bytes);
+
+    let url = match ext.as_str() {
+        "url" => text.lines().find_map(|line| {
+            let trimmed = line.trim();
+            let lower = trimmed.to_ascii_lowercase();
+            if lower.starts_with("url=") {
+                Some(trimmed[4..].trim().to_string())
+            } else if lower.starts_with("url =") {
+                Some(trimmed[5..].trim().to_string())
+            } else {
+                None
+            }
+        }),
+        "webloc" => {
+            if let Some(start) = text.find("<string>") {
+                let rest = &text[start + 8..];
+                if let Some(end) = rest.find("</string>") {
+                    let candidate = rest[..end].trim();
+                    if candidate.starts_with("http://") || candidate.starts_with("https://") {
+                        Some(candidate.to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                text.find("http://")
+                    .or_else(|| text.find("https://"))
+                    .and_then(|start| {
+                        let rest = &text[start..];
+                        let end = rest
+                            .find(|c: char| c.is_whitespace() || c == '<' || c == '"' || c == '\0')
+                            .unwrap_or(rest.len());
+                        let candidate = rest[..end].trim();
+                        (!candidate.is_empty()).then(|| candidate.to_string())
+                    })
+            }
+        }
+        _ => None,
+    }?;
+
+    amp_domain::source_url::track_from_link(&url)
+}
+
 /// Imports `paths`. `fallback` makes a track for a playable file no tag reader understands
 /// (DSD), typically from the decoder's duration and rate.
 pub fn import_paths(paths: &[PathBuf], fallback: &dyn Fn(&Path) -> Option<Track>) -> ImportReport {
@@ -101,6 +159,10 @@ fn import_one(
 ) {
     if extension(path).is_some_and(|e| SKIN_EXTENSIONS.contains(&e.as_str())) {
         report.skins.push(path.to_path_buf());
+        return;
+    }
+    if let Some(track) = import_url_shortcut(path) {
+        report.tracks.push(track);
         return;
     }
     if let Some(listed) = import_list_file(path) {
