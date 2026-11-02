@@ -6,7 +6,7 @@
 - **Role:** `audio_engine, dsp_engineering`
 - **Milestone:** M3.5 — Signature features (post-1.0, experimental)
 - **Priority:** P2
-- **Status:** Pending
+- **Status:** Complete
 - **Dependencies:** `PLAN-055`
 - **Design:** [Signature features design §8](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/superpowers/specs/2026-10-19-signature-features-design.md)
 
@@ -24,7 +24,7 @@ Four decks, beat-synced remix loop slots fed from any deck, stem separation (dru
 - [x] [TASK-220: Four-Deck Layout & Deck Count Setting](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-220-four-deck-layout-and-deck-count.md)
 - [x] [TASK-221: Remix Slots: Capture Beat-Synced Loops From Any Deck](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-221-remix-loop-slots.md)
 - [x] [TASK-222: ADR Spike: Pure-Rust Stem Separation (Go/No-Go)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-222-adr-pure-rust-stem-separation-spike.md)
-- [ ] [TASK-223: Stem Decks: Drums, Bass, Melody, Vocals per Track](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md)
+- [x] [TASK-223: Stem Decks: Drums, Bass, Melody, Vocals per Track](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md)
 - [x] [TASK-224: Record the Master Mix to WAV/FLAC](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md)
 
 ## Verification

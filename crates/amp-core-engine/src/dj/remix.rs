@@ -106,6 +106,12 @@ impl CapturedLoop {
         let idx = (i % total) * 2;
         (self.samples[idx], self.samples[idx + 1])
     }
+
+    /// Separates this captured loop into four stems (Drums, Bass, Melody, Vocals).
+    #[must_use]
+    pub fn separate_stems(&self) -> super::stems::SeparatedStems {
+        super::stems::SeparatedStems::separate(&self.samples, self.sample_rate as f32)
+    }
 }
 
 /// Metadata and settings of a single remix slot for session persistence.
