@@ -533,11 +533,11 @@ M3.5 holds the last features before release ([design](file:///Users/rex-fab-alt/
 ### PLAN-057: Remix Decks, Stems & Mix Recording (Post-1.0, Experimental) (Pending · P2 · M3.5 — Signature features (post-1.0))
 | Task ID | Title | Status | Role | Verification Command |
 | :--- | :--- | :--- | :--- | :--- |
-| [TASK-220](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-220-four-deck-layout-and-deck-count.md) | Four-Deck Layout & Deck Count Setting | Pending | frontend_gui | `cargo test -p amp-core-engine dj_four_deck` |
-| [TASK-221](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-221-remix-loop-slots.md) | Remix Slots: Capture Beat-Synced Loops From Any Deck | Pending | audio_engine | `cargo test -p amp-core-engine dj_remix` |
+| [TASK-220](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-220-four-deck-layout-and-deck-count.md) | Four-Deck Layout & Deck Count Setting | Completed | frontend_gui | `cargo test -p amp-core-engine dj_four_deck` |
+| [TASK-221](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-221-remix-loop-slots.md) | Remix Slots: Capture Beat-Synced Loops From Any Deck | Completed | audio_engine | `cargo test -p amp-core-engine dj_remix` |
 | [TASK-222](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-222-adr-pure-rust-stem-separation-spike.md) | ADR Spike: Pure-Rust Stem Separation (Go/No-Go) | Pending | dsp_engineering | `./scripts/verify_pure_rust.sh` |
 | [TASK-223](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md) | Stem Decks: Drums, Bass, Melody, Vocals per Track | Pending | audio_engine | `cargo test -p amp-core-engine dj_stems` |
-| [TASK-224](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md) | Record the Master Mix to WAV/FLAC | Pending | audio_engine | `cargo test -p amp-core-engine dj_record` |
+| [TASK-224](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md) | Record the Master Mix to WAV/FLAC | Completed | audio_engine | `cargo test -p amp-core-engine dj_record` |
 
 ---
 

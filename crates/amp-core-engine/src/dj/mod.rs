@@ -10,6 +10,7 @@ pub mod engine;
 pub mod mixer;
 pub mod recorder;
 mod recorder_sinks;
+pub mod remix;
 pub mod wsola;
 
 pub use beat_detector::RealtimeBpmDetector;

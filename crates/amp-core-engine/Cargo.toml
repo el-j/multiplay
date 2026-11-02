@@ -34,4 +34,5 @@ flacenc = { version = "0.5.1", default-features = false }
 [dev-dependencies]
 amp-adapter-decoder = { path = "../amp-adapter-decoder" }
 proptest = "1.12"
+serde_json = { workspace = true }
 tempfile = "3.27"
