@@ -38,7 +38,7 @@
 - **Evidence Links:** Screenshot, CI run URL.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - ADR-005 accepted by the owner: `rusty-opus` `=1.0.2` (pure Rust, SIMD intrinsics only); ADR-004 marked superseded.

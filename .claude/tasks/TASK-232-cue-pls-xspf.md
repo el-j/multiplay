@@ -34,7 +34,7 @@
 - **Evidence Links:** Screenshot.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - Domain: `TrackSegment { start, end }` and `TrackMetadata::segment` (`#[serde(default)]`).

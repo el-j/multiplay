@@ -32,7 +32,7 @@
 - **Evidence Links:** Screenshot, CI run URL.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - `amp-adapter-decoder` Symphonia features now: `mp1, mp2, mp3, flac, pcm, vorbis, aac, alac, adpcm, isomp4, ogg, wav, aiff, caf, mkv`. Registry marks AIFF, CAF, Matroska/WebM audio, MPEG Layer I/II playable; ALAC plays inside `.m4a` ("AAC / ALAC (M4A)").

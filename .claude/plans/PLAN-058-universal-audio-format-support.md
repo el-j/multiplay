@@ -6,7 +6,7 @@
 - **Role:** `audio_engine, codec_engineering`
 - **Milestone:** M2 — Release readiness
 - **Priority:** P0 (FLAC proof, single format list), P1 (Opus, tags, CUE), P2 (exotic formats)
-- **Status:** Pending
+- **Status:** Complete
 - **Dependencies:** `PLAN-039` (decoder hardening, ADR-004)
 - **Supersedes:** ADR-004 once TASK-228 accepts an Opus decoder
 
@@ -42,14 +42,14 @@ TASK-225 → TASK-226 → TASK-227 (P0 path, ships independently).
 TASK-228 → TASK-229 (Opus). TASK-230 and TASK-232 after TASK-225. TASK-231 last.
 
 ## Tasks
-- [ ] [TASK-225: One Format Registry for Scanner, Dialog, Drop and Upload](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-225-format-registry.md)
-- [ ] [TASK-226: Golden Fixture Corpus & Decode Matrix (FLAC First)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-226-golden-format-fixtures.md)
-- [ ] [TASK-227: Enable Symphonia's Remaining Codecs & Containers](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-227-enable-symphonia-codecs.md)
-- [ ] [TASK-228: ADR-005 Spike: Pure-Rust Opus Decoder (Go/No-Go)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-228-adr-pure-rust-opus-decoder.md)
-- [ ] [TASK-229: Opus Playback: Ogg Opus, WebM/MKA and YouTube Opus Streams](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-229-opus-playback.md)
-- [ ] [TASK-230: Tags, Artwork and Loudness for Every Decodable Format](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-230-tags-artwork-loudness-all-formats.md)
-- [ ] [TASK-231: Remaining Formats: DSD, WavPack, APE, Musepack, TTA, WMA](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-231-remaining-formats-evaluation.md)
-- [ ] [TASK-232: Playlist & Album Containers: CUE Sheets, PLS, XSPF](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-232-cue-pls-xspf.md)
+- [x] [TASK-225: One Format Registry for Scanner, Dialog, Drop and Upload](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-225-format-registry.md)
+- [x] [TASK-226: Golden Fixture Corpus & Decode Matrix (FLAC First)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-226-golden-format-fixtures.md)
+- [x] [TASK-227: Enable Symphonia's Remaining Codecs & Containers](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-227-enable-symphonia-codecs.md)
+- [x] [TASK-228: ADR-005 Spike: Pure-Rust Opus Decoder (Go/No-Go)](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-228-adr-pure-rust-opus-decoder.md)
+- [x] [TASK-229: Opus Playback: Ogg Opus, WebM/MKA and YouTube Opus Streams](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-229-opus-playback.md)
+- [x] [TASK-230: Tags, Artwork and Loudness for Every Decodable Format](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-230-tags-artwork-loudness-all-formats.md)
+- [x] [TASK-231: Remaining Formats: DSD, WavPack, APE, Musepack, TTA, WMA](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-231-remaining-formats-evaluation.md)
+- [x] [TASK-232: Playlist & Album Containers: CUE Sheets, PLS, XSPF](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-232-cue-pls-xspf.md)
 
 ## Verification
 `./scripts/verify_pure_rust.sh && cargo test --workspace`, the decode matrix of TASK-226 green

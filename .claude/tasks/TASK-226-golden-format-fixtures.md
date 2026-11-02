@@ -41,7 +41,7 @@
 - **Evidence Links:** CI run URL with the matrix on three OSes.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - `scripts/make_audio_fixtures.sh` (ffmpeg, flac, lame as offline tools) writes 12 fixtures (~1 MB) to `crates/amp-adapter-decoder/tests/fixtures/`: FLAC 16/44.1k, 24/96k, 24/192k, no seek table, 5.1/48k; WAV 16-bit, 24-bit, 32-bit float; MP3 CBR 128 and VBR V2; AAC in M4A; Ogg Vorbis. All carry left 440 Hz / right 660 Hz at 0.5; verified with ffprobe.

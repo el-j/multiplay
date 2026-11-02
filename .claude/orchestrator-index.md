@@ -539,6 +539,18 @@ M3.5 holds the last features before release ([design](file:///Users/rex-fab-alt/
 | [TASK-223](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-223-stem-decks.md) | Stem Decks: Drums, Bass, Melody, Vocals per Track | Complete | audio_engine | `cargo test -p amp-core-engine --test dj_stems` |
 | [TASK-224](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-224-record-master-mix-to-file.md) | Record the Master Mix to WAV/FLAC | Completed | audio_engine | `cargo test -p amp-core-engine dj_record` |
 
+### PLAN-058: Universal Audio Format Support (FLAC, Opus & Every Common Format) (Complete · P0/P1 · M2 — Release readiness)
+| Task ID | Title | Status | Role | Verification Command |
+| :--- | :--- | :--- | :--- | :--- |
+| [TASK-225](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-225-format-registry.md) | One Format Registry for Scanner, Dialog, Drop and Upload | Complete | codec_engineering | `./scripts/verify_pure_rust.sh && cargo test -p amp-domain -p amp-adapter-storage -p amp-adapter-gui -p amp-adapter-remote` |
+| [TASK-226](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-226-golden-format-fixtures.md) | Golden Fixture Corpus & Decode Matrix (FLAC First) | Complete | codec_engineering | `cargo test -p amp-adapter-decoder -p amp-app --test format_playback` |
+| [TASK-227](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-227-enable-symphonia-codecs.md) | Enable Symphonia's Remaining Codecs & Containers | Complete | codec_engineering | `cargo test -p amp-adapter-decoder` |
+| [TASK-228](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-228-adr-pure-rust-opus-decoder.md) | ADR-005 Spike: Pure-Rust Opus Decoder (Go/No-Go) | Complete | codec_engineering | `./scripts/verify_pure_rust.sh` |
+| [TASK-229](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-229-opus-playback.md) | Opus Playback: Ogg Opus, WebM/MKA and YouTube Opus Streams | Complete | codec_engineering | `cargo test -p amp-adapter-decoder -p amp-adapter-youtube` |
+| [TASK-230](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-230-tags-artwork-loudness-all-formats.md) | Tags, Artwork and Loudness for Every Decodable Format | Complete | codec_engineering | `cargo test -p amp-adapter-storage -p amp-adapter-decoder` |
+| [TASK-231](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-231-remaining-formats-evaluation.md) | Remaining Formats: DSD, WavPack, APE, Musepack, TTA, WMA | Complete | codec_engineering | `cargo test -p amp-adapter-decoder` |
+| [TASK-232](file:///Users/rex-fab-alt/Documents/private/multiplay/.claude/tasks/TASK-232-cue-pls-xspf.md) | Playlist & Album Containers: CUE Sheets, PLS, XSPF | Complete | codec_engineering | `cargo test -p amp-adapter-gui -p amp-adapter-storage` |
+
 ---
 
 ## Verification Pipeline & Quality Standards
