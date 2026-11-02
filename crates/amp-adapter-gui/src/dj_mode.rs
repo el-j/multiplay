@@ -15,6 +15,18 @@ use std::sync::Arc;
 pub const CONSOLE_SIZE: Vec2 = Vec2::new(550.0, 232.0);
 /// Smallest console size at which every DJ control still fits.
 pub const CONSOLE_MIN: Vec2 = Vec2::new(520.0, 232.0);
+/// The same with four decks: two rows of deck strips.
+pub const CONSOLE_MIN_FOUR: Vec2 = Vec2::new(560.0, 440.0);
+
+/// Smallest console for `decks` decks.
+#[must_use]
+pub fn console_min(decks: usize) -> Vec2 {
+    if decks > 2 {
+        CONSOLE_MIN_FOUR
+    } else {
+        CONSOLE_MIN
+    }
+}
 
 impl MultiplayGuiApp {
     /// True while DJ mode is on.
@@ -26,7 +38,7 @@ impl MultiplayGuiApp {
     pub fn min_size(&self, window: WindowId) -> Vec2 {
         let base = crate::chrome::resize::min_inner_size(window);
         if window == WindowId::Main && self.dj_active() {
-            base.max(CONSOLE_MIN)
+            base.max(console_min(self.config.audio.dj_deck_count))
         } else {
             base
         }
@@ -63,7 +75,9 @@ impl MultiplayGuiApp {
         let rect = self.dock_manager.get_rect(WindowId::Main);
         let size = if entering {
             self.normal_main_size = Some(Vec2::new(rect.width, rect.height));
-            CONSOLE_SIZE.max(Vec2::new(rect.width, rect.height))
+            CONSOLE_SIZE
+                .max(console_min(self.config.audio.dj_deck_count))
+                .max(Vec2::new(rect.width, rect.height))
         } else {
             self.normal_main_size
                 .take()

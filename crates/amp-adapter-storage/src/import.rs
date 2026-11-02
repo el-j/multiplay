@@ -17,6 +17,10 @@ use std::path::{Path, PathBuf};
 /// Extensions of files that list tracks rather than hold audio.
 pub const LIST_EXTENSIONS: [&str; 5] = ["m3u", "m3u8", "pls", "xspf", "cue"];
 
+/// Largest playlist or CUE sheet read; bigger files are skipped unread (TASK-185). A 100,000
+/// entry M3U is about 10 MiB.
+pub const MAX_LIST_FILE_BYTES: u64 = 32 << 20;
+
 /// Extensions of skin files, which are not imported but handed back.
 const SKIN_EXTENSIONS: [&str; 1] = ["wsz"];
 
@@ -42,6 +46,10 @@ fn extension(path: &Path) -> Option<String> {
 #[must_use]
 pub fn import_list_file(path: &Path) -> Option<Vec<Track>> {
     let ext = extension(path).filter(|e| LIST_EXTENSIONS.contains(&e.as_str()))?;
+    if std::fs::metadata(path).is_ok_and(|m| m.len() > MAX_LIST_FILE_BYTES) {
+        tracing::warn!("{} is too large to be a playlist; skipped", path.display());
+        return Some(Vec::new());
+    }
     let base = path.parent();
     let text = || {
         std::fs::read(path)

@@ -156,8 +156,8 @@ mod tests {
             TrackMetadata::new("YT Song", "YT Artist"),
         );
         let track_spot = Track::new(
-            AudioSource::Spotify {
-                track_uri: "spot1".into(),
+            AudioSource::SoundCloud {
+                track_url: "spot1".into(),
             },
             TrackMetadata::new("Spot Song", "Spot Artist"),
         );
@@ -171,17 +171,17 @@ mod tests {
             }),
         );
         coord.register_provider(
-            SourceKind::Spotify,
+            SourceKind::SoundCloud,
             Arc::new(MockProvider {
-                id: "Spotify",
+                id: "SoundCloud",
                 results: vec![track_spot],
                 delay_ms: 500, // Slow provider
             }),
         );
 
-        // 1. Search with Spotify excluded
+        // 1. Search with SoundCloud excluded
         let mut filter = SourceFilterMask::default();
-        filter.toggle(SourceKind::Spotify);
+        filter.toggle(SourceKind::SoundCloud);
 
         let res = coord
             .search(SearchQueryOptions {
@@ -200,7 +200,7 @@ mod tests {
             .search(SearchQueryOptions {
                 text: "test".into(),
                 filter_mask: full_filter,
-                timeout_millis: 50, // Shorter than Spotify's 500ms
+                timeout_millis: 50, // Shorter than SoundCloud's 500ms
             })
             .await;
 
@@ -243,7 +243,7 @@ mod tests {
             }),
         );
         coord.register_provider(
-            SourceKind::Spotify,
+            SourceKind::SoundCloud,
             Arc::new(FailingProvider {
                 error: ProviderError::RateLimited,
             }),
@@ -274,12 +274,12 @@ mod tests {
         assert!(yt_outcome.result.is_ok());
         assert_eq!(yt_outcome.status_chip().0, "✓");
 
-        let spot_outcome = outcomes
+        let sc_outcome = outcomes
             .iter()
-            .find(|o| o.kind == SourceKind::Spotify)
+            .find(|o| o.kind == SourceKind::SoundCloud)
             .unwrap();
-        assert_eq!(spot_outcome.result, Err(ProviderError::RateLimited));
-        assert_eq!(spot_outcome.status_chip(), ("⚠", "Rate limited"));
+        assert_eq!(sc_outcome.result, Err(ProviderError::RateLimited));
+        assert_eq!(sc_outcome.status_chip(), ("⚠", "Rate limited"));
 
         let bc_outcome = outcomes
             .iter()

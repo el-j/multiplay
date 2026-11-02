@@ -33,7 +33,7 @@
 - **Evidence Links:** Screenshot.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - New `crates/amp-adapter-storage/src/tags.rs` (moved out of `scanner.rs`): lofty first; for playable files lofty cannot open (CAF, Matroska/WebM, ADPCM WAV) a Symphonia format-reader fallback supplies duration, stream properties and standard tags, so every decodable file gets a library entry (before: dropped CAF/MKA/WebM/ADPCM files were silently not added).

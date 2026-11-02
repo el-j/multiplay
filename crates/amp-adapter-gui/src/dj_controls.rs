@@ -228,7 +228,7 @@ pub fn all_actions() -> Vec<DjAction> {
 
 /// Short description for the cheat sheet.
 pub fn describe(a: DjAction) -> String {
-    let deck = |d: usize| ["A", "B"][d.min(1)];
+    let deck = |d: usize| crate::dj_strip::DECK_NAMES[d.min(3)];
     match a {
         DjAction::PlayPause(d) => format!("Play / pause {}", deck(d)),
         DjAction::Cue(d) => format!("Cue {}", deck(d)),
@@ -261,12 +261,12 @@ pub fn describe(a: DjAction) -> String {
 #[derive(Debug, Clone)]
 pub struct ConsoleState {
     /// Beat-loop size per deck, as an index into [`LOOP_SIZES`].
-    pub loop_size: [usize; 2],
+    pub loop_size: [usize; 4],
     /// CUE point per deck, in seconds.
-    pub cue_point: [f64; 2],
+    pub cue_point: [f64; 4],
     /// Whether CUE is currently previewing (held) per deck.
-    pub previewing: [bool; 2],
-    stop_armed: [Option<Instant>; 2],
+    pub previewing: [bool; 4],
+    stop_armed: [Option<Instant>; 4],
     /// Cheat sheet shown.
     pub cheat_sheet: bool,
     /// Actions drawn as on-screen controls this frame (for the reachability check).
@@ -280,10 +280,10 @@ pub struct ConsoleState {
 impl Default for ConsoleState {
     fn default() -> Self {
         Self {
-            loop_size: [4, 4],
-            cue_point: [0.0; 2],
-            previewing: [false; 2],
-            stop_armed: [None; 2],
+            loop_size: [4; 4],
+            cue_point: [0.0; 4],
+            previewing: [false; 4],
+            stop_armed: [None; 4],
             cheat_sheet: false,
             rendered: Vec::new(),
             held: Vec::new(),

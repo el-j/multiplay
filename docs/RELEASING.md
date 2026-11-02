@@ -5,7 +5,8 @@ Releases are built by `.github/workflows/release.yml` and published on the
 
 ## Cut a release
 
-1. Make sure `main` is green.
+1. Make sure `main` is green, and move the `[Unreleased]` section of `CHANGELOG.md` under the
+   new version.
 2. The tag must start with the workspace version in `Cargo.toml` (`[workspace.package]`):
    `v0.1.0-beta.1` is accepted for `0.1.0`. Tags containing `-` (beta, rc) are published as
    pre-releases.
@@ -21,6 +22,12 @@ The workflow runs the full CI on the tagged commit, builds every package, writes
 and publishes the release with the notes from `.github/release-notes.md` followed by GitHub's
 generated changelog.
 
+4. Run [the release checklist](release-checklist.md) on macOS, Windows and Linux with the
+   published downloads. Before 1.0, two release candidates in a row must pass it.
+
+Bug reports and broken online sources come in through the issue templates in
+`.github/ISSUE_TEMPLATE/`; both ask for Preferences → About → Copy diagnostics.
+
 **Dry run:** start the workflow by hand (Actions → Release → Run workflow, or
 `gh workflow run release.yml --ref <branch>`). It builds everything without publishing; the
 packages are attached to the run as `multiplay-<version>-all`.
@@ -30,7 +37,9 @@ packages are attached to the run as `multiplay-<version>-all`.
 | File | Contents |
 |---|---|
 | `multiplay-<v>-macos-universal.dmg` | `Multiplay.app` (Apple Silicon + Intel), `multiplay-tui`, Applications shortcut |
+| `multiplay-<v>-windows-x86_64.msi` | Installer (WiX 5, `packaging/windows/multiplay.wxs`): Program Files, Start menu, upgrades in place |
 | `multiplay-<v>-windows-x86_64.zip` | `multiplay.exe` (GUI, no console window), `multiplay-tui.exe`; C runtime linked in |
+| `multiplay-<v>-linux-{x86_64,aarch64}.deb` | Debian package (cargo-deb, metadata in `crates/amp-adapter-gui/Cargo.toml`): both apps, desktop entry, icons |
 | `multiplay-<v>-linux-{x86_64,aarch64}.AppImage` | Single-file app with desktop entry and icons |
 | `multiplay-<v>-linux-{x86_64,aarch64}.tar.gz` | Binaries, `multiplay.desktop`, `multiplay.png` |
 | `SHA256SUMS` | Checksums of all of the above |

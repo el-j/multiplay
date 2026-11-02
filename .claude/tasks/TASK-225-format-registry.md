@@ -40,7 +40,7 @@
 - **Evidence Links:** Screenshot.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - `crates/amp-domain/src/formats.rs`: `AUDIO_FORMATS` with `Playable` / `Planned { task }` / `Unsupported { reason }`; lookups by extension, path and MIME; `playable_extensions`, `playable_names`, `skip_reason`.

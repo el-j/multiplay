@@ -7,6 +7,7 @@ publish = false
 description = "Pure-Rust embedded ACID persistence adapter using redb and lofty metadata tagger"
 
 [dependencies]
+tracing = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 tokio = { workspace = true }
@@ -25,4 +26,6 @@ uuid = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
 [dev-dependencies]
+amp-test-support = { path = "../amp-test-support" }
+proptest = "1.12"
 tempfile = "3.27"

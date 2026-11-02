@@ -22,11 +22,17 @@ uuid = { workspace = true }
 zip = { version = "9.1", default-features = false, features = ["deflate"] }
 rand = "0.10"
 toml = "1"
+# Comparing release versions for the opt-in update check (TASK-183).
+semver = "1"
 # Field diagnostics (TASK-177): structured logs to daily files under the log folder.
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter"] }
 tracing-appender = "0.2"
+# Recording the DJ mix to FLAC (TASK-224); pure Rust, no parallel or allocator features.
+flacenc = { version = "0.5.1", default-features = false }
 
 [dev-dependencies]
+amp-adapter-decoder = { path = "../amp-adapter-decoder" }
 proptest = "1.12"
+serde_json = { workspace = true }
 tempfile = "3.27"

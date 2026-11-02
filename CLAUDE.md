@@ -27,7 +27,6 @@ cargo run -p amp-app
 - `crates/amp-adapter-decoder`: Symphonia pure-Rust format decoder adapter (FLAC, MP3, WAV, AAC, Vorbis, Opus).
 - `crates/amp-adapter-http`: HTTP/HTTPS range-reader stream adapter (`reqwest` with `rustls`).
 - `crates/amp-adapter-youtube`: YouTube stream resolver (`rusty-ytdl`).
-- `crates/amp-adapter-spotify`: Spotify protocol adapter (`librespot-core`).
 - `crates/amp-adapter-soulseek`: Soulseek binary protocol search and transfer client.
 - `crates/amp-adapter-p2p`: Encrypted P2P private mesh (`libp2p` with Noise & Yamux).
 - `crates/amp-adapter-storage`: Pure-Rust embedded key-value DB (`redb`), `lofty` tag extractor, local directory scanner/watcher.

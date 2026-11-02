@@ -48,7 +48,6 @@ impl SearchViewState {
         let sources = [
             SourceKind::LocalFile,
             SourceKind::YouTube,
-            SourceKind::Spotify,
             SourceKind::Bandcamp,
             SourceKind::SoundCloud,
             SourceKind::Soulseek,
@@ -150,7 +149,6 @@ impl<'a> Widget for SearchViewModal<'a> {
         let pills = [
             (SourceKind::LocalFile, "Local"),
             (SourceKind::YouTube, "YouTube"),
-            (SourceKind::Spotify, "Spotify"),
             (SourceKind::Bandcamp, "Bandcamp"),
             (SourceKind::SoundCloud, "SoundCloud"),
             (SourceKind::Soulseek, "Soulseek"),
@@ -228,7 +226,7 @@ mod tests {
         assert!(!state.filter_mask.is_enabled(SourceKind::YouTube));
 
         state.cycle_filter_pill();
-        assert!(!state.filter_mask.is_enabled(SourceKind::Spotify));
+        assert!(!state.filter_mask.is_enabled(SourceKind::Bandcamp));
 
         // Add mock result and test navigation
         let mut meta = TrackMetadata::new("Windowlicker", "Aphex Twin");

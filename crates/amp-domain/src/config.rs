@@ -18,6 +18,71 @@ pub struct AppConfig {
     /// Phone/browser remote control. Missing in older config files, so it defaults (off).
     #[serde(default)]
     pub remote: RemoteControlConfig,
+    /// Opt-in update check (TASK-183). Missing in older config files: off.
+    #[serde(default)]
+    pub updates: UpdateConfig,
+    /// "Use Soulseek" through slskd (TASK-162). Missing in older config files: off.
+    #[serde(default)]
+    pub soulseek: SoulseekConfig,
+}
+
+/// How multiplay reaches Soulseek: always through slskd, a separate client.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SoulseekMode {
+    /// multiplay installs slskd (on request) and runs it while it runs.
+    #[default]
+    Managed,
+    /// The user runs slskd themselves; multiplay connects to it.
+    External,
+}
+
+/// Soulseek settings. The Soulseek password and slskd's API key live in the encrypted vault,
+/// not here.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SoulseekConfig {
+    pub enabled: bool,
+    pub mode: SoulseekMode,
+    /// slskd's address for [`SoulseekMode::External`].
+    pub url: String,
+    /// Soulseek account name for [`SoulseekMode::Managed`].
+    pub username: String,
+    /// Port of the managed slskd on 127.0.0.1.
+    pub managed_port: u16,
+}
+
+impl Default for SoulseekConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: SoulseekMode::Managed,
+            url: "http://127.0.0.1:5030".into(),
+            username: String::new(),
+            managed_port: 5031,
+        }
+    }
+}
+
+/// The update check: off unless the user turns it on in Preferences -> About.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UpdateConfig {
+    /// Ask GitHub for the release list, at most once a day.
+    pub check_for_updates: bool,
+    /// Offer beta releases too (multiplay is in beta, so on).
+    pub include_betas: bool,
+    /// When it last asked (Unix seconds; 0 = never).
+    pub last_checked_epoch: u64,
+}
+
+impl Default for UpdateConfig {
+    fn default() -> Self {
+        Self {
+            check_for_updates: false,
+            include_betas: true,
+            last_checked_epoch: 0,
+        }
+    }
 }
 
 /// Remote-control daemon settings. Off and loopback-only unless the user opts in.
@@ -77,6 +142,13 @@ pub struct AudioHardwareConfig {
     /// Output device for the DJ headphone (cue) mix, `None` for none. Missing in old files.
     #[serde(default)]
     pub dj_headphones_device: Option<String>,
+    /// Decks on the DJ console: 2 or 4 (TASK-220). Missing in old files.
+    #[serde(default = "two_decks")]
+    pub dj_deck_count: usize,
+}
+
+fn two_decks() -> usize {
+    2
 }
 
 impl Default for AudioHardwareConfig {
@@ -91,6 +163,7 @@ impl Default for AudioHardwareConfig {
             target_lufs: -14,
             headphone_crossfeed: "Off".to_string(),
             dj_headphones_device: None,
+            dj_deck_count: 2,
         }
     }
 }
@@ -99,7 +172,6 @@ impl Default for AudioHardwareConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamingProvidersConfig {
     pub enable_youtube: bool,
-    pub enable_spotify: bool,
     pub enable_soundcloud: bool,
     pub enable_bandcamp: bool,
     pub download_cache_dir: String,
@@ -109,7 +181,6 @@ impl Default for StreamingProvidersConfig {
     fn default() -> Self {
         Self {
             enable_youtube: true,
-            enable_spotify: false,
             enable_soundcloud: true,
             enable_bandcamp: true,
             download_cache_dir: "~/.multiplay/downloads".into(),
@@ -121,7 +192,6 @@ impl Default for StreamingProvidersConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct P2PNetworkConfig {
     pub enable_p2p_mesh: bool,
-    pub enable_soulseek: bool,
     pub mesh_listen_port: u16,
     pub soulseek_listen_port: u16,
     pub max_upload_slots: u16,
@@ -131,8 +201,7 @@ pub struct P2PNetworkConfig {
 impl Default for P2PNetworkConfig {
     fn default() -> Self {
         Self {
-            enable_p2p_mesh: true,
-            enable_soulseek: false,
+            enable_p2p_mesh: false,
             mesh_listen_port: 4040,
             soulseek_listen_port: 2234,
             max_upload_slots: 4,

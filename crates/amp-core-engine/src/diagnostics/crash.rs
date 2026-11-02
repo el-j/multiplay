@@ -41,6 +41,11 @@ pub fn crash_report(
 pub fn install_crash_hook(app: AppInfo, log_dir: PathBuf, cleanup: Option<CrashCleanup>) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
+        if amp_ports::panic_is_contained() {
+            // Caught by `contain_panic` (a damaged file): the caller turns it into an error.
+            tracing::warn!("contained panic: {info}");
+            return;
+        }
         if let Some(cleanup) = &cleanup {
             cleanup();
         }

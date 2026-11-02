@@ -6,6 +6,7 @@
 pub mod app_state;
 pub mod engine_factory;
 pub mod runner;
+pub mod soulseek;
 pub mod terminal;
 pub mod tui_keys;
 pub mod tui_overlays;

@@ -7,6 +7,8 @@ publish = false
 description = "Pure-Rust HTTP and Internet Radio (Icecast/Shoutcast) stream resolver adapter"
 
 [dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
 amp-domain = { workspace = true }
 amp-ports = { workspace = true }
 async-trait = { workspace = true }
@@ -20,4 +22,5 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 futures-util = { version = "0.3", default-features = false }
 
 [dev-dependencies]
+proptest = "1.12"
 tokio = { workspace = true }

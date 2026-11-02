@@ -30,3 +30,10 @@ Describe the release-build demo performed and link evidence (screenshot, screen 
 
 ## Status
 - **Status:** Pending
+
+## Evidence (2026-11-02, branch feat/plan-057-dj)
+- Setting `audio.dj_deck_count` (2 default, 4), Preferences → Audio "DJ decks". The GUI engine always runs four decks; the console shows two or four, and hiding C/D stops them.
+- Console: four detail lanes; strips A/C left, B/D right; mixer faders for every deck with an L/R/T crossfader-side badge (click cycles); minimum console 560×440 with four decks.
+- `cargo test -p amp-core-engine dj_four_deck`: assignment routing (A left, B right, C/D through, re-assignable); release soak (10 min, four decks at 44.1/48/22.05/96 kHz, moving crossfader and pitch): 0 underruns, added to CI's DJ release step.
+- `crates/amp-adapter-gui/tests/dj_four_deck.rs` (setting, on-air follows assignment), `responsive_layout.rs` four-deck fit at 560×440, 800×500, 1200×700.
+- Full gate: 640 passed. Not yet: keyboard shortcuts for C/D (mouse only), release-build manual demo.

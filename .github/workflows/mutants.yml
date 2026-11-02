@@ -1,0 +1,51 @@
+name: Weekly mutation testing
+
+# cargo-mutants (TASK-187) changes the code on purpose (a `<` into `<=`, a `+` into `-`, a body
+# into `Default::default()`) and checks that some test fails. Surviving mutants are untested
+# behaviour. Scope: the pure domain model and the DSP, where a silent mistake is audible.
+# The report is attached to the run; the score is recorded in docs/performance.md.
+on:
+  schedule:
+    - cron: '41 2 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutants:
+    name: cargo-mutants (domain, DSP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config \
+            libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev libx11-dev libxi-dev \
+            libxcursor-dev libxrandr-dev libgl1-mesa-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants@25
+      - name: Mutants
+        # Survivors are reported, not failed on, until a baseline score is recorded.
+        continue-on-error: true
+        run: |
+          cargo mutants --no-shuffle --timeout 120 --in-place \
+            -p amp-domain \
+            -f 'crates/amp-core-engine/src/dsp/*.rs' \
+            -f 'crates/amp-core-engine/src/library_index.rs' \
+            -f 'crates/amp-core-engine/src/update_check.rs'
+      - name: Score
+        if: always()
+        run: |
+          for f in caught missed timeout unviable; do
+            printf '%-9s %s\n' "$f" "$(wc -l < mutants.out/$f.txt 2>/dev/null || echo 0)"
+          done | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-report
+          path: mutants.out

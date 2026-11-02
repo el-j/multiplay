@@ -1,0 +1,37 @@
+name: Weekly soak
+
+# Long-running playback with the real engine and the real-time null output (TASK-186): FLAC and
+# MP3 back to back, resident memory sampled every minute; fails when it grows by 5 MiB per hour
+# or more. Results go to the run log; docs/performance.md records them.
+on:
+  schedule:
+    - cron: '23 4 * * 0'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Soak length in minutes (GitHub jobs stop at 6 h)
+        default: '120'
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    name: Soak (Linux, release)
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      SOAK_MINUTES: ${{ github.event.inputs.minutes || '120' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config \
+            libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev libx11-dev libxi-dev \
+            libxcursor-dev libxrandr-dev libgl1-mesa-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Stress tests (skips, slow and dropped streams, hanging resolver)
+        run: cargo test --release --locked -p amp-adapter-gui --test stress
+      - name: Soak
+        run: cargo test --release --locked -p amp-adapter-gui --test stress soak -- --ignored --nocapture

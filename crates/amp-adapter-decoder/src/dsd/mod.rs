@@ -41,7 +41,22 @@ fn err(msg: impl Into<String>) -> DecodeError {
     DecodeError::UnsupportedFormat(format!("DSD: {}", msg.into()))
 }
 
+/// Largest header chunk or audio block read in one go. Sizes come from the file, so a damaged
+/// one could ask for gigabytes (TASK-185); real DSD headers and blocks are a few KiB.
+const MAX_READ: usize = 1 << 20;
+/// DSD files carry at most 6 channels in practice; 8 leaves room.
+const MAX_CHANNELS: usize = 8;
+/// DSF block size per channel (4096 in every real file).
+const MAX_BLOCK: usize = 1 << 16;
+/// DSD64 is 2.8224 MHz; DSD1024 about 45 MHz.
+const DSD_RATES: std::ops::RangeInclusive<u32> = 2_000_000..=50_000_000;
+
 fn read_exact<R: Read>(r: &mut R, n: usize) -> Result<Vec<u8>, DecodeError> {
+    if n > MAX_READ {
+        return Err(err(format!(
+            "a {n}-byte chunk is too large; the file is damaged"
+        )));
+    }
     let mut buf = vec![0; n];
     r.read_exact(&mut buf).map_err(|e| err(e.to_string()))?;
     Ok(buf)
@@ -70,7 +85,15 @@ fn parse_dsf<R: Read + Seek>(r: &mut R) -> Result<Info, DecodeError> {
             lsb_first: bits == 1,
         },
     };
-    pos += le64(&fmt[4..]);
+    if info.channels == 0 || info.channels > MAX_CHANNELS || !DSD_RATES.contains(&info.dsd_rate) {
+        return Err(err("damaged DSF header (channels or rate)"));
+    }
+    if let Layout::Blocks { block, .. } = info.layout {
+        if block == 0 || block > MAX_BLOCK {
+            return Err(err("damaged DSF header (block size)"));
+        }
+    }
+    pos = pos.saturating_add(le64(&fmt[4..]));
     r.seek(SeekFrom::Start(pos))
         .map_err(|e| err(e.to_string()))?;
     if read_exact(r, 12)?[..4] != *b"data" {
@@ -98,11 +121,11 @@ fn parse_dff<R: Read + Seek>(r: &mut R) -> Result<Info, DecodeError> {
         let size = be64(&ch[4..]);
         match &ch[..4] {
             b"PROP" => {
-                let prop = read_exact(r, size as usize)?;
+                let prop = read_exact(r, usize::try_from(size).unwrap_or(usize::MAX))?;
                 let mut p = 4; // "SND "
                 while p + 12 <= prop.len() {
                     let sub = be64(&prop[p + 4..]) as usize;
-                    let body = &prop[p + 12..(p + 12 + sub).min(prop.len())];
+                    let body = &prop[p + 12..(p + 12).saturating_add(sub).min(prop.len())];
                     match &prop[p..p + 4] {
                         b"FS  " if body.len() >= 4 => {
                             rate = u32::from_be_bytes(body[..4].try_into().unwrap_or_default());
@@ -115,17 +138,23 @@ fn parse_dff<R: Read + Seek>(r: &mut R) -> Result<Info, DecodeError> {
                         }
                         _ => {}
                     }
-                    p += 12 + sub + sub % 2;
+                    p = p
+                        .saturating_add(12)
+                        .saturating_add(sub)
+                        .saturating_add(sub % 2);
                 }
             }
             b"DSD " => data = Some((pos + 12, size)),
             _ => {}
         }
-        pos += 12 + size + size % 2;
+        pos = pos
+            .saturating_add(12)
+            .saturating_add(size)
+            .saturating_add(size % 2);
     }
     let (offset, len) = data.ok_or_else(|| err("missing DSD data chunk"))?;
-    if channels == 0 || rate == 0 {
-        return Err(err("missing sample rate or channel count"));
+    if channels == 0 || channels > MAX_CHANNELS || !DSD_RATES.contains(&rate) {
+        return Err(err("missing or damaged sample rate or channel count"));
     }
     Ok(Info {
         channels,

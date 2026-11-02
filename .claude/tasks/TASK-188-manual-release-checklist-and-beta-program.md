@@ -28,3 +28,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-050-qa)
+- `docs/release-checklist.md`: install (checksums, per-OS, `--version`, icon), first run (setup, first track < 60 s, restart), playing (gapless album, seek, formats + BIT-PERFECT, keyboard, media keys, 30-min radio), library, online sources, device unplug, sleep/wake, remote pairing/requests, diagnostics, uninstall, and a per-OS record table.
+- `.github/ISSUE_TEMPLATE/`: bug report and online-source breakage forms (both ask for Copy diagnostics), security contact link. `docs/RELEASING.md` links the checklist and the CHANGELOG step.
+- Open: running two RCs through it (needs tagged releases).

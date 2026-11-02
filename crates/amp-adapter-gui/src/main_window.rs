@@ -104,6 +104,31 @@ fn track_row(app: &MultiplayGuiApp, ui: &mut Ui, narrow: bool) {
             )
             .on_hover_text("Remote control is listening. Phones and requests: the 📱 window.");
         }
+        if let Some(update) = &app.update_available {
+            let label = if update.fixes_online_source() {
+                "NEW VERSION (fixes online sources)"
+            } else {
+                "NEW VERSION"
+            };
+            if ui
+                .add(
+                    egui::Label::new(
+                        RichText::new(label)
+                            .size(10.0)
+                            .strong()
+                            .color(Color32::from_rgb(120, 200, 255)),
+                    )
+                    .sense(egui::Sense::click()),
+                )
+                .on_hover_text(format!(
+                    "{} is out. Click to open its download page.",
+                    update.name
+                ))
+                .clicked()
+            {
+                crate::about::open_url(&update.url);
+            }
+        }
         if let amp_domain::PlaybackState::Buffering { progress_percent } =
             app.audio_driver.playback_state()
         {

@@ -46,7 +46,7 @@ crates.io as of 2026-10-31:
 - **Evidence Links:** ADR-005, terminal log.
 
 ## Status
-- **Status:** Pending
+- **Status:** Completed
 
 ## Implementation Evidence (2026-10-31)
 - Spike (throwaway, outside the workspace) decoded all 12 RFC 8251 vectors with `opus-decoder` 0.1.1, `rusty-opus` 1.0.2 and `moosicbox_opus_native` 0.5.0, plus a 30 s 128 kbit/s music-like Ogg Opus file. Full tables in [ADR-005](file:///Users/rex-fab-alt/Documents/private/multiplay/docs/adr/ADR-005-opus-decoder.md).

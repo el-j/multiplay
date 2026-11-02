@@ -249,13 +249,24 @@ pub fn looks_like_link(text: &str) -> bool {
         .any(|host| lower.contains(host))
 }
 
+/// Why a link cannot be added, for links multiplay recognises but does not play: Spotify was
+/// dropped (ADR-007). `None` for every other link.
+#[must_use]
+pub fn unsupported_link(input: &str) -> Option<&'static str> {
+    matches!(
+        parse_source_url(input.trim()),
+        ParsedSourceUrl::SpotifyTrack { .. }
+    )
+    .then_some("Spotify links can't be played: multiplay does not support Spotify.")
+}
+
 /// The playlist entry for a pasted link, or `None` when `input` is not a link. The title is a
 /// placeholder until the provider lookup fills in the real one.
 #[must_use]
 pub fn track_from_link(input: &str) -> Option<crate::Track> {
     use crate::AudioSource;
     let trimmed = input.trim();
-    if !looks_like_link(trimmed) {
+    if !looks_like_link(trimmed) || unsupported_link(trimmed).is_some() {
         return None;
     }
     let (source, title) = match parse_source_url(trimmed) {

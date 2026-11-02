@@ -3,8 +3,6 @@
 #![forbid(unsafe_code)]
 
 use crate::engine_factory::{create_headless_engine, create_player_engine};
-use amp_adapter_p2p::SecurePeerNode;
-use amp_adapter_soulseek::SoulseekAdapter;
 use amp_adapter_storage::RedbStorageAdapter;
 use amp_adapter_tui::{
     DenseConsole, DockingWindowManager, EqualizerWidget, PlaylistWidget, SearchViewModal,
@@ -88,10 +86,14 @@ impl MultiplayApp {
         if let Ok(bc) = amp_adapter_bandcamp::PureBandcampAdapter::new() {
             search_coordinator.register_provider(SourceKind::Bandcamp, Arc::new(bc));
         }
-        let soulseek = Arc::new(SoulseekAdapter::default());
-        search_coordinator.register_provider(SourceKind::Soulseek, soulseek);
-        let p2p = Arc::new(SecurePeerNode::default());
-        search_coordinator.register_provider(SourceKind::P2PShared, p2p);
+        if let Some(soulseek) = crate::soulseek::connect_from_settings() {
+            search_coordinator.register_provider(SourceKind::Soulseek, soulseek);
+        }
+        // The mesh is joined from the desktop app; the terminal app does not run a node yet.
+        search_coordinator.register_provider(
+            SourceKind::P2PShared,
+            Arc::new(amp_adapter_p2p::MeshProvider::default()),
+        );
 
         let (search_tx, search_rx) = mpsc::unbounded_channel();
         let search_coordinator = Arc::new(search_coordinator);

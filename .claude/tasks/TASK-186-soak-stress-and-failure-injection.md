@@ -27,3 +27,8 @@ Describe the release-build demo performed and link evidence (screenshot, log, CI
 
 ## Status
 - **Status:** Pending
+
+## Implementation Evidence (2026-11-01, branch feat/plan-050-qa)
+- `crates/amp-adapter-gui/tests/stress.rs` (every CI run): 1,000 rapid skips (no leaked threads, RSS back), 1 KB/s trickling server (Buffering shown, Stop < 1 s), server hang-up mid-stream (ends/fails, no hang), never-answering resolver (error after the timeout, next track plays). Opt-in soak (`SOAK_MINUTES`) fits RSS growth by least squares, fails at ≥ 5 MiB/h; `.github/workflows/soak.yml` weekly, 120 min.
+- Bug found and fixed: a slow network stream stuttered while reporting "Playing". New `watch_stream_buffer`: for network sources, when the output ring runs nearly dry the output is held (5 ms fade) and the state is Buffering; it resumes at 3/4 of the ring. Local files are unaffected (gapless and DJ tests pass, dj_toggle 5/5).
+- Open: disk-full during download and device-loss injection (no injectable seam yet).

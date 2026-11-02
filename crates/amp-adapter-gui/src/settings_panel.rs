@@ -10,6 +10,10 @@ use eframe::egui::{self, Color32, RichText, Ui};
 pub struct SettingsOpens {
     pub skin_dialog: bool,
     pub remote_window: bool,
+    /// A button in the Soulseek section.
+    pub soulseek: Option<crate::soulseek_setup::SoulseekAction>,
+    /// A button in the mesh section.
+    pub mesh: Option<crate::mesh_setup::MeshAction>,
     /// A button in the About tab.
     pub about: crate::about::AboutAction,
 }
@@ -26,6 +30,14 @@ pub enum GuiSettingsTab {
     Plugins,
     Remote,
     About,
+}
+
+/// Background services the panel controls.
+pub struct Services<'a> {
+    pub remote: &'a mut crate::remote_manager::RemoteGuiManager,
+    pub soulseek: &'a mut crate::soulseek_setup::SoulseekUi,
+    pub mesh: &'a mut crate::mesh_setup::MeshUi,
+    pub slskd_installed: bool,
 }
 
 /// Output devices for the audio tab.
@@ -47,9 +59,15 @@ impl SettingsGuiPanel {
         config: &mut AppConfig,
         theme: &mut amp_core_engine::WinampTheme,
         opens: &mut SettingsOpens,
-        remote: &mut crate::remote_manager::RemoteGuiManager,
+        services: Services<'_>,
         outputs: OutputDevices<'_>,
     ) -> bool {
+        let Services {
+            remote,
+            soulseek,
+            mesh,
+            slskd_installed,
+        } = services;
         let (devices, headphones_error) = (outputs.names, outputs.headphones_error);
         let mut done = false;
         ui.group(|ui| {
@@ -150,6 +168,12 @@ impl SettingsGuiPanel {
                         ui.colored_label(Color32::from_rgb(240, 160, 60), err);
                     }
                     ui.horizontal_wrapped(|ui| {
+                        ui.label("DJ decks:");
+                        ui.radio_value(&mut config.audio.dj_deck_count, 2, "2 (A, B)");
+                        ui.radio_value(&mut config.audio.dj_deck_count, 4, "4 (A, B, C, D)")
+                            .on_hover_text("C and D are not crossfaded until you assign them a side (L/R) in the mixer");
+                    });
+                    ui.horizontal_wrapped(|ui| {
                         ui.label("Binaural Headphone Crossfeed:");
                         egui::ComboBox::from_id_salt("crossfeed_cb")
                             .selected_text(&config.audio.headphone_crossfeed)
@@ -170,10 +194,6 @@ impl SettingsGuiPanel {
                         "Enable YouTube Music Resolver",
                     );
                     ui.checkbox(
-                        &mut config.streaming.enable_spotify,
-                        "Enable Spotify Connect",
-                    );
-                    ui.checkbox(
                         &mut config.streaming.enable_soundcloud,
                         "Enable SoundCloud Streamer",
                     );
@@ -183,14 +203,8 @@ impl SettingsGuiPanel {
                     );
                 }
                 GuiSettingsTab::P2P => {
-                    ui.checkbox(
-                        &mut config.p2p.enable_p2p_mesh,
-                        "Enable Decentralized P2P Mesh",
-                    );
-                    ui.checkbox(
-                        &mut config.p2p.enable_soulseek,
-                        "Enable Soulseek Direct Transfer",
-                    );
+                    crate::mesh_setup::show_settings(ui, config, mesh, &mut opens.mesh);
+                    crate::soulseek_setup::show_settings(ui, config, soulseek, slskd_installed, &mut opens.soulseek);
                     ui.add(
                         egui::Slider::new(&mut config.p2p.max_upload_slots, 1..=16)
                             .text("Max Upload Slots"),
@@ -262,7 +276,7 @@ impl SettingsGuiPanel {
                 GuiSettingsTab::Plugins => {
                     ui.label("No external plugins currently loaded.");
                 }
-                GuiSettingsTab::About => crate::about::show(ui, &mut opens.about),
+                GuiSettingsTab::About => crate::about::show(ui, &mut opens.about, &mut config.updates),
                 GuiSettingsTab::Remote => {
                     ui.label(
                         RichText::new("📱 SMARTPHONE REMOTE CONTROL & PAIRING")

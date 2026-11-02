@@ -25,7 +25,6 @@ CRATES=(
     "amp-adapter-decoder"
     "amp-adapter-cpal"
     "amp-adapter-storage"
-    "amp-adapter-spotify"
     "amp-adapter-soulseek"
     "amp-adapter-p2p"
     "amp-adapter-youtube"

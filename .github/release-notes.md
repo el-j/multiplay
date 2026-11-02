@@ -7,9 +7,9 @@
 | System | File |
 |---|---|
 | macOS 11+ (Apple Silicon and Intel) | `multiplay-{{VERSION}}-macos-universal.dmg` |
-| Windows 10/11 (64-bit) | `multiplay-{{VERSION}}-windows-x86_64.zip` |
-| Linux x86_64 | `multiplay-{{VERSION}}-linux-x86_64.AppImage` or `.tar.gz` |
-| Linux ARM64 (e.g. Raspberry Pi 4/5 with a 64-bit OS) | `multiplay-{{VERSION}}-linux-aarch64.AppImage` or `.tar.gz` |
+| Windows 10/11 (64-bit) | `multiplay-{{VERSION}}-windows-x86_64.msi` (installer) or `.zip` |
+| Linux x86_64 | `multiplay-{{VERSION}}-linux-x86_64.deb` (Debian, Ubuntu), `.AppImage` or `.tar.gz` |
+| Linux ARM64 (e.g. Raspberry Pi 4/5 with a 64-bit OS) | `multiplay-{{VERSION}}-linux-aarch64.deb`, `.AppImage` or `.tar.gz` |
 
 Each package has the desktop app (`multiplay`) and the terminal version (`multiplay-tui`), plus
 `CHANGELOG.md`, `privacy.md` (every connection the app makes) and `THIRD_PARTY_LICENSES.html`.
@@ -30,13 +30,20 @@ xattr -dr com.apple.quarantine /Applications/Multiplay.app
 
 ### Windows
 
-Unzip and run `multiplay.exe`.
+Run the `.msi` installer: Multiplay goes to Program Files with a Start menu entry, and later
+versions install over it. Or unzip the `.zip` and run `multiplay.exe`.
 <!-- unsigned-windows -->
 
 This beta is not code-signed yet, so SmartScreen may warn: click **More info → Run anyway**.
 <!-- /unsigned-windows -->
 
 ### Linux
+
+On Debian, Ubuntu and their relatives the `.deb` adds Multiplay to the app menu:
+
+```sh
+sudo apt install ./multiplay-{{VERSION}}-linux-x86_64.deb
+```
 
 The AppImage runs on most distributions (glibc 2.35 or newer, e.g. Ubuntu 22.04+, Debian 12+,
 Fedora 36+):

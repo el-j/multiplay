@@ -11,4 +11,6 @@ serde = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+toml = "1"
+proptest = "1.12"
 serde_json = { workspace = true }

@@ -187,19 +187,19 @@ fn open_source_blocking(
                             tokio::runtime::RuntimeFlavor::MultiThread => {
                                 tokio::task::block_in_place(|| {
                                     current.block_on(tokio::time::timeout(
-                                        resolve_timeout,
+                                        resolver.resolve_timeout().unwrap_or(resolve_timeout),
                                         resolver.resolve_stream(&src),
                                     ))
                                 })
                             }
                             _ => rt.block_on(tokio::time::timeout(
-                                resolve_timeout,
+                                resolver.resolve_timeout().unwrap_or(resolve_timeout),
                                 resolver.resolve_stream(&src),
                             )),
                         }
                     } else {
                         rt.block_on(tokio::time::timeout(
-                            resolve_timeout,
+                            resolver.resolve_timeout().unwrap_or(resolve_timeout),
                             resolver.resolve_stream(&src),
                         ))
                     };
@@ -219,9 +219,7 @@ fn open_source_blocking(
                     return decoder_factory.open_stream(stream);
                 }
             }
-            Err(DecodeError::UnsupportedFormat(format!(
-                "No stream resolver registered for audio source: {source:?}"
-            )))
+            Err(no_resolver(source))
         }
     }
 }
@@ -294,9 +292,11 @@ async fn resolve_and_open_once(
         source => {
             for resolver in resolvers {
                 if resolver.handles_source(source) {
-                    let timed =
-                        tokio::time::timeout(resolve_timeout, resolver.resolve_stream(source))
-                            .await;
+                    let timed = tokio::time::timeout(
+                        resolver.resolve_timeout().unwrap_or(resolve_timeout),
+                        resolver.resolve_stream(source),
+                    )
+                    .await;
                     if cancelled.load(Ordering::Acquire) {
                         return Err((DecodeError::OpenFailed("Cancelled".into()), false));
                     }
@@ -350,4 +350,16 @@ async fn resolve_and_open_once(
             ))
         }
     }
+}
+
+/// The error for a source no resolver handles; Spotify entries from older versions say why.
+fn no_resolver(source: &amp_domain::AudioSource) -> DecodeError {
+    if matches!(source, amp_domain::AudioSource::Spotify { .. }) {
+        return DecodeError::UnsupportedFormat(
+            "Spotify isn't supported: this playlist entry can't be played (ADR-007)".into(),
+        );
+    }
+    DecodeError::UnsupportedFormat(format!(
+        "No stream resolver registered for audio source: {source:?}"
+    ))
 }

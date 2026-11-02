@@ -23,6 +23,7 @@ getrandom = "0.4"
 url = "2.5"
 
 [dev-dependencies]
+proptest = "1.12"
 tokio = { workspace = true, features = ["rt", "macros"] }
 amp-adapter-decoder = { path = "../amp-adapter-decoder" }
 uuid = { workspace = true }

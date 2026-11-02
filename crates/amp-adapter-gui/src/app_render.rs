@@ -26,6 +26,10 @@ impl eframe::App for MultiplayGuiApp {
         self.sync_media_controls();
         self.poll_library();
         self.poll_import();
+        self.maybe_check_for_updates();
+        self.poll_update_check();
+        self.poll_soulseek();
+        self.poll_mesh();
         if self.importing() {
             ctx.request_repaint_after(Duration::from_millis(250));
         }

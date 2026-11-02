@@ -8,6 +8,9 @@
 
 use std::sync::{Arc, Mutex};
 
+/// Song titles a stream remembers.
+pub const MAX_TITLE_HISTORY: usize = 100;
+
 /// Shared sink for the most recent ICY `StreamTitle` and history of titles observed.
 #[derive(Debug, Default, Clone)]
 pub struct IcyMetadataTap {
@@ -32,6 +35,11 @@ impl IcyMetadataTap {
             if guard.latest_title.as_deref() != Some(title.as_str()) {
                 guard.latest_title = Some(title.clone());
                 guard.history.push(title);
+                // A station running for days must not grow this forever (TASK-185).
+                if guard.history.len() > MAX_TITLE_HISTORY {
+                    let excess = guard.history.len() - MAX_TITLE_HISTORY;
+                    guard.history.drain(..excess);
+                }
             }
         }
     }

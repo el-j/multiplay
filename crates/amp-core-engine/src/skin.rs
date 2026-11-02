@@ -77,6 +77,30 @@ pub struct WinampSkin {
 
 pub struct SkinLoader;
 
+/// Largest `.wsz` file read at all. Real skins are well under 1 MiB.
+pub const MAX_SKIN_FILE_BYTES: u64 = 16 << 20;
+/// Largest single file inside a skin once unpacked (a 275x116 main.bmp is about 100 KiB).
+pub const MAX_SKIN_ENTRY_BYTES: u64 = 4 << 20;
+/// Largest total unpacked size of the files a skin uses.
+pub const MAX_SKIN_TOTAL_BYTES: u64 = 32 << 20;
+/// Most files a skin archive may hold.
+pub const MAX_SKIN_ENTRIES: usize = 512;
+
+/// Reads at most `limit` bytes of `file`; an error when it holds more (a zip bomb, TASK-185).
+fn read_capped(file: &mut impl Read, limit: u64, name: &str) -> Result<Vec<u8>, String> {
+    let mut buf = Vec::new();
+    file.take(limit + 1)
+        .read_to_end(&mut buf)
+        .map_err(|e| format!("{name}: {e}"))?;
+    if buf.len() as u64 > limit {
+        return Err(format!(
+            "{name} in the skin is too large (over {} MiB)",
+            limit >> 20
+        ));
+    }
+    Ok(buf)
+}
+
 impl SkinLoader {
     /// Loads complete Winamp skin from in-memory .wsz zip bytes.
     pub fn load_skin_from_wsz_bytes(bytes: &[u8], skin_name: &str) -> Result<WinampSkin, String> {
@@ -91,6 +115,10 @@ impl SkinLoader {
         let mut bitmaps = HashMap::new();
         let mut viscolor_raw = None;
         let mut pledit_raw = None;
+        if archive.len() > MAX_SKIN_ENTRIES {
+            return Err(format!("The skin has too many files ({}).", archive.len()));
+        }
+        let mut total: u64 = 0;
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
@@ -101,17 +129,25 @@ impl SkinLoader {
                 .unwrap_or(&raw_name)
                 .to_string();
 
+            let wanted = base_name == "viscolor.txt"
+                || base_name == "pledit.txt"
+                || base_name.ends_with(".bmp");
+            if !wanted {
+                continue;
+            }
+            let buf = read_capped(&mut file, MAX_SKIN_ENTRY_BYTES, &base_name)?;
+            total += buf.len() as u64;
+            if total > MAX_SKIN_TOTAL_BYTES {
+                return Err(format!(
+                    "The skin is too large (over {} MiB unpacked).",
+                    MAX_SKIN_TOTAL_BYTES >> 20
+                ));
+            }
             if base_name == "viscolor.txt" {
-                let mut content = String::new();
-                let _ = file.read_to_string(&mut content);
-                viscolor_raw = Some(content);
+                viscolor_raw = Some(String::from_utf8_lossy(&buf).into_owned());
             } else if base_name == "pledit.txt" {
-                let mut content = String::new();
-                let _ = file.read_to_string(&mut content);
-                pledit_raw = Some(content);
-            } else if base_name.ends_with(".bmp") {
-                let mut buf = Vec::new();
-                let _ = file.read_to_end(&mut buf);
+                pledit_raw = Some(String::from_utf8_lossy(&buf).into_owned());
+            } else {
                 bitmaps.insert(base_name, buf);
             }
         }
@@ -129,6 +165,12 @@ impl SkinLoader {
 
     /// Loads complete Winamp skin from .wsz file on disk.
     pub fn load_skin_from_wsz_file(path: &Path) -> Result<WinampSkin, String> {
+        let size = std::fs::metadata(path)
+            .map_err(|e| format!("Failed to read .wsz: {e}"))?
+            .len();
+        if size > MAX_SKIN_FILE_BYTES {
+            return Err(format!("The skin file is too large ({} MiB).", size >> 20));
+        }
         let bytes = std::fs::read(path).map_err(|e| format!("Failed to read .wsz: {e}"))?;
         let name = path
             .file_stem()
@@ -213,7 +255,8 @@ impl SkinLoader {
 
     fn parse_hex_color(val: &str) -> Option<RgbColor> {
         let clean = val.trim_start_matches('#');
-        if clean.len() == 6 {
+        // ASCII hex only: slicing other text by byte offsets can split a character (TASK-185).
+        if clean.len() == 6 && clean.bytes().all(|b| b.is_ascii_hexdigit()) {
             let r = u8::from_str_radix(&clean[0..2], 16).ok()?;
             let g = u8::from_str_radix(&clean[2..4], 16).ok()?;
             let b = u8::from_str_radix(&clean[4..6], 16).ok()?;

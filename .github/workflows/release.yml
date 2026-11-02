@@ -229,6 +229,20 @@ jobs:
           tar -czf "dist/$NAME.tar.gz" -C staging "$NAME"
           echo "STAGED=$S" >> "$GITHUB_ENV"
 
+      # Debian/Ubuntu package (TASK-181). `~` sorts a beta before its final release.
+      - name: Install cargo-deb
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb@3
+
+      - name: Package the .deb
+        run: |
+          set -euo pipefail
+          cargo deb -p amp-adapter-gui --no-build --deb-version "${VERSION/-/\~}" \
+            -o "dist/multiplay-$VERSION-linux-$ARCH.deb"
+          dpkg-deb --info "dist/multiplay-$VERSION-linux-$ARCH.deb"
+          dpkg-deb --contents "dist/multiplay-$VERSION-linux-$ARCH.deb" | grep -E 'usr/bin/multiplay(-tui)?$'
+
       - name: Package the AppImage
         run: |
           set -euo pipefail
@@ -320,6 +334,39 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           (cd staging && 7z a -tzip "../dist/$NAME.zip" "$NAME")
+
+      # Windows installer (TASK-181): WiX 5 as a .NET tool. MSI versions are numeric, so betas of
+      # one version differ in the fourth field (the run number) and replace each other.
+      - name: Build the MSI installer
+        shell: bash
+        env:
+          CARGO_VERSION: ${{ needs.version.outputs.cargo }}
+        run: |
+          set -euo pipefail
+          dotnet tool install --global wix --version 5.0.2
+          wix build packaging/windows/multiplay.wxs -arch x64 \
+            -d "Version=$CARGO_VERSION.${{ github.run_number }}" \
+            -d "SourceDir=staging/$NAME" \
+            -d "IconFile=assets/icon/multiplay.ico" \
+            -o "dist/multiplay-$VERSION-windows-x86_64.msi"
+          # WiX also writes a debug database; it is not for users.
+          rm -f dist/*.wixpdb
+          ls -la dist
+
+      - name: Sign the MSI (Azure Artifact Signing)
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/artifact-signing-action@v2
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+          files-folder: ${{ github.workspace }}\dist
+          files-folder-filter: msi
+          description: Multiplay
+          description-url: https://github.com/el-j/multiplay
 
       - uses: actions/upload-artifact@v7
         with:
